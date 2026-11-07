@@ -41,6 +41,24 @@ describe('weekPlan', () => {
   })
 })
 
+describe('beep focus', () => {
+  it('turns Saturday into a second interval session', () => {
+    const w = weekPlan('intermediate', 5, null, { beepFocus: true })
+    const sat = w.days.find(d => d.day === 6)
+    expect(sat).toMatchObject({ kind: 'run', key: 'vo2b' })
+    expect(sat.title).toContain('400-300-200')
+    expect(w.days.filter(d => d.kind === 'run').length).toBe(3)
+  })
+  it('gives beginners the recovery walk on Sunday instead of a full rest', () => {
+    const w = weekPlan('beginner', 1, null, { beepFocus: true })
+    expect(w.days.find(d => d.day === 0).key).toBe('walk')
+    expect(buildPoliceProgramme('beginner', 1, { beepFocus: true }).routines.map(r => r.police)).toContain('vo2b')
+  })
+  it('test weeks still re-test on Saturday', () => {
+    expect(weekPlan('beginner', 8, null, { beepFocus: true }).days.find(d => d.day === 6).kind).toBe('test')
+  })
+})
+
 describe('buildPoliceProgramme', () => {
   it('builds real routines on catalogue exercises and a 12-week programme', () => {
     const { routines, programme, keys } = buildPoliceProgramme('intermediate', 1)

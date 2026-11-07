@@ -119,6 +119,25 @@ const VO2 = {
     { name: 'Hill repeats', how: '4 rounds: 3 min hard uphill, jog back down to recover.', min: 26 },
     { name: 'Distance ladder', how: 'Easy then hard for the same distance, up and back down: 100, 200, 300, 400, 300, 200, 100 m.', min: 25 },
   ],
+  // Beep focus adds a second interval day; these are its formats, one per week of the phase.
+  extra1: [
+    { name: '200 m + 100 m sprints', how: '5 × 200 m sprint with 1 min rest, then 5 × 100 m sprint with 30 s rest.', min: 22 },
+    { name: '30/30 sprints', how: '10 rounds: sprint 30 s, walk 30 s.', min: 18 },
+    { name: '200 m + 100 m sprints', how: '5 × 200 m sprint with 1 min rest, then 5 × 100 m sprint with 30 s rest.', min: 22 },
+    { name: 'Beep shuttles', how: '20 m shuttles at 1 level above your best for 1 min, rest 1 min, ×6.', min: 18 },
+  ],
+  extra2: [
+    { name: '400-300-200 repeats', how: '400 m hard (2 min rest), 300 m hard (90 s rest), 200 m hard (1 min rest). Twice through, then one more 400 m.', min: 28 },
+    { name: 'Beep shuttles', how: '20 m shuttles at 2 levels above your best for 1 min, rest 1 min, ×8.', min: 20 },
+    { name: '400-300-200 repeats', how: '400 m hard (2 min rest), 300 m hard (90 s rest), 200 m hard (1 min rest). Twice through, then one more 400 m.', min: 28 },
+    { name: '50 m repeats', how: '20 rounds: 50 m at 80-90% effort, walk 50 m back.', min: 22 },
+  ],
+  extra3: [
+    { name: '5 × 400 m', how: '5 × 400 m hard with 2 min rest between. Hold the same time on every one.', min: 25 },
+    { name: 'Beep shuttles', how: 'Run your goal level for 1 min, rest 1 min, ×10. Turn on the line.', min: 22 },
+    { name: '5 × 400 m', how: '5 × 400 m hard with 2 min rest. Beat last time by 2 seconds each.', min: 25 },
+    { name: 'Shuttle sprints', how: '6 sets of 10 × 20 m shuttles, 30 s rest. Taper week: keep it sharp, not exhausting.', min: 18 },
+  ],
   2: [
     { name: '30/30 sprints', how: '10 rounds: sprint 30 s, walk or rest 30 s. Then 10 min easy.', min: 20 },
     { name: '50 m repeats', how: '20 rounds: 50 m at 80-90% effort, walk 50 m back.', min: 22 },
@@ -140,9 +159,9 @@ const easyKm = (level, week) => {
 const tempoMin = week => Math.min(28, 18 + Math.floor((week - 1) * 1))
 
 /** The VO2 format for a week (1-based): the phase's list, one per week of the phase. */
-export const vo2For = week => {
+export const vo2For = (week, extra = false) => {
   const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
-  const list = VO2[Math.ceil(w / 4)]
+  const list = VO2[(extra ? 'extra' : '') + Math.ceil(w / 4)]
   return list[(w - 1) % 4]
 }
 
@@ -169,7 +188,11 @@ const DAY_NAMES = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5:
  * [{ day, dayName, kind, key, title, details: [string], recovery: [string] }].
  * kind: 'gym' | 'run' | 'walk' | 'rest'. key names the routine (buildPoliceProgramme).
  */
-export function weekPlan(level, week, age) {
+/**
+ * `opts.beepFocus`: the beep test is the weak point, so the Saturday session (the hard steady
+ * run, or the beginner's incline walk) becomes a second interval session.
+ */
+export function weekPlan(level, week, age, opts = {}) {
   const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
   const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
   const phase = phaseOf(lv, w)
@@ -197,6 +220,11 @@ export function weekPlan(level, week, age) {
     if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'Sauna after: 15-20 min, hydrate']
     d.dayName = DAY_NAMES[d.day]
   }
+  if (opts.beepFocus) {
+    const x = vo2For(w, true)
+    days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['Sauna: 15-20 min'] }
+    if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
+  }
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
@@ -212,6 +240,7 @@ export function routineFor(key, level, range, w = 1) {
   const im = level === 'intermediate'
   if (key === 'vo2') return { name: 'VO2 Max Intervals', emoji: 'figureRun', ex: [cardio('0685', vo2For(w).min, im ? 13 : 11)] }
   if (key === 'easy') return { name: 'Easy Run', emoji: 'figureRun', ex: [cardio('0685', Math.round(easyKm(level, w) * 6.5), im ? 10 : 8.5)] }
+  if (key === 'vo2b') return { name: 'Beep Focus Intervals', emoji: 'figureRun', ex: [cardio('0685', vo2For(w, true).min, im ? 13 : 11)] }
   if (key === 'tempo') return { name: 'Hard Steady Run', emoji: 'figureRun', ex: [cardio('0685', tempoMin(w), 12)] }
   if (key === 'walk') return { name: 'Treadmill Recovery Walk', emoji: 'heart', ex: [cardio('3666', 30, 5.5, 12)] }
   return null
@@ -221,9 +250,9 @@ export function routineFor(key, level, range, w = 1) {
  * New routines (fresh ids) and a 12-week programme over them, not saved or started.
  * Returns { routines, programme, keys } where keys maps a day key to its routine id.
  */
-export function buildPoliceProgramme(level, now = Date.now()) {
+export function buildPoliceProgramme(level, now = Date.now(), opts = {}) {
   const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
-  const plan = weekPlan(lv, 1)
+  const plan = weekPlan(lv, 1, null, opts)
   const keys = {}, routines = []
   for (const d of plan.days) {
     if (!d.key || keys[d.key]) continue

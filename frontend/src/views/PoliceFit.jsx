@@ -14,6 +14,7 @@ import { lastBW } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Segmented, TextField } from '../components/ui.jsx'
 import { saveProgramme, startProgramme } from '../lib/programmes.js'
+import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
@@ -57,7 +58,7 @@ function Today({ S, user, P, setTab }) {
   const ready = readiness(P.results, P.beepTarget)
   const week = weekNumber(P.start, todayISO())
   const dow = new Date().getDay()
-  const plan = P.level && week ? weekPlan(P.level, week, P.age) : null
+  const plan = P.level && week ? weekPlan(P.level, week, P.age, { beepFocus: P.beepFocus }) : null
   const day = plan?.days.find(d => d.day === dow)
   const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, seed: Number(todayISO().replace(/-/g, '')) }),
     [P.name, user?.name, week, day, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,7 +67,10 @@ function Today({ S, user, P, setTab }) {
     <div className="card pf-jarvis">
       <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your recruit coach</span></div>
       {lines.map((l, i) => <p key={i}>{l}</p>)}
-      <Button variant="tinted" icon="play" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }}>Hear it</Button>
+      <div className="pf-actions">
+        <Button variant="tinted" icon="play" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }}>Hear it</Button>
+        {isOn(S, 'coach') && <Button variant="tinted" icon="chat" onClick={() => nav('/coach')}>Talk to {BRAND.coach}</Button>}
+      </div>
     </div>
 
     <div className="card pf-ready">
@@ -96,7 +100,7 @@ function Setup({ S, P }) {
   const setP = usePolice()
   const [level, setLevel] = useState(P.level || 'beginner')
   const build = () => {
-    const built = buildPoliceProgramme(level)
+    const built = buildPoliceProgramme(level, Date.now(), { beepFocus: P.beepFocus })
     update(s => {
       s.routines = [...(s.routines || []), ...built.routines.map(({ police, ...r }) => r)]
       saveProgramme(s, built.programme)
@@ -211,7 +215,7 @@ function Plan({ P }) {
   const level = P.level || 'beginner'
   const current = weekNumber(P.start, todayISO()) || 1
   const [week, setWeek] = useState(current)
-  const plan = weekPlan(level, week, P.age)
+  const plan = weekPlan(level, week, P.age, { beepFocus: P.beepFocus })
   const z2 = zone2(P.age)
   return <>
     <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => setP({ level: l })} />
@@ -221,6 +225,8 @@ function Plan({ P }) {
         <div className="pf-z2">{z2 ? <><b>{z2.target} bpm</b><span>zone 2 ({z2.lo}-{z2.hi})</span><span>max about {z2.max}</span></> : <span>Add your age for your heart-rate zones</span>}</div>
       </div>
     </div>
+    <label className="pf-toggle"><input type="checkbox" checked={!!P.beepFocus} onChange={e => setP({ beepFocus: e.target.checked })} />
+      <span><b>Beep focus</b><br />The beep test is my weak point: make Saturday a second interval session.</span></label>
     <div className="pf-weeks" role="tablist" aria-label="Week">
       {Array.from({ length: WEEKS }, (_, i) => i + 1).map(n =>
         <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>{n}</button>)}

@@ -3,11 +3,11 @@
 //
 // The numbers are the NSW Police applicant standards as supplied by the app owner.
 // The beep test has two numbers: the pass mark (S.police.beepTarget, 7.1) that pass/fail is
-// judged by, and a training goal above it (S.police.beepGoal) so the pass is comfortable on the
+// judged by, and a training goal above it (S.police.beepGoal, 7.2) so the pass is comfortable on the
 // day. Both are settings, because standards differ by state and change over time.
 
 export const DEFAULT_BEEP_TARGET = '7.1'
-export const DEFAULT_BEEP_GOAL = '8.1'
+export const DEFAULT_BEEP_GOAL = '7.2'
 
 // better: 'higher' means a bigger number passes, 'lower' a smaller one (a timed course).
 export const STANDARDS = [

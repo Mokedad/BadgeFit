@@ -602,6 +602,43 @@ export const TASKS = ['create', 'review', 'debrief', 'ask', 'adapt'];
 export const ADAPT_REASONS = ['pain', 'busy', 'short', 'great', 'tired', 'other'];
 export const ADAPT_RECENT = 3;
 
+// Police prep (BadgeFit): bounded and typed like everything else here, since the state is the
+// client's. Results: the latest few per standard. Counted under `training` (test results,
+// programme) and `profile` (age, level) on the consent screen.
+const POLICE_TESTS = ['grip', 'bridge', 'jump', 'pushups', 'illinois', 'beep'];
+const POLICE_RESULTS_PER_TEST = 3;
+const pnum = v => { const x = num(v); return x === undefined ? null : Number(x); };
+const beepText = v => (typeof v === 'string' && /^\d{1,2}(\.\d{1,2})?$/.test(v.trim()) ? v.trim() : null);
+export function cleanPolice(P, now = Date.now()) {
+  if (!P || typeof P !== 'object' || Array.isArray(P)) return null;
+  const out = {};
+  if (P.level === 'beginner' || P.level === 'intermediate') out.level = P.level;
+  const start = typeof P.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(P.start) ? P.start : null;
+  if (start) {
+    const days = Math.floor((now - Date.parse(start + 'T00:00:00Z')) / 86400000);
+    if (days >= 0) out.week = Math.min(12, Math.floor(days / 7) + 1);
+  }
+  const age = pnum(P.age);
+  if (age != null && age >= 14 && age <= 80) out.age = Math.round(age);
+  out.beepPass = beepText(P.beepTarget) || '7.1';
+  out.beepGoal = beepText(P.beepGoal) || '7.2';
+  if (typeof P.diet === 'string') out.diet = word(P.diet, 24);
+  if (typeof P.goal === 'string') out.goal = word(P.goal, 12);
+  const results = {};
+  for (const r of Array.isArray(P.results) ? P.results : []) {
+    if (!r || !POLICE_TESTS.includes(r.id) || typeof r.at !== 'string') continue;
+    let v = null;
+    if (r.id === 'grip') { const l = pnum(r.v?.left), rr = pnum(r.v?.right); if (l != null && rr != null) v = { left: l, right: rr }; }
+    else if (r.id === 'beep') v = beepText(String(r.v ?? ''));
+    else v = pnum(r.v);
+    if (v == null) continue;
+    (results[r.id] = results[r.id] || []).push({ at: r.at.slice(0, 10), v });
+  }
+  for (const id of Object.keys(results)) results[id] = results[id].sort((a, b) => (a.at < b.at ? -1 : 1)).slice(-POLICE_RESULTS_PER_TEST);
+  out.results = results;
+  return out.level || Object.keys(results).length ? out : null;
+}
+
 export function build(S, opts = {}) {
   if (typeof opts.handle !== 'string' || !opts.handle) throw new Error('payload.build: opts.handle is required');
   const coach = S.coach || {};
@@ -700,6 +737,11 @@ export function build(S, opts = {}) {
     p.aggregates = aggregates(S, workouts);
     const today = cleanToday(opts.today);
     if (today) p.today = today;
+    // A police applicant (the app's BadgeFit hub, frontend/src/views/PoliceFit.jsx): their
+    // programme, standards results and goals, so the answer speaks to their test. It also
+    // switches the reply to the Jarvis voice (prompts/ask.md).
+    const police = cleanPolice(S.police, now);
+    if (police) p.police = police;
   } else if (opts.kind === 'adapt') {
     // An exercise in the workout running now, and why it needs a rethink: pain, a busy rack, a
     // short day, feeling great. The session as it stands (each entry with its index, so a change

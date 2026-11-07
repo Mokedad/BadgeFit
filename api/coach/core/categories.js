@@ -6,8 +6,8 @@
  * builds from it, so the screen cannot drift from the payload. */
 export const DATA_CATEGORIES = Object.freeze([
   'plan',        // routines, exercises, sets/reps, schedule, progression settings
-  'training',    // logged sets, targets, effort ratings, durations, PRs, session notes in the review window
+  'training',    // logged sets, targets, effort ratings, durations, PRs, session notes in the review window; police fitness test results and programme week
   'bodyweight',  // weigh-ins in the window and your goal weight
-  'profile',     // the intake answers you gave the Coach, including any limitations
+  'profile',     // the intake answers you gave the Coach, including any limitations; police prep level and age
   'prefs'        // unit, language, effort scale
 ]);
