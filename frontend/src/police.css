@@ -1,0 +1,85 @@
+/* Police Prep (views/PoliceFit.jsx). Built on the app's own tokens, so it follows the theme. */
+.pf .pf-tabs{margin-bottom:14px}
+.pf .card{margin-bottom:12px}
+.pf h3{font-size:var(--fs-headline,17px);font-weight:700;margin:0 0 6px}
+.pf h4{font-size:var(--fs-subhead,15px);margin:12px 0 4px}
+.pf ul,.pf ol{margin:4px 0 8px;padding-left:20px;line-height:1.45}
+.pf-sub{color:var(--label-2);font-size:var(--fs-subhead,15px);margin:4px 0 8px;line-height:1.4}
+.pf-pad{padding:0 4px}
+.pf-warn{color:var(--red);font-size:14px}
+.pf-chip{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:600;white-space:nowrap}
+.pf-chip.pass{background:var(--surface-2);background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}
+.pf-chip.fail{background:var(--surface-2);background:color-mix(in srgb,var(--orange) 22%,transparent);color:var(--orange)}
+.pf-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pf-link{background:none;border:0;color:var(--acc,var(--blue));padding:10px 0 0;font-size:14px;text-align:left}
+
+/* Jarvis */
+.pf-jarvis{background:var(--surface-2);background:linear-gradient(160deg,color-mix(in srgb,var(--blue) 26%,var(--surface)),var(--surface) 70%);border:1px solid var(--sep);border:1px solid color-mix(in srgb,var(--blue) 40%,transparent)}
+.pf-jarvis p{margin:6px 0;line-height:1.45}
+.pf-jarvis .btn{margin-top:8px}
+.pf-jarvis-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.pf-jarvis-h .pf-sub{margin:0}
+.pf-orb{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#bfe6ff,var(--blue) 55%,#003a80);box-shadow:0 0 14px var(--blue);animation:pf-pulse 2.4s ease-in-out infinite}
+@keyframes pf-pulse{50%{box-shadow:0 0 4px var(--blue);transform:scale(.92)}}
+@media (prefers-reduced-motion:reduce){.pf-orb{animation:none}}
+
+/* readiness */
+.pf-ready{display:flex;align-items:center;gap:16px}
+.pf-ring{--p:0;flex:none;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--green) calc(var(--p)*1%),var(--surface-3) 0)}
+.pf-ring span{display:grid;place-items:center;width:66px;height:66px;border-radius:50%;background:var(--surface);font-weight:700;font-size:18px}
+
+/* days */
+.pf-day{border-left:4px solid var(--surface-3);background:var(--surface);border-radius:12px;padding:12px 14px;margin:10px 0}
+.pf-day.on{outline:2px solid var(--acc,var(--blue))}
+.pf-day.pf-gym{border-left-color:var(--orange)}
+.pf-day.pf-run{border-left-color:var(--blue)}
+.pf-day.pf-walk{border-left-color:var(--green)}
+.pf-day.pf-test{border-left-color:var(--red)}
+.pf-day-h{display:flex;flex-direction:column;gap:2px}
+.pf-day-h span{color:var(--label-2);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.pf-rec{display:flex;gap:6px;flex-wrap:wrap}
+.pf-note{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--surface-2);background:color-mix(in srgb,var(--orange) 16%,transparent);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.pf-weeks{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
+.pf-weeks button{border:0;border-radius:10px;padding:8px 0;background:var(--surface);color:inherit;font-weight:600}
+.pf-weeks button.now{box-shadow:inset 0 0 0 2px var(--green)}
+.pf-weeks button.on{background:var(--acc,var(--blue));color:var(--on-acc,#fff)}
+
+/* standards */
+.pf-std-h{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;color:inherit;text-align:left;padding:0}
+.pf-std-i{font-size:24px;flex:none}
+.pf-std-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.pf-std-m .pf-sub{margin:2px 0 0;font-size:13px}
+.pf-bar{height:6px;border-radius:3px;background:var(--surface-3);margin:10px 0 4px;overflow:hidden}
+.pf-bar span{display:block;height:100%;background:var(--green);border-radius:3px}
+.pf-log{border-top:1px solid var(--sep);margin-top:10px;padding-top:10px;display:flex;flex-direction:column;gap:10px}
+.pf label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--label-2)}
+.pf-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.pf-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+.pf-table th,.pf-table td{padding:6px 4px;border-bottom:1px solid var(--sep);text-align:left}
+.pf-more summary{cursor:pointer;margin-top:10px;color:var(--acc,var(--blue))}
+
+/* reps */
+.pf-rule{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:8px 0}
+.pf-rule div{background:var(--surface-2);border-radius:12px;padding:10px 4px;display:flex;flex-direction:column;gap:2px}
+.pf-rule b{font-size:22px}
+.pf-rule span{font-size:12px;color:var(--label-2)}
+.pf-rule em{font-style:normal;font-weight:700;font-size:13px}
+.pf .down{color:var(--orange)} .pf .stay{color:var(--blue)} .pf .up{color:var(--green)}
+.pf-advice{border-radius:12px;padding:12px;margin-top:6px;background:var(--surface-2)}
+.pf-advice b{font-size:18px}
+.pf-advice.up{background:var(--surface-2);background:color-mix(in srgb,var(--green) 18%,transparent)}
+.pf-advice.down{background:var(--surface-2);background:color-mix(in srgb,var(--orange) 18%,transparent)}
+.pf-advice p{margin:6px 0 0}
+
+/* food */
+.pf-macros{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;margin:12px 0 4px}
+.pf-macros div{background:var(--surface-2);border-radius:10px;padding:8px 2px;display:flex;flex-direction:column}
+.pf-macros b{font-size:15px}
+.pf-macros span{font-size:11px;color:var(--label-2)}
+.pf-diet summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pf-diet summary::-webkit-details-marker{display:none}
+@media (max-width:380px){.pf-macros{grid-template-columns:repeat(3,1fr)}}
+.pf-2>label,.pf-log>label{min-width:0}
+.pf label input{width:100%;min-width:0;box-sizing:border-box}
+.pf{overflow-x:clip}

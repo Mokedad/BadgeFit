@@ -1,0 +1,225 @@
+// Police Prep: the 12-week applicant programme, beginner and intermediate.
+//
+// The week is the app owner's own split: gym for chest and shoulders, VO2 max intervals, an
+// easy run, squats for push power, arms and shoulders, a hard steady run and a recovery
+// treadmill walk, with sauna and compression boots for recovery. Three 4-week phases, each with
+// its own rep range (lib/police/set-advice.js REP_RANGES), and a re-test of the standards at
+// the end of every phase.
+//
+// buildPoliceProgramme turns a level into ordinary openGym routines (double progression over
+// the phase's rep range) and a 12-week programme over them (lib/programmes.js), so the plan
+// runs in the normal workout screen with history, progression and the watch.
+import { uid } from '../format.js'
+
+export const LEVELS = [
+  { id: 'beginner', name: 'Beginner', blurb: 'New to the gym or to running. Six sessions, one full rest day, lighter volume.' },
+  { id: 'intermediate', name: 'Intermediate', blurb: 'Training for 6+ months. Seven sessions with a hard steady run, more sets and heavier ranges.' },
+]
+
+export const WEEKS = 12
+export const TEST_WEEKS = [4, 8, 12]
+
+// Rep range per phase. Beginners build technique high and finish in 6-8; intermediates finish
+// in the 4-6 strength range the bench press example uses.
+export const PHASES = {
+  beginner: [
+    { n: 1, weeks: [1, 4], range: '12-15', focus: 'Technique and habit. Learn every lift, build the running base.' },
+    { n: 2, weeks: [5, 8], range: '10-12', focus: 'Build muscle, burn fat. Weights go up, intervals get longer.' },
+    { n: 3, weeks: [9, 12], range: '6-8', focus: 'Get strong for test day. Heavier sets, sharper speed work.' },
+  ],
+  intermediate: [
+    { n: 1, weeks: [1, 4], range: '10-12', focus: 'Volume block. Build work capacity and lock in form.' },
+    { n: 2, weeks: [5, 8], range: '6-8', focus: 'Strength block. Heavier, fewer reps, harder intervals.' },
+    { n: 3, weeks: [9, 12], range: '4-6', focus: 'Peak block. Heavy and explosive. Peak for your test.' },
+  ],
+}
+
+export const phaseOf = (level, week) =>
+  (PHASES[level] || PHASES.beginner).find(p => week >= p.weeks[0] && week <= p.weeks[1]) || PHASES.beginner[0]
+
+const RANGE = { '4-6': [4, 6], '6-8': [6, 8], '10-12': [10, 12], '12-15': [12, 15] }
+
+// --- the gym routines --------------------------------------------------------------------
+// [exerciseId, sets(beginner), sets(intermediate), kind]. kind: 'lift' follows the phase's
+// rep range under double progression; 'bw' is body-weight reps; ['hold', sec] a timed hold.
+// Ids are openGym catalogue ids.
+const GYM = {
+  chest: {
+    name: 'Chest, Shoulders & Abs', emoji: 'barbell',
+    ex: [
+      ['0025', 3, 4, 'lift'], // barbell bench press
+      ['0314', 3, 3, 'lift'], // dumbbell incline bench press
+      ['0426', 3, 3, 'lift'], // dumbbell standing overhead press
+      ['0334', 2, 3, 'lift'], // dumbbell lateral raise
+      ['0662', 2, 3, 'bw'], // push-up (test practice)
+      ['0472', 3, 3, 'bw'], // hanging leg raise
+      ['0463', 3, 3, ['hold', 45, 60]], // front plank (prone bridge practice)
+    ],
+  },
+  legs: {
+    name: 'Squats & Push Power', emoji: 'legs',
+    ex: [
+      ['0043', 3, 4, 'lift'], // barbell full squat
+      ['2960', 3, 3, 'lift'], // dumbbell split squat
+      ['0431', 3, 3, 'lift'], // dumbbell step-up
+      ['0549', 3, 3, 'lift'], // kettlebell swing
+      ['0514', 3, 4, 'bw'], // jump squat (vertical jump)
+      ['1178', 2, 3, 'lift'], // dumbbell single leg calf raise
+    ],
+  },
+  arms: {
+    name: 'Arms, Shoulders & Abs', emoji: 'arm',
+    ex: [
+      ['0405', 3, 4, 'lift'], // dumbbell seated shoulder press
+      ['0294', 3, 3, 'lift'], // dumbbell biceps curl
+      ['0313', 2, 3, 'lift'], // dumbbell hammer curl (grip)
+      ['0201', 3, 3, 'lift'], // cable pushdown
+      ['0814', 2, 3, 'bw'], // triceps dip
+      ['2133', 3, 3, ['hold', 40, 60]], // farmers walk (grip strength)
+      ['3449', 3, 3, 'bw'], // dumbbell russian twist
+    ],
+  },
+}
+
+const BW_REPS = { beginner: [8, 12], intermediate: [12, 20] }
+
+function gymExercise([id, setsB, setsI, kind], level, range) {
+  const sets = level === 'intermediate' ? setsI : setsB
+  if (Array.isArray(kind)) {
+    const sec = level === 'intermediate' ? kind[2] : kind[1]
+    return { id, mode: 'time', sets, sec, prog: 'time', weight: 0 }
+  }
+  if (kind === 'bw') {
+    const [lo, hi] = BW_REPS[level] || BW_REPS.beginner
+    return { id, sets, repsMin: lo, reps: hi, prog: 'double', weight: 0 }
+  }
+  const [lo, hi] = RANGE[range]
+  return { id, sets, repsMin: lo, reps: hi, prog: 'double', weight: 0 }
+}
+
+// --- the cardio routines -----------------------------------------------------------------
+// Logged as cardio entries (minutes and speed in km/h; incline in %) on openGym's run (0685),
+// sprint (5216) and incline treadmill walk (3666).
+const cardio = (id, min, speed, incline) => ({ id, mode: 'cardio', sets: 1, min, speed, ...(incline != null && { incline }) })
+
+// The VO2 max session rotates week by week through four interval formats.
+const VO2 = [
+  { name: '4×4 intervals', how: '4 rounds: 4 min hard (you can say 3 words), 3 min easy jog.', min: 28 },
+  { name: '30/30 sprints', how: '10 rounds: sprint 30 s, walk or rest 30 s. Then 10 min easy.', min: 20 },
+  { name: 'Hill repeats', how: '4 rounds: 3 min hard uphill, jog back down to recover.', min: 26 },
+  { name: 'Beep shuttles', how: '20 m shuttles: run 2 levels above your best for 1 min, rest 1 min, ×8. Turn on the line, not round it.', min: 20 },
+]
+
+const easyKm = (level, week) => {
+  const [from, to] = level === 'intermediate' ? [6, 10] : [4, 7]
+  return Math.round(from + ((to - from) * (week - 1)) / (WEEKS - 1))
+}
+const tempoMin = week => Math.min(28, 18 + Math.floor((week - 1) * 1))
+
+/** The VO2 format for a week (1-based). */
+export const vo2For = week => VO2[(week - 1) % VO2.length]
+
+// --- the week ----------------------------------------------------------------------------
+// Monday-first. day is the DAYN index openGym uses: 1 Mon … 6 Sat, 0 Sun.
+const DAY_NAMES = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 0: 'Sunday' }
+
+/**
+ * The seven days of one week of the programme, Monday first:
+ * [{ day, dayName, kind, key, title, details: [string], recovery: [string] }].
+ * kind: 'gym' | 'run' | 'walk' | 'rest'. key names the routine (buildPoliceProgramme).
+ */
+export function weekPlan(level, week) {
+  const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
+  const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
+  const phase = phaseOf(lv, w)
+  const vo2 = vo2For(w)
+  const test = TEST_WEEKS.includes(w)
+  const rng = `${phase.range} reps`
+  const easy = easyKm(lv, w)
+  const days = [
+    { day: 1, kind: 'gym', key: 'chest', title: GYM.chest.name, details: [`Main lifts in the ${rng} range`, 'Push-ups and plank are test practice: log them honestly'] },
+    { day: 2, kind: 'run', key: 'vo2', title: `VO2 max: ${vo2.name}`, details: [vo2.how, `About ${lv === 'intermediate' ? 5 : 4} km all up with warm-up and cool-down`, 'Hard means heart rate around 90% of max: watch it on your smartwatch'] },
+    { day: 3, kind: 'gym', key: 'legs', title: GYM.legs.name, details: [`Squats in the ${rng} range`, 'Jump squats: land soft, explode up. This is your vertical jump'] },
+    { day: 4, kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace. If you cannot talk, slow down', 'Heart rate zone 2 (about 60-70% of max)'] },
+    { day: 5, kind: 'gym', key: 'arms', title: GYM.arms.name, details: [`Lifts in the ${rng} range`, 'Hammer curls and farmers walk build your handgrip'] },
+    lv === 'intermediate'
+      ? { day: 6, kind: 'run', key: 'tempo', title: `Hard steady run, ${tempoMin(w)} min`, details: ['Comfortably hard, one even pace the whole way, under 30 min', 'Finish feeling you could not hold it another 10 minutes'] }
+      : { day: 6, kind: 'walk', key: 'walk', title: 'Treadmill incline walk', details: ['30 min brisk walk on 10-14% incline', 'Recovery pace: nose breathing, burning fat, not wrecking legs'], recovery: ['Sauna: 15-20 min'] },
+    lv === 'intermediate'
+      ? { day: 0, kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'], recovery: ['Sauna: 15-20 min', 'Compression boots: 20-30 min'] }
+      : { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Walk, stretch, sleep 8 hours'], recovery: ['Compression boots: 20-30 min'] },
+  ]
+  // Sauna 3-5 times a week, never straight before a hard session: after the gym days.
+  for (const d of days) {
+    if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'Sauna after: 15-20 min, hydrate']
+    d.dayName = DAY_NAMES[d.day]
+  }
+  if (test) {
+    days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Log every result in Police Prep → Standards'], recovery: ['Sauna: 15-20 min'] }
+  }
+  return { level: lv, week: w, phase, test, days }
+}
+
+/** The routine for a day key, in openGym's routine shape. */
+export function routineFor(key, level, range, w = 1) {
+  if (GYM[key]) {
+    const g = GYM[key]
+    return { name: g.name, emoji: g.emoji, ex: g.ex.map(e => gymExercise(e, level, range)) }
+  }
+  const im = level === 'intermediate'
+  if (key === 'vo2') return { name: 'VO2 Max Intervals', emoji: 'figureRun', ex: [cardio('0685', vo2For(w).min, im ? 13 : 11)] }
+  if (key === 'easy') return { name: 'Easy Run', emoji: 'figureRun', ex: [cardio('0685', Math.round(easyKm(level, w) * 6.5), im ? 10 : 8.5)] }
+  if (key === 'tempo') return { name: 'Hard Steady Run', emoji: 'figureRun', ex: [cardio('0685', tempoMin(w), 12)] }
+  if (key === 'walk') return { name: 'Treadmill Recovery Walk', emoji: 'heart', ex: [cardio('3666', 30, 5.5, 12)] }
+  return null
+}
+
+/**
+ * New routines (fresh ids) and a 12-week programme over them, not saved or started.
+ * Returns { routines, programme, keys } where keys maps a day key to its routine id.
+ */
+export function buildPoliceProgramme(level, now = Date.now()) {
+  const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
+  const plan = weekPlan(lv, 1)
+  const keys = {}, routines = []
+  for (const d of plan.days) {
+    if (!d.key || keys[d.key]) continue
+    const r = routineFor(d.key, lv, plan.phase.range, 1)
+    if (!r) continue
+    const id = uid()
+    keys[d.key] = id
+    routines.push({ id, ...r, police: d.key })
+  }
+  const days = {}
+  for (const d of plan.days) if (d.key && keys[d.key]) (days[d.day] = days[d.day] || []).push(keys[d.key])
+  const programme = {
+    id: uid(), name: `Police Prep, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
+    src: 'police-' + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
+  }
+  return { routines, programme, keys }
+}
+
+/**
+ * Moves the Police Prep lifts of `routines` to a phase's rep range (on copies). Only routines
+ * tagged `police`, or named in `keys` (day key → routine id, as buildPoliceProgramme returns), and only exercises that follow the range ('lift') change;
+ * body-weight reps, holds and cardio keep their own targets. Returns the new array.
+ */
+export function applyPhaseRange(routines, level, week, keys = {}) {
+  const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
+  const [lo, hi] = RANGE[phaseOf(lv, week).range]
+  const keyOf = Object.fromEntries(Object.entries(keys).map(([k, id]) => [id, k]))
+  return (routines || []).map(r => {
+    const g = GYM[r.police || keyOf[r.id]]
+    if (!g) return r
+    const lifts = new Set(g.ex.filter(e => e[3] === 'lift').map(e => e[0]))
+    return { ...r, ex: (r.ex || []).map(e => (lifts.has(e.id) ? { ...e, repsMin: lo, reps: hi } : e)) }
+  })
+}
+
+/** The programme week for a start date (ISO day) and today, 1..12, or null before the start. */
+export function weekNumber(startISO, todayISO) {
+  if (!startISO || !todayISO) return null
+  const ms = Date.parse(todayISO + 'T00:00:00Z') - Date.parse(startISO + 'T00:00:00Z')
+  if (!Number.isFinite(ms) || ms < 0) return null
+  return Math.min(WEEKS, Math.floor(ms / (7 * 86400000)) + 1)
+}
