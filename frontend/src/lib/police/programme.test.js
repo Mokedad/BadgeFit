@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { weekPlan, phaseOf, buildPoliceProgramme, applyPhaseRange, weekNumber, vo2For, routineFor } from './programme.js'
+import { weekPlan, zone2, phaseOf, buildPoliceProgramme, applyPhaseRange, weekNumber, vo2For, routineFor } from './programme.js'
 import { EXIDX } from '../exercises.js'
 
 describe('weekPlan', () => {
@@ -23,10 +23,21 @@ describe('weekPlan', () => {
     expect(phaseOf('beginner', 9).range).toBe('6-8')
     expect(phaseOf('intermediate', 12).range).toBe('4-6')
   })
-  it('clamps the week and rotates the VO2 format', () => {
+  it('clamps the week and rotates the VO2 format within each phase', () => {
     expect(weekPlan('beginner', 40).week).toBe(12)
     expect(vo2For(1).name).not.toBe(vo2For(2).name)
-    expect(vo2For(5).name).toBe(vo2For(1).name)
+    expect(vo2For(9).name).toBe('Shuttle sprints')
+    expect(new Set([1, 2, 3, 4].map(w => vo2For(w).name)).size).toBe(4)
+  })
+  it('gives a zone 2 heart rate from age', () => {
+    expect(zone2(30)).toEqual({ max: 190, target: 143, lo: 133, hi: 152 })
+    expect(zone2('')).toBeNull()
+    expect(weekPlan('beginner', 1, 30).days.find(d => d.key === 'easy').details.join(' ')).toContain('143 bpm')
+  })
+  it('balances pressing with pulling', () => {
+    const { routines } = buildPoliceProgramme('beginner', 1)
+    const ids = routines.flatMap(r => r.ex.map(e => e.id))
+    expect(ids).toEqual(expect.arrayContaining(['2291', '1323', '1236', '0739']))
   })
 })
 

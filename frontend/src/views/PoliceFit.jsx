@@ -6,7 +6,7 @@
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
@@ -14,9 +14,10 @@ import { lastBW } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Segmented, TextField } from '../components/ui.jsx'
 import { saveProgramme, startProgramme } from '../lib/programmes.js'
-import { STANDARDS, DEFAULT_BEEP_TARGET, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
+import { BRAND } from '../lib/police/brand.js'
+import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { LEVELS, PHASES, WEEKS, WARMUP, zone2, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, macroTargets } from '../lib/police/nutrition.js'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import '../police.css'
@@ -56,14 +57,14 @@ function Today({ S, user, P, setTab }) {
   const ready = readiness(P.results, P.beepTarget)
   const week = weekNumber(P.start, todayISO())
   const dow = new Date().getDay()
-  const plan = P.level && week ? weekPlan(P.level, week) : null
+  const plan = P.level && week ? weekPlan(P.level, week, P.age) : null
   const day = plan?.days.find(d => d.day === dow)
   const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, seed: Number(todayISO().replace(/-/g, '')) }),
     [P.name, user?.name, week, day, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>
     <div className="card pf-jarvis">
-      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>Jarvis</b><span className="pf-sub">Your recruit coach</span></div>
+      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your recruit coach</span></div>
       {lines.map((l, i) => <p key={i}>{l}</p>)}
       <Button variant="tinted" icon="play" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }}>Hear it</Button>
     </div>
@@ -152,20 +153,23 @@ function Tests({ P }) {
         <span className="pf-std-i" aria-hidden="true">{std.icon}</span>
         <span className="pf-std-m">
           <b>{std.name}</b>
-          <span className="pf-sub">{std.id === 'beep' ? `Target level ${P.beepTarget || DEFAULT_BEEP_TARGET}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`} · {std.attempts} attempt{std.attempts > 1 ? 's' : ''}</span>
+          <span className="pf-sub">{std.id === 'beep' ? `Pass ${P.beepTarget || DEFAULT_BEEP_TARGET}, goal ${P.beepGoal || DEFAULT_BEEP_GOAL}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`} · {std.attempts} attempt{std.attempts > 1 ? 's' : ''}</span>
         </span>
         {ev ? <span className={'pf-chip ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'PASS' : `${ev.pct}%`}</span> : <span className="pf-chip">Not tested</span>}
       </button>
       {ev && <div className="pf-bar"><span style={{ width: ev.pct + '%' }} /></div>}
+      {std.id === 'beep' && latest && (() => { const g = evaluate('beep', latest.v, P.beepGoal || DEFAULT_BEEP_GOAL); return g && <p className="pf-sub">{g.pass ? 'Training goal reached. Comfortable pass territory.' : `Training goal: ${g.pct}% of the way.`}</p> })()}
       {latest && <p className="pf-sub">Latest: {fmtResult(std.id, latest.v)} on {latest.at}{(() => { const b = bestResult(P.results, std.id); return b && b !== latest ? ` · Best: ${fmtResult(std.id, b.v)}` : '' })()}</p>}
       {open === std.id && <LogForm std={std} P={P} onDone={() => setOpen(null)} />}
     </div>)}
     <div className="card">
-      <h3>Beep test target</h3>
-      <p className="pf-sub">Standards differ by state and change. Check your service's current requirement and set it here (level.shuttle).</p>
-      <TextField value={P.beepTarget || DEFAULT_BEEP_TARGET} inputMode="decimal" aria-label="Beep test target"
-        onChange={e => setP({ beepTarget: e.target.value })} />
-      {!parseBeep(P.beepTarget || DEFAULT_BEEP_TARGET) && <p className="pf-warn">Write it as level.shuttle, for example 7.5</p>}
+      <h3>Beep test: pass mark and your goal</h3>
+      <p className="pf-sub">Pass/fail is judged on the pass mark. Train for the goal above it, so test day feels comfortable. Standards differ by state and change: check your service's current requirement.</p>
+      <div className="pf-2">
+        <label>Pass mark<TextField value={P.beepTarget || DEFAULT_BEEP_TARGET} inputMode="decimal" onChange={e => setP({ beepTarget: e.target.value })} /></label>
+        <label>Training goal<TextField value={P.beepGoal || DEFAULT_BEEP_GOAL} inputMode="decimal" onChange={e => setP({ beepGoal: e.target.value })} /></label>
+      </div>
+      {(!parseBeep(P.beepTarget || DEFAULT_BEEP_TARGET) || !parseBeep(P.beepGoal || DEFAULT_BEEP_GOAL)) && <p className="pf-warn">Write it as level.shuttle, for example 7.1</p>}
       <details className="pf-more"><summary>Beep test levels</summary>
         <table className="pf-table"><thead><tr><th>Level</th><th>Shuttles</th><th>km/h</th><th>s/shuttle</th></tr></thead>
           <tbody>{BEEP_LEVELS.slice(0, 13).map(l => <tr key={l.level}><td>{l.level}</td><td>{l.shuttles}</td><td>{l.speed}</td><td>{l.secPerShuttle}</td></tr>)}</tbody></table>
@@ -207,9 +211,16 @@ function Plan({ P }) {
   const level = P.level || 'beginner'
   const current = weekNumber(P.start, todayISO()) || 1
   const [week, setWeek] = useState(current)
-  const plan = weekPlan(level, week)
+  const plan = weekPlan(level, week, P.age)
+  const z2 = zone2(P.age)
   return <>
     <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => setP({ level: l })} />
+    <div className="card">
+      <div className="pf-2">
+        <label>Your age<NumberField value={P.age ?? null} nullable decimal={false} onChange={a => setP({ age: a })} /></label>
+        <div className="pf-z2">{z2 ? <><b>{z2.target} bpm</b><span>zone 2 ({z2.lo}-{z2.hi})</span><span>max about {z2.max}</span></> : <span>Add your age for your heart-rate zones</span>}</div>
+      </div>
+    </div>
     <div className="pf-weeks" role="tablist" aria-label="Week">
       {Array.from({ length: WEEKS }, (_, i) => i + 1).map(n =>
         <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>{n}</button>)}
@@ -219,6 +230,12 @@ function Plan({ P }) {
       <p className="pf-sub">{plan.phase.focus}{plan.test ? ' This week ends with a re-test.' : ''}</p>
     </div>
     {plan.days.map(d => <DayCard key={d.day} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
+    <div className="card">
+      <h3>Warm-up and cool-down, every session</h3>
+      <p className="pf-sub">4 rounds, 30 s each, 30 s rest after each round. Same again at the end.</p>
+      <ol>{WARMUP.map((x, i) => <li key={i}>{x}</li>)}</ol>
+      <p className="pf-sub">Can't do an exercise yet? Make it easier, never skip it: push-ups on knees, a smaller box, a lighter dumbbell.</p>
+    </div>
     <div className="card">
       <h3>The three phases</h3>
       {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
@@ -312,12 +329,16 @@ export default function PoliceFit() {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const P = policeOf(S)
-  const [tab, setTab] = useState('today')
+  // The open tab lives in the URL (#/police?tab=plan), so it survives the screen remounting
+  // when the store changes, and a link can open a tab directly.
+  const [params, setParams] = useSearchParams()
+  const tab = TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
+  const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   return <div className="narrow pf">
     <div className="hdr">
       <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label="Home"><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}><h1>Police Prep</h1>
-        <div className="sub">Train for the test. Become the officer.</div></div>
+      <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}><h1>{BRAND.name}</h1>
+        <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <Segmented options={TABS} value={tab} onChange={setTab} className="pf-tabs" />
     {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} />}

@@ -10,6 +10,7 @@
 // the phase's rep range) and a 12-week programme over them (lib/programmes.js), so the plan
 // runs in the normal workout screen with history, progression and the watch.
 import { uid } from '../format.js'
+import { BRAND } from './brand.js'
 
 export const LEVELS = [
   { id: 'beginner', name: 'Beginner', blurb: 'New to the gym or to running. Six sessions, one full rest day, lighter volume.' },
@@ -51,6 +52,7 @@ const GYM = {
       ['0314', 3, 3, 'lift'], // dumbbell incline bench press
       ['0426', 3, 3, 'lift'], // dumbbell standing overhead press
       ['0334', 2, 3, 'lift'], // dumbbell lateral raise
+      ['1236', 3, 3, 'lift'], // dumbbell one arm row (balance every push with a pull)
       ['0662', 2, 3, 'bw'], // push-up (test practice)
       ['0472', 3, 3, 'bw'], // hanging leg raise
       ['0463', 3, 3, ['hold', 45, 60]], // front plank (prone bridge practice)
@@ -60,23 +62,28 @@ const GYM = {
     name: 'Squats & Push Power', emoji: 'legs',
     ex: [
       ['0043', 3, 4, 'lift'], // barbell full squat
+      ['0739', 3, 3, 'lift'], // sled 45° leg press
       ['2960', 3, 3, 'lift'], // dumbbell split squat
       ['0431', 3, 3, 'lift'], // dumbbell step-up
-      ['0549', 3, 3, 'lift'], // kettlebell swing
+      ['0599', 2, 3, 'lift'], // lever seated leg curl (hamstrings for sprinting)
       ['0514', 3, 4, 'bw'], // jump squat (vertical jump)
-      ['1178', 2, 3, 'lift'], // dumbbell single leg calf raise
+      ['0549', 3, 3, 'lift'], // kettlebell swing
+      ['3420', 3, 3, ['hold', 30, 45]], // v-sit on floor
     ],
   },
   arms: {
-    name: 'Arms, Shoulders & Abs', emoji: 'arm',
+    name: 'Arms, Back, Shoulders & Abs', emoji: 'arm',
     ex: [
+      ['2291', 3, 4, 'lift'], // cable wide grip lat pulldown
+      ['1323', 3, 3, 'lift'], // cable rope seated row
       ['0405', 3, 4, 'lift'], // dumbbell seated shoulder press
       ['0294', 3, 3, 'lift'], // dumbbell biceps curl
       ['0313', 2, 3, 'lift'], // dumbbell hammer curl (grip)
       ['0201', 3, 3, 'lift'], // cable pushdown
       ['0814', 2, 3, 'bw'], // triceps dip
       ['2133', 3, 3, ['hold', 40, 60]], // farmers walk (grip strength)
-      ['3449', 3, 3, 'bw'], // dumbbell russian twist
+      ['1470', 2, 3, ['hold', 30, 45]], // lateral side plank
+      ['1179', 3, 3, ['hold', 30, 40]], // flutter kicks
     ],
   },
 }
@@ -102,13 +109,29 @@ function gymExercise([id, setsB, setsI, kind], level, range) {
 // sprint (5216) and incline treadmill walk (3666).
 const cardio = (id, min, speed, incline) => ({ id, mode: 'cardio', sets: 1, min, speed, ...(incline != null && { incline }) })
 
-// The VO2 max session rotates week by week through four interval formats.
-const VO2 = [
-  { name: '4×4 intervals', how: '4 rounds: 4 min hard (you can say 3 words), 3 min easy jog.', min: 28 },
-  { name: '30/30 sprints', how: '10 rounds: sprint 30 s, walk or rest 30 s. Then 10 min easy.', min: 20 },
-  { name: 'Hill repeats', how: '4 rounds: 3 min hard uphill, jog back down to recover.', min: 26 },
-  { name: 'Beep shuttles', how: '20 m shuttles: run 2 levels above your best for 1 min, rest 1 min, ×8. Turn on the line, not round it.', min: 20 },
-]
+// The VO2 max session rotates week by week through four interval formats per phase: the
+// longer intervals build the engine, the short sprints and 20 m shuttles the speed and turns
+// the beep test and the agility run need. Phase 3 is the most test-specific.
+const VO2 = {
+  1: [
+    { name: '4×4 intervals', how: '4 rounds: 4 min hard (you can say 3 words), 3 min easy jog.', min: 28 },
+    { name: '100 m repeats', how: '10 rounds: 100 m at 80-90% effort, walk 100 m back.', min: 20 },
+    { name: 'Hill repeats', how: '4 rounds: 3 min hard uphill, jog back down to recover.', min: 26 },
+    { name: 'Distance ladder', how: 'Easy then hard for the same distance, up and back down: 100, 200, 300, 400, 300, 200, 100 m.', min: 25 },
+  ],
+  2: [
+    { name: '30/30 sprints', how: '10 rounds: sprint 30 s, walk or rest 30 s. Then 10 min easy.', min: 20 },
+    { name: '50 m repeats', how: '20 rounds: 50 m at 80-90% effort, walk 50 m back.', min: 22 },
+    { name: 'Time ladder', how: 'Hard for 5, 4, 3, 2, 1, then 5 min, with 1 min easy jog between each.', min: 30 },
+    { name: '4×4 intervals', how: '4 rounds: 4 min hard, 3 min easy jog. Faster than phase 1.', min: 28 },
+  ],
+  3: [
+    { name: 'Shuttle sprints', how: '10 sets of 10 × 20 m shuttles at 80-90%, 30 s rest between sets. Touch the line and turn fast.', min: 25 },
+    { name: 'Beep shuttles', how: '20 m shuttles at 2 levels above your best for 1 min, rest 1 min, ×8. Turn on the line, not round it.', min: 20 },
+    { name: 'Long ladder', how: 'Twice through: 100 m easy, then 100, 200, 300, 400, 500 m hard, 100 m easy between.', min: 30 },
+    { name: '30/30 sprints', how: '12 rounds: sprint 30 s, rest 30 s. Then 10 min easy.', min: 22 },
+  ],
+}
 
 const easyKm = (level, week) => {
   const [from, to] = level === 'intermediate' ? [6, 10] : [4, 7]
@@ -116,8 +139,26 @@ const easyKm = (level, week) => {
 }
 const tempoMin = week => Math.min(28, 18 + Math.floor((week - 1) * 1))
 
-/** The VO2 format for a week (1-based). */
-export const vo2For = week => VO2[(week - 1) % VO2.length]
+/** The VO2 format for a week (1-based): the phase's list, one per week of the phase. */
+export const vo2For = week => {
+  const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
+  const list = VO2[Math.ceil(w / 4)]
+  return list[(w - 1) % 4]
+}
+
+/**
+ * Zone 2 heart rate for an age: about 75% of the estimated maximum (220 minus age), with
+ * the band around it from 70% to 80%. null without a sensible age.
+ */
+export function zone2(age) {
+  const a = Number(age)
+  if (!(a >= 14 && a <= 80)) return null
+  const max = 220 - a
+  return { max, target: Math.round(max * 0.75), lo: Math.round(max * 0.7), hi: Math.round(max * 0.8) }
+}
+
+// Mobility before and after every session, 4 rounds of 30 s each, 30 s rest after the round.
+export const WARMUP = ['Arm circles, both directions', 'Deep squat hold, pushing the knees out', 'Thoracic rotations on all fours', 'Kneeling hip flexor stretch, each side']
 
 // --- the week ----------------------------------------------------------------------------
 // Monday-first. day is the DAYN index openGym uses: 1 Mon … 6 Sat, 0 Sun.
@@ -128,7 +169,7 @@ const DAY_NAMES = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5:
  * [{ day, dayName, kind, key, title, details: [string], recovery: [string] }].
  * kind: 'gym' | 'run' | 'walk' | 'rest'. key names the routine (buildPoliceProgramme).
  */
-export function weekPlan(level, week) {
+export function weekPlan(level, week, age) {
   const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
   const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
   const phase = phaseOf(lv, w)
@@ -136,12 +177,14 @@ export function weekPlan(level, week) {
   const test = TEST_WEEKS.includes(w)
   const rng = `${phase.range} reps`
   const easy = easyKm(lv, w)
+  const z2 = zone2(age)
+  const zoneText = z2 ? `Zone 2: keep your heart rate about ${z2.target} bpm (${z2.lo}-${z2.hi})` : 'Zone 2: about 75% of max heart rate (220 minus your age). Add your age to get your number'
   const days = [
     { day: 1, kind: 'gym', key: 'chest', title: GYM.chest.name, details: [`Main lifts in the ${rng} range`, 'Push-ups and plank are test practice: log them honestly'] },
     { day: 2, kind: 'run', key: 'vo2', title: `VO2 max: ${vo2.name}`, details: [vo2.how, `About ${lv === 'intermediate' ? 5 : 4} km all up with warm-up and cool-down`, 'Hard means heart rate around 90% of max: watch it on your smartwatch'] },
-    { day: 3, kind: 'gym', key: 'legs', title: GYM.legs.name, details: [`Squats in the ${rng} range`, 'Jump squats: land soft, explode up. This is your vertical jump'] },
-    { day: 4, kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace. If you cannot talk, slow down', 'Heart rate zone 2 (about 60-70% of max)'] },
-    { day: 5, kind: 'gym', key: 'arms', title: GYM.arms.name, details: [`Lifts in the ${rng} range`, 'Hammer curls and farmers walk build your handgrip'] },
+    { day: 3, kind: 'gym', key: 'legs', title: GYM.legs.name, details: [`Squats and leg press in the ${rng} range`, 'Jump squats: land soft, explode up. This is your vertical jump'] },
+    { day: 4, kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace: you can just hold a conversation. Any harder and you could not talk', zoneText] },
+    { day: 5, kind: 'gym', key: 'arms', title: GYM.arms.name, details: [`Lifts in the ${rng} range`, 'Pulldowns and rows balance all the pressing', 'Hammer curls and farmers walk build your handgrip'] },
     lv === 'intermediate'
       ? { day: 6, kind: 'run', key: 'tempo', title: `Hard steady run, ${tempoMin(w)} min`, details: ['Comfortably hard, one even pace the whole way, under 30 min', 'Finish feeling you could not hold it another 10 minutes'] }
       : { day: 6, kind: 'walk', key: 'walk', title: 'Treadmill incline walk', details: ['30 min brisk walk on 10-14% incline', 'Recovery pace: nose breathing, burning fat, not wrecking legs'], recovery: ['Sauna: 15-20 min'] },
@@ -155,7 +198,7 @@ export function weekPlan(level, week) {
     d.dayName = DAY_NAMES[d.day]
   }
   if (test) {
-    days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Log every result in Police Prep → Standards'], recovery: ['Sauna: 15-20 min'] }
+    days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
   return { level: lv, week: w, phase, test, days }
 }
@@ -193,7 +236,7 @@ export function buildPoliceProgramme(level, now = Date.now()) {
   const days = {}
   for (const d of plan.days) if (d.key && keys[d.key]) (days[d.day] = days[d.day] || []).push(keys[d.key])
   const programme = {
-    id: uid(), name: `Police Prep, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
+    id: uid(), name: `${BRAND.name} Applicant, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
     src: 'police-' + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
   }
   return { routines, programme, keys }

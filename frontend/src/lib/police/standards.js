@@ -1,11 +1,13 @@
 // Police Prep: the physical standards an applicant has to meet, and how a logged attempt
 // reads against them. Pure data and pure functions, no store, no React.
 //
-// The numbers are the published NSW Police applicant standards as supplied by the app owner.
-// The beep test target is a setting (S.police.beepTarget), because it differs by state and
-// changes over time; DEFAULT_BEEP_TARGET is only the starting value.
+// The numbers are the NSW Police applicant standards as supplied by the app owner.
+// The beep test has two numbers: the pass mark (S.police.beepTarget, 7.1) that pass/fail is
+// judged by, and a training goal above it (S.police.beepGoal) so the pass is comfortable on the
+// day. Both are settings, because standards differ by state and change over time.
 
-export const DEFAULT_BEEP_TARGET = '7.5'
+export const DEFAULT_BEEP_TARGET = '7.1'
+export const DEFAULT_BEEP_GOAL = '8.1'
 
 // better: 'higher' means a bigger number passes, 'lower' a smaller one (a timed course).
 export const STANDARDS = [
@@ -17,7 +19,7 @@ export const STANDARDS = [
   },
   {
     id: 'bridge', name: 'Prone bridge', unit: 's', min: 90, better: 'higher', attempts: 1, icon: '🧱',
-    how: 'Forearm plank on your toes. Head, hips and heels in one straight line. Hips drop, the clock stops.',
+    how: 'Forearm plank on your toes. Head, hips and heels in one straight line. Shift your weight or break at the hips and the clock stops.',
   },
   {
     id: 'jump', name: 'Vertical jump', unit: 'cm', min: 30, better: 'higher', attempts: 2, icon: '⬆️',
@@ -25,15 +27,15 @@ export const STANDARDS = [
   },
   {
     id: 'pushups', name: 'Push-ups', unit: 'reps', min: 25, better: 'higher', attempts: 1, icon: '💪',
-    how: 'Strict form on toes or knees: chest to fist height, full lockout, body straight. One attempt, no rest.',
+    how: 'Strict form on toes or knees: chest to fist height, full lockout, body straight. One attempt, no rest. The test ends when your hips sag or you cannot do another.',
   },
   {
     id: 'illinois', name: 'Illinois agility run', unit: 's', min: 20, better: 'lower', attempts: 2, icon: '🔀',
-    how: 'Start lying face down. On go, get up and run the cone course: 10 m straight, weave the centre cones, 10 m finish. Best of 2.',
+    how: 'Course 10 m long and 5 m wide, with 4 cones down the centre 3.3 m apart. Start lying face down, head on the start line, hands by your shoulders. On go, get up, run the course and weave the centre cones without knocking any. Best of 2.',
   },
   {
     id: 'beep', name: 'Beep test (20 m shuttle)', unit: 'level', better: 'higher', attempts: 1, icon: '📣',
-    how: 'Run 20 m between lines, reaching each line before the beep. It speeds up every level. Two misses in a row and you are out.',
+    how: 'Run 20 m between lines, reaching each line before the beep. It speeds up about every minute. Miss a line and you get a warning; miss two in a row and you are out. Your score is the last level and shuttle you completed.',
   },
 ]
 

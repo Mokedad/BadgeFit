@@ -1,7 +1,7 @@
 {
-  "name": "openGym",
-  "short_name": "openGym",
-  "description": "Personal gym & body weight tracker",
+  "name": "BadgeFit",
+  "short_name": "BadgeFit",
+  "description": "Police applicant fitness training: standards, 12-week programme, nutrition and coach",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

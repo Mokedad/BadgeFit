@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { STANDARDS, BEEP_LEVELS, parseBeep, beepShuttles, beepDistance, evaluate, readiness, bestResult, latestResult, fmtResult } from './standards.js'
+import { STANDARDS, DEFAULT_BEEP_GOAL, BEEP_LEVELS, parseBeep, beepShuttles, beepDistance, evaluate, readiness, bestResult, latestResult, fmtResult } from './standards.js'
 
 describe('beep test', () => {
   it('matches the shuttle table: speeds, seconds per shuttle', () => {
@@ -40,9 +40,11 @@ describe('evaluate', () => {
     expect(evaluate('jump', 29).pass).toBe(false)
   })
   it('judges the beep test against the chosen target', () => {
-    expect(evaluate('beep', '7.5').pass).toBe(true)
-    expect(evaluate('beep', '7.4').pass).toBe(false)
-    expect(evaluate('beep', '7.4', '6.1').pass).toBe(true)
+    // pass mark 7.1 by default
+    expect(evaluate('beep', '7.1').pass).toBe(true)
+    expect(evaluate('beep', '6.10').pass).toBe(false)
+    expect(evaluate('beep', '7.4', '7.5').pass).toBe(false)
+    expect(evaluate('beep', '8.1', DEFAULT_BEEP_GOAL).pass).toBe(true)
   })
 })
 
