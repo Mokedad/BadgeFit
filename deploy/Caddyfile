@@ -1,0 +1,27 @@
+# HTTPS for BadgeFit. Caddy fetches and renews the certificates itself; the domains come from
+# deploy/.env (APP_DOMAIN, SITE_DOMAIN).
+{
+	email {$ACME_EMAIL}
+}
+
+# The app. The web container already sends the app's security headers.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:8080
+}
+
+# The website, and www. sending people to it.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	root * /srv/site
+	file_server
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
+
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

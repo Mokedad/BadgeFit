@@ -49,3 +49,11 @@ assets/bmc-cover*
 # scripts/pdf/render-samples.mjs output (npm run pdf:check)
 frontend/pdf-samples/
 marketing/reels/out/
+# BadgeFit server (deploy/): settings, data, certificates and backups never go in git
+deploy/.env
+deploy/data/
+deploy/coach-auth/
+deploy/caddy-data/
+deploy/caddy-config/
+deploy/site/
+deploy/backups/

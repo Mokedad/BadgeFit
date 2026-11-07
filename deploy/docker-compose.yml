@@ -1,0 +1,61 @@
+# BadgeFit on one server: the app (api + web, built from this repository), the website, and
+# Caddy in front for HTTPS. Caddy gets and renews Let's Encrypt certificates by itself.
+#
+#   app.<your domain>   the BadgeFit app (passkeys need HTTPS and this exact host)
+#   <your domain>       the website (badgefit-site/)
+#
+# Run from the repository root:   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+# deploy/setup.sh does all of it for you. Data lives in deploy/data: back it up (deploy/backup.sh).
+name: badgefit
+
+services:
+  api:
+    build:
+      context: ../api
+      # The image with the AI Coach (Jarvis). Without an AI key set in the admin dashboard it
+      # simply stays off.
+      target: coach
+    image: badgefit-api:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - TRUST_PROXY=1
+    volumes:
+      - ./data:/data
+      - ./coach-auth:/coach-auth
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        VITE_SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+    image: badgefit-web:local
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      - NGINX_PORT=8080
+      - BACKEND=api
+      - PORT=3000
+      - RESOLVER=127.0.0.11
+    # No published port: only Caddy talks to it.
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+      - SITE_DOMAIN=${SITE_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/site:ro
+      - ./caddy-data:/data
+      - ./caddy-config:/config

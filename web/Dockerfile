@@ -24,7 +24,10 @@ COPY frontend/ ./
 # image built between two releases calls itself the same thing, and "which build are you running?"
 # cannot be answered from the phone. Unset, the app reports package.json's version as before.
 ARG APP_BUILD=""
-RUN APP_BUILD="$APP_BUILD" npm run build
+# BadgeFit music (frontend/src/lib/spotify.js): a Spotify developer app's Client ID, public by
+# design (the login uses PKCE, no secret). Empty leaves "Connect Spotify" asking on the device.
+ARG VITE_SPOTIFY_CLIENT_ID=""
+RUN APP_BUILD="$APP_BUILD" VITE_SPOTIFY_CLIENT_ID="$VITE_SPOTIFY_CLIENT_ID" npm run build
 
 FROM nginxinc/nginx-unprivileged:1.30.6-alpine
 # Same reason as in api/Dockerfile: alpine fixes land faster than the nginx image is rebuilt.
