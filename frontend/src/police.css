@@ -172,3 +172,59 @@
 .pf-week7 i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--blue);min-height:2px}
 .pf-week7 i.over{background:var(--orange)}
 .pf-week7 span{font-size:11px;color:var(--label-2)}
+
+/* ===== BadgeFit look: badge gold on light, police navy for Jarvis =====
+   Gold is the app accent (--acc, the "gold" preset by default), so a profile's own accent choice
+   still wins. Fills use --acc with --on-acc text; gold *text* uses --acc-ink, readable on white. */
+.pf{--pf-navy:#0d1b33;--pf-navy-2:#183463;--pf-gold:#ffc629}
+.pf .pf-bar span,.pf-bar span{background:var(--acc)}
+.pf-ring{background:conic-gradient(var(--acc) calc(var(--p)*1%),var(--surface-3) 0)}
+.pf-spark polyline{stroke:var(--acc)}
+.pf-weeks button.on{background:var(--acc);color:var(--on-acc)}
+.pf-weeks button.now{box-shadow:inset 0 0 0 2px var(--acc)}
+.pf-prot div.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.pf-day.on{outline-color:var(--acc)}
+.pf-day.pf-gym{border-left-color:var(--acc)}
+.pf-count-n b{color:var(--acc-ink,var(--acc))}
+.pf-week7 i{background:var(--acc)}
+.cm-av{background:var(--acc);color:var(--on-acc)}
+.cm-acts .cm-cheer.on{background:var(--acc);color:var(--on-acc)}
+.pf-link,.pf-more summary{color:var(--acc-ink,var(--acc))}
+
+/* Jarvis: the navy card, the same in both themes, with a gold orb */
+.pf-jarvis{background:linear-gradient(160deg,var(--pf-navy-2),var(--pf-navy) 75%);border:0;color:#fff;box-shadow:0 10px 30px rgba(13,27,51,.25)}
+.pf-jarvis .pf-sub,.pf-jarvis label{color:rgba(255,255,255,.72)}
+.pf-orb{background:radial-gradient(circle at 35% 35%,#fff3c4,var(--pf-gold) 55%,#b8860b);box-shadow:0 0 14px var(--pf-gold)}
+@keyframes pf-pulse{50%{box-shadow:0 0 4px var(--pf-gold);transform:scale(.92)}}
+
+/* symbol buttons */
+.pf-syms{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.pf-sym{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:inherit;padding:0;min-width:58px}
+.pf-sym span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.12)}
+.pf-sym.primary span{background:var(--pf-gold);box-shadow:0 4px 14px rgba(255,198,41,.45)}
+.pf-sym small{font-size:11px;color:rgba(255,255,255,.8)}
+.pf-sym:active span{transform:scale(.94)}
+
+/* the hub's tab bar */
+.pf-tabbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface);border-radius:16px;padding:4px;margin-bottom:14px}
+.pf-tabbar button{border:0;background:none;color:var(--label-2);border-radius:12px;padding:6px 0 5px;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
+.pf-tabbar span{font-size:20px;line-height:1.2}
+.pf-tabbar small{font-size:11px;font-weight:600}
+.pf-tabbar button.on{background:var(--acc);color:var(--on-acc)}
+
+/* readiness: one symbol per standard */
+.pf-dots{display:flex;gap:6px;margin-top:6px}
+.pf-dots span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--surface-2);filter:grayscale(1);opacity:.55}
+.pf-dots span.part{filter:none;opacity:.85;box-shadow:inset 0 0 0 2px var(--orange)}
+.pf-dots span.ok{filter:none;opacity:1;box-shadow:inset 0 0 0 2px var(--green)}
+.pf-ds{margin-right:6px}
+.pf-macros div i{font-style:normal;font-size:16px;line-height:1.2}
+
+/* light theme: soft grey cards on white, like the reference, gold buttons with dark text */
+:root[data-theme="light"] .pf .card:not(.pf-jarvis),:root[data-theme="light"] .cm .card{background:#f6f6f7;box-shadow:none;border:1px solid #ececee}
+:root[data-theme="light"] .pf-tabbar{background:#f1f1f3}
+:root[data-theme="light"] .pf-day{background:#fff;border-top:1px solid #ececee;border-right:1px solid #ececee;border-bottom:1px solid #ececee}
+/* Jarvis stays navy in every theme: stronger than the light theme's card rules */
+:root .pf .card.pf-jarvis,:root[data-theme="light"] .pf .card.pf-jarvis{background:linear-gradient(160deg,var(--pf-navy-2),var(--pf-navy) 75%);color:#fff;border:0}
+:root[data-theme="light"] .pf .card.pf-jarvis .pf-sub{color:rgba(255,255,255,.72)}
+.pf-more-btn{background:none;border:0;color:var(--pf-gold);font-weight:700;padding:2px 0;font-size:14px}

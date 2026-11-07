@@ -3277,3 +3277,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .police-home-i{font-size:26px;flex:none}
 .police-home-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .police-home-m span{color:var(--label-2);font-size:var(--fs-subhead)}
+/* BadgeFit entry on Home: police navy with the badge gold */
+.police-home{background:linear-gradient(135deg,#183463,#0d1b33);border:0;color:#fff}
+.police-home-m span{color:rgba(255,255,255,.75)}
+.police-home .icn{color:#ffc629}

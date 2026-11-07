@@ -28,13 +28,33 @@ import MusicBar from '../components/MusicBar.jsx'
 import '../police.css'
 
 const TABS = [
-  { value: 'today', label: 'Today' },
-  { value: 'tests', label: 'Tests' },
-  { value: 'plan', label: 'Plan' },
-  { value: 'reps', label: 'Reps' },
-  { value: 'food', label: 'Food' },
-  { value: 'care', label: 'Care' },
+  { value: 'today', label: 'Today', sym: '⭐' },
+  { value: 'tests', label: 'Tests', sym: '🎯' },
+  { value: 'plan', label: 'Plan', sym: '📅' },
+  { value: 'reps', label: 'Reps', sym: '🏋️' },
+  { value: 'food', label: 'Food', sym: '🍽️' },
+  { value: 'care', label: 'Care', sym: '🩹' },
 ]
+
+// Symbols for the kinds of day and the recovery chips, so a week reads at a glance.
+const DAY_SYM = { gym: '🏋️', run: '🏃', walk: '🚶', rest: '😴', test: '🎯' }
+const recSym = x => (/sauna/i.test(x) ? '🧖 ' : /boots/i.test(x) ? '🦵 ' : /sleep/i.test(x) ? '🛌 ' : '')
+
+/** A round symbol button with a small word under it: compact, and still says what it does. */
+function SymButton({ sym, label, onClick, primary }) {
+  return <button className={'pf-sym' + (primary ? ' primary' : '')} onClick={onClick} aria-label={label} title={label}>
+    <span aria-hidden="true">{sym}</span><small>{label}</small>
+  </button>
+}
+
+/** The hub's tabs: a symbol with a short word, six across. */
+function PfTabs({ value, onChange }) {
+  return <nav className="pf-tabbar" role="tablist" aria-label="BadgeFit">
+    {TABS.map(x => <button key={x.value} role="tab" aria-selected={x.value === value} className={x.value === value ? 'on' : ''} onClick={() => onChange(x.value)}>
+      <span aria-hidden="true">{x.sym}</span><small>{x.label}</small>
+    </button>)}
+  </nav>
+}
 
 const policeOf = S => S.police || {}
 const usePolice = () => {
@@ -60,6 +80,7 @@ function speak(lines) {
 // --- Today -------------------------------------------------------------------------------
 function Today({ S, user, P, setTab }) {
   const nav = useNavigate()
+  const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
   const week = weekNumber(P.start, todayISO())
   const dow = new Date().getDay()
@@ -71,11 +92,13 @@ function Today({ S, user, P, setTab }) {
   return <>
     <div className="card pf-jarvis">
       <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your recruit coach</span></div>
-      {lines.map((l, i) => <p key={i}>{l}</p>)}
-      <div className="pf-actions">
-        <Button variant="tinted" icon="play" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }}>Hear it</Button>
-        {isOn(S, 'coach') && <Button variant="tinted" icon="chat" onClick={() => nav('/coach')}>Talk to {BRAND.coach}</Button>}
-        <Button variant="tinted" onClick={() => nav('/community')}>👥 Community</Button>
+      {(more ? lines : lines.slice(0, 3)).map((l, i) => <p key={i}>{l}</p>)}
+      {lines.length > 3 && <button className="pf-more-btn" onClick={() => setMore(!more)}>{more ? 'Less' : 'More'}</button>}
+      <div className="pf-syms">
+        <SymButton sym="🔊" label="Hear it" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }} />
+        {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => nav('/coach')} />}
+        <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
+        <SymButton sym="🎯" label="Log test" onClick={() => setTab('tests')} />
       </div>
     </div>
 
@@ -87,19 +110,19 @@ function Today({ S, user, P, setTab }) {
     <div className="card pf-ready">
       <div className="pf-ring" style={{ '--p': ready.pct }}><span>{ready.pct}%</span></div>
       <div>
-        <h3>Test readiness</h3>
+        <h3>🎯 Test readiness</h3>
         <p className="pf-sub">Passing {ready.passed} of {ready.total} standards</p>
-        <Button size="sm" onClick={() => setTab('tests')}>Log a test</Button>
+        <div className="pf-dots" aria-hidden="true">{ready.rows.map(r => <span key={r.std.id} title={r.std.name} className={r.ev?.pass ? 'ok' : r.ev ? 'part' : ''}>{r.std.icon}</span>)}</div>
       </div>
     </div>
 
     {!P.level || !P.start ? <Setup S={S} P={P} /> : <div className="card">
-      <div className="row between"><h3>Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
+      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
       <p className="pf-sub">{plan.phase.focus}</p>
       {day && <DayCard d={day} today />}
       <div className="pf-actions">
-        {day?.key && <Button variant="primary" icon="play" onClick={() => nav('/home')}>Start from Home</Button>}
-        <Button onClick={() => setTab('plan')}>Whole week</Button>
+        {day?.key && <Button variant="primary" icon="play" onClick={() => nav('/home')}>Start</Button>}
+        <Button onClick={() => setTab('plan')}>📅 Week</Button>
       </div>
       <PhaseSync S={S} P={P} week={week} />
     </div>}
@@ -119,8 +142,8 @@ function TestCountdown({ P }) {
   })
   return <div className="card pf-count">
     {left != null && left >= 0
-      ? <div className="pf-count-n"><b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your test</span></div>
-      : <div className="pf-count-n"><b>PCT</b><span>Set your test date</span></div>}
+      ? <div className="pf-count-n"><b>{left}</b><span>⏳ {left === 1 ? 'day' : 'days'} to go</span></div>
+      : <div className="pf-count-n"><b>PCT</b><span>⏳ set the date</span></div>}
     <div className="pf-count-m">
       <label>Test date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
@@ -139,7 +162,7 @@ function BodyCard({ S, P }) {
     return b.series.map((w, i) => `${(i / (b.series.length - 1)) * 100},${30 - ((w - lo) / r) * 28 - 1}`).join(' ')
   })() : null
   return <div className="card pf-body">
-    <div className="row between"><h3>Body</h3><Button size="sm" variant="tinted" onClick={() => bwSheet()}>Log weight</Button></div>
+    <div className="row between"><h3>⚖️ Body</h3><Button size="sm" variant="primary" onClick={() => bwSheet()}>+ Weight</Button></div>
     {b ? <>
       <div className="pf-macros pf-bodyn">
         <div><b>{b.start}</b><span>start {unit}</span></div>
@@ -152,8 +175,8 @@ function BodyCard({ S, P }) {
       {S.targetW == null && <p className="pf-sub">Set a goal weight in Settings to see how far along you are.</p>}
     </> : <p className="pf-sub">Log your weight a few mornings a week, same time, before breakfast. The weekly average is what counts.</p>}
     <div className="pf-actions">
-      <Button size="sm" onClick={() => nav('/measurements')}>Measurements</Button>
-      <Button size="sm" onClick={() => nav('/progress-photos')}>Progress photos</Button>
+      <Button size="sm" onClick={() => nav('/measurements')}>📏 Measure</Button>
+      <Button size="sm" onClick={() => nav('/progress-photos')}>📸 Photos</Button>
     </div>
   </div>
 }
@@ -203,9 +226,9 @@ function PhaseSync({ S, P, week }) {
 
 function DayCard({ d, today }) {
   return <div className={'pf-day pf-' + d.kind + (today ? ' on' : '')}>
-    <div className="pf-day-h"><span>{d.dayName}{d.minutes ? ` · est. ${d.minutes} min` : ''}</span><b>{d.title}</b></div>
+    <div className="pf-day-h"><span>{d.dayName}{d.minutes ? ` · ⏱ ${d.minutes} min` : ''}</span><b><span className="pf-ds" aria-hidden="true">{DAY_SYM[d.kind] || '•'}</span>{d.title}</b></div>
     <ul>{d.details.map((x, i) => <li key={i}>{x}</li>)}</ul>
-    {d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{x}</span>)}</div>}
+    {d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{recSym(x)}{x}</span>)}</div>}
   </div>
 }
 
@@ -301,7 +324,7 @@ function Plan({ P }) {
     </div>
     {plan.days.map(d => <DayCard key={d.day} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
     <div className="card">
-      <h3>Warm-up and cool-down, every session</h3>
+      <h3>🤸 Warm-up and cool-down</h3>
       <p className="pf-sub">4 rounds, 30 s each, 30 s rest after each round. Same again at the end.</p>
       <ol>{WARMUP.map((x, i) => <li key={i}>{x}</li>)}</ol>
       <p className="pf-sub">Can't do an exercise yet? Make it easier, never skip it: push-ups on knees, a smaller box, a lighter dumbbell.</p>
@@ -323,7 +346,7 @@ function Reps({ S }) {
   const advice = nextSetAdvice({ reps, weight, range, unit })
   return <>
     <div className="card">
-      <h3>The rep range rule</h3>
+      <h3>🏋️ The rep range rule</h3>
       <div className="pf-rule">
         <div><b>{range.min - 1}</b><span>or fewer</span><em className="down">Move down next set</em></div>
         <div><b>{range.min}-{range.max - 1}</b><span>in range</span><em className="stay">Stay</em></div>
@@ -332,7 +355,7 @@ function Reps({ S }) {
       <p className="pf-sub">Same rule week to week: where you finish is where you start next week. Log every set, so you always know your number.</p>
     </div>
     <div className="card">
-      <h3>What next set?</h3>
+      <h3>➡️ What next set?</h3>
       <Segmented options={REP_RANGES.map(r => ({ value: r.id, label: r.id }))} value={rangeId} onChange={setRangeId} />
       <p className="pf-sub">{range.goal} · rest {range.rest}</p>
       <div className="pf-2">
@@ -367,11 +390,11 @@ function MealLog({ P, targets }) {
   const week = lastDays(P.meals, day)
   const maxK = Math.max(1, ...week.map(d => d.kcal), targets?.kcal || 0)
   return <div className="card pf-meals">
-    <h3>Today's food</h3>
+    <h3>🍽️ Today's food</h3>
     <div className="pf-mt">
-      <div><span>Calories</span><b>{tot.kcal}{targets ? ` / ${targets.kcal}` : ''}</b><div className="pf-bar"><span style={{ width: (tot.kcalPct ?? 0) + '%', background: tot.kcalLeft < 0 ? 'var(--orange)' : undefined }} /></div>
+      <div><span>🔥 Calories</span><b>{tot.kcal}{targets ? ` / ${targets.kcal}` : ''}</b><div className="pf-bar"><span style={{ width: (tot.kcalPct ?? 0) + '%', background: tot.kcalLeft < 0 ? 'var(--orange)' : undefined }} /></div>
         <small>{tot.kcalLeft == null ? '' : tot.kcalLeft >= 0 ? `${tot.kcalLeft} left` : `${-tot.kcalLeft} over`}</small></div>
-      <div><span>Protein</span><b>{tot.protein} g{targets ? ` / ${targets.protein} g` : ''}</b><div className="pf-bar"><span style={{ width: (tot.proteinPct ?? 0) + '%' }} /></div>
+      <div><span>🥩 Protein</span><b>{tot.protein} g{targets ? ` / ${targets.protein} g` : ''}</b><div className="pf-bar"><span style={{ width: (tot.proteinPct ?? 0) + '%' }} /></div>
         <small>{tot.proteinLeft == null ? '' : tot.proteinLeft > 0 ? `${tot.proteinLeft} g to go` : 'Target hit 💪'}</small></div>
     </div>
     {list.length > 0 && <ul className="pf-mlist">{list.map(x => <li key={x.id}><span>{x.name}</span><small>{x.kcal} kcal · {x.protein} g</small>
@@ -401,7 +424,7 @@ function MealLog({ P, targets }) {
 function ProteinCard({ weight }) {
   const p = proteinFor(weight)
   return <div className="card">
-    <h3>Protein for your body weight</h3>
+    <h3>🥩 Protein for your body weight</h3>
     <p className="pf-sub">Body weight × grams per kg, every day.</p>
     {p && <div className="pf-prot">{p.map(l => <div key={l.id} className={l.id === 'build' ? 'on' : ''}>
       <span>{l.name}</span><b>{l.grams} g</b><small>{weight} kg × {l.perKg}</small><small>{l.who}</small>
@@ -418,7 +441,7 @@ function CreatineCard({ weight }) {
   const c = creatineFor(weight)
   if (!c) return null
   return <div className="card">
-    <h3>Creatine for {weight} kg</h3>
+    <h3>⚡ Creatine for {weight} kg</h3>
     <div className="pf-macros pf-cre">
       <div><b>{c.loading} g</b><span>a day, loading</span></div>
       <div><b>{c.loadingDoses} × {c.loadingPerDose} g</b><span>split doses</span></div>
@@ -466,7 +489,7 @@ function Food({ S, P }) {
   const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
     <div className="card">
-      <h3>Your daily targets</h3>
+      <h3>🎯 Your daily targets</h3>
       <div className="pf-2">
         <label>Body weight (kg)<NumberField value={weight} onChange={x => { setWeight(x); setP({ weightKg: x }) }} /></label>
         <label>Height (cm)<NumberField value={P.heightCm ?? null} nullable decimal={false} onChange={x => setP({ heightCm: x })} /></label>
@@ -475,11 +498,11 @@ function Food({ S, P }) {
       </div>
       <Segmented options={[{ value: 'lose', label: 'Lose fat' }, { value: 'recomp', label: 'Recomp' }, { value: 'gain', label: 'Gain' }]} value={goal} onChange={g => { setGoal(g); setP({ goal: g }) }} />
       {m && <div className="pf-macros">
-        <div><b>{m.kcal}</b><span>kcal</span></div>
-        <div><b>{m.protein} g</b><span>protein</span></div>
-        <div><b>{m.carbs} g</b><span>carbs</span></div>
-        <div><b>{m.fat} g</b><span>fat</span></div>
-        <div><b>{m.water} L</b><span>water</span></div>
+        <div><i aria-hidden="true">🔥</i><b>{m.kcal}</b><span>kcal</span></div>
+        <div><i aria-hidden="true">🥩</i><b>{m.protein} g</b><span>protein</span></div>
+        <div><i aria-hidden="true">🍚</i><b>{m.carbs} g</b><span>carbs</span></div>
+        <div><i aria-hidden="true">🥑</i><b>{m.fat} g</b><span>fat</span></div>
+        <div><i aria-hidden="true">💧</i><b>{m.water} L</b><span>water</span></div>
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div>
@@ -504,7 +527,7 @@ function Food({ S, P }) {
       <Button size="sm" variant={P.diet === d.id ? 'primary' : 'plain'} onClick={() => setP({ diet: d.id })}>{P.diet === d.id ? 'My plan' : 'Follow this plan'}</Button>
     </details>)}
     <div className="card"><h3>The rules every plan follows</h3><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
-    <div className="card"><h3>Recovery</h3>{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div>
+    <div className="card"><h3>🧖 Recovery</h3>{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div>
     <p className="pf-sub pf-pad">{DISCLAIMER}</p>
   </>
 }
@@ -525,7 +548,7 @@ export default function PoliceFit() {
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}><h1>{BRAND.name}</h1>
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
-    <Segmented options={TABS} value={tab} onChange={setTab} className="pf-tabs" />
+    <PfTabs value={tab} onChange={setTab} />
     {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} />}
     {tab === 'tests' && <Tests P={P} />}
     {tab === 'plan' && <Plan P={P} />}

@@ -57,7 +57,7 @@ export default function MusicBar({ compact = false }) {
   }
 
   return <div className="card mb">
-    <h3>Music</h3>
+    <h3>🎵 Music</h3>
     {connected && <Remote link={link} />}
     {link && !connected && <iframe title="Spotify" src={link.embed} height="152" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />}
     <label className="mb-l">Your training playlist (Spotify link)
