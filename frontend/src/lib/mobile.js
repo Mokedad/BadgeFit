@@ -9,6 +9,7 @@
 //
 // Like the demo build, MOBILE is replaced at build time, so all of this folds away in
 // web bundles; the Capacitor plugins are only ever imported behind it.
+import { buildMealNotifications, allMealIds } from './police/meal-reminders.js'
 import { t, tn } from './i18n-core.js'
 import { isoOf, todayISO } from './format.js'
 import { effectiveRoutineIds } from './history.js'
@@ -243,16 +244,20 @@ export async function syncReminder(S, interactive = false) {
       ...LEGACY_REMINDER_IDS,
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
+      ...allMealIds().map(id => ({ id })),
     ] }).catch(() => {})
     const r = S.reminder
+    // BadgeFit meal reminders (lib/police/meal-reminders.js): their own switch, so they are
+    // scheduled whether or not the workout reminder is on.
+    const meals = buildMealNotifications(S.police?.mealReminders)
     // The background check (lib/nudge-check.js) follows what is scheduled: nothing, nothing to check.
     const check = notifications => import('./nudge-check.js').then(m => m.armNudgeCheck(S, notifications)).catch(() => {})
-    if (!r?.on) { await check([]); return true }
+    if (!r?.on && !meals.length) { await check([]); return true }
     let perm = await LocalNotifications.checkPermissions()
     if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
     if (perm.display !== 'granted') { await check([]); return false }
-    const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
-    if (notifications.length) await LocalNotifications.schedule({ notifications })
+    const notifications = r?.on ? [...buildReminderNotifications(S), ...buildNudgeNotifications(S)] : []
+    if (notifications.length || meals.length) await LocalNotifications.schedule({ notifications: [...notifications, ...meals] })
     await check(notifications)
     return true
   } catch (e) { return false }

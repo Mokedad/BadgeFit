@@ -216,15 +216,19 @@ self.addEventListener('push', e => {
       icon: 'icon-512.png',
       badge: 'icon-180.png',
       tag,
-      renotify: true
+      renotify: true,
+      // Where a tap goes (a meal reminder opens BadgeFit → Food): an in-app hash route only.
+      data: typeof data.url === 'string' && /^#\/[\w/?=&-]*$/.test(data.url) ? { url: data.url } : {}
     })
   })())
 })
 self.addEventListener('notificationclick', e => {
   e.notification.close()
+  const hash = e.notification.data?.url || ''
   e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => {
     const c = clients.find(c => 'focus' in c)
-    return c ? c.focus() : self.clients.openWindow('./')
+    if (!c) return self.clients.openWindow('./' + hash)
+    return c.focus().then(w => (hash && w && 'navigate' in w ? w.navigate(new URL(hash, w.url.split('#')[0]).href).catch(() => {}) : w))
   }))
 })
 // The push service rotated the subscription (key change, expiry): subscribe again with the same

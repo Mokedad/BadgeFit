@@ -39,6 +39,7 @@ import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
 import * as community from './community.js';
+import { cleanMealReminders, dueMeals, mealPush } from './meal-reminders.js';
 import { ipv6Groups, guardedLookup, pushEndpointError, MAX_PUSH_ENDPOINT } from './net-guard.js';
 import { createIntegrations } from './integrations/index.js';
 import { integrationRoutes } from './integrations/routes.js';
@@ -484,9 +485,24 @@ function stateSummary(uid) {
     consent: !!S?.coach?.consent?.agreedAt,
     settled: '',   // a local date the reminder was found to owe nothing on, for this file
     wrapped: wrappedSummary(S),   // the December push (wrapped.js): a flag, a year, a few years
+    meals: cleanMealReminders(S?.police?.mealReminders),   // BadgeFit meal reminders (meal-reminders.js)
   };
   stateSummaries.set(uid, sum);
   return sum;
+}
+// BadgeFit meal reminders (meal-reminders.js): each one once per local date, inside its window.
+// What went out today is kept on the user record (`lastMeals`), written before the send so a
+// crash or the next tick cannot send it twice. Read from the summary only, no state parse.
+function mealTick(user, meals) {
+  const now = userNow(meals.tz);
+  if (!now) return;
+  const sent = user.lastMeals?.date === now.date ? user.lastMeals.sent || [] : [];
+  const due = dueMeals(meals, now.hhmm, sent);
+  if (!due.length) return;
+  console.log('meal reminder firing', user.id, due.join(','));
+  user.lastMeals = { date: now.date, sent: [...sent, ...due] };
+  saveDb();
+  for (const key of due) sendPush(user.id, mealPush(key, now.date));
 }
 // "Your year in openGym" (wrapped.js): once per user and year, on Dec 1 from 18:00 server time.
 // The year it went out for is written to db.json before the send, so a crash after it, a restart
@@ -510,6 +526,7 @@ setInterval(() => {
     try {
       const sum = stateSummary(user.id);
       if (wrappedYear && sum && user.wrappedPush !== wrappedYear) wrappedTick(user, sum, wrappedYear);
+      if (sum?.meals) mealTick(user, sum.meals);
       if (!sum?.rem.on) continue;
       const now = userNow(sum.rem.tz || 'UTC');
       if (!now) continue;

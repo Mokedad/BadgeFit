@@ -228,3 +228,11 @@
 :root .pf .card.pf-jarvis,:root[data-theme="light"] .pf .card.pf-jarvis{background:linear-gradient(160deg,var(--pf-navy-2),var(--pf-navy) 75%);color:#fff;border:0}
 :root[data-theme="light"] .pf .card.pf-jarvis .pf-sub{color:rgba(255,255,255,.72)}
 .pf-more-btn{background:none;border:0;color:var(--pf-gold);font-weight:700;padding:2px 0;font-size:14px}
+/* meal reminders */
+.pf-rlist{display:flex;flex-direction:column;margin-top:6px}
+.pf-rrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--sep)}
+.pf-rrow.off .pf-rname,.pf-rrow.off input{opacity:.45}
+.pf-rsym{font-size:22px;width:28px;text-align:center}
+.pf-rname{flex:1;min-width:0;font-weight:600}
+.pf-rrow input[type=time]{background:var(--surface-2);border:0;border-radius:10px;padding:6px 8px;color:inherit;font:inherit;font-variant-numeric:tabular-nums}
+.pf-rname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}

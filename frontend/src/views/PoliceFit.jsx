@@ -9,12 +9,15 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { todayISO } from '../lib/format.js'
+import { todayISO, localTZ } from '../lib/format.js'
 import { lastBW } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
-import { Button, NumberField, Segmented, TextField } from '../components/ui.jsx'
+import { Button, NumberField, Segmented, Switch, TextField } from '../components/ui.jsx'
 import { saveProgramme, startProgramme } from '../lib/programmes.js'
 import { isOn } from '../lib/modules.js'
+import { MOBILE, syncReminder } from '../lib/mobile.js'
+import { pushSupported, enablePush } from '../lib/push.js'
+import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
@@ -379,6 +382,54 @@ function Reps({ S }) {
   </>
 }
 
+/**
+ * 🔔 Meal reminders: breakfast, lunch, pre-workout and dinner, each at its own time. Turning
+ * them on asks for notification permission: the phone app schedules them itself, the web and
+ * home-screen app gets them as push from the server (api/meal-reminders.js).
+ */
+function MealReminders({ S, P }) {
+  const setP = usePolice()
+  const user = useStore(s => s.user)
+  const cfg = mealSettings(P.mealReminders)
+  const [busy, setBusy] = useState(false)
+  const save = patch => setP(p => ({ mealReminders: { ...mealSettings(p.mealReminders), ...patch, tz: localTZ() } }))
+  const setMeal = (key, patch) => save({ meals: { ...cfg.meals, [key]: { ...cfg.meals[key], ...patch } } })
+  const webState = !MOBILE && typeof Notification !== 'undefined' ? Notification.permission : null
+  const turnOn = async () => {
+    setBusy(true)
+    try {
+      if (MOBILE) {
+        const next = { ...S, police: { ...P, mealReminders: { ...cfg, on: true, tz: localTZ() } } }
+        const ok = await syncReminder(next, true)
+        if (!ok) { useUI.getState().toast('Allow notifications for BadgeFit in your phone settings, then try again'); return }
+      } else {
+        if (!user) { useUI.getState().toast('Sign in first: reminders come from your BadgeFit server'); return }
+        if (!pushSupported()) { useUI.getState().toast('On iPhone: Share → Add to Home Screen, open BadgeFit from there, then turn this on'); return }
+        await enablePush()
+      }
+      save({ on: true })
+      useUI.getState().toast('Meal reminders on. Fuel the badge 🔔')
+    } catch (e) {
+      useUI.getState().toast(e?.message || 'Notifications were not allowed')
+    } finally { setBusy(false) }
+  }
+  return <div className="card pf-remind">
+    <div className="row between">
+      <h3>🔔 Meal reminders</h3>
+      <Switch checked={cfg.on} disabled={busy} onChange={() => (cfg.on ? save({ on: false }) : turnOn())} aria-label="Meal reminders" />
+    </div>
+    {!cfg.on && <p className="pf-sub">A nudge at each meal so you never miss your protein. Turn on to allow notifications.</p>}
+    {webState === 'denied' && <p className="pf-warn">Notifications are blocked for this site. Allow them in your browser's site settings.</p>}
+    {cfg.on && <div className="pf-rlist">{MEALS.map(m => <div key={m.key} className={'pf-rrow' + (cfg.meals[m.key].on ? '' : ' off')}>
+      <span className="pf-rsym" aria-hidden="true">{m.emoji}</span>
+      <span className="pf-rname">{m.name}</span>
+      <input type="time" value={cfg.meals[m.key].time} aria-label={m.name + ' time'} disabled={!cfg.meals[m.key].on}
+        onChange={e => e.target.value && setMeal(m.key, { time: e.target.value })} />
+      <Switch checked={cfg.meals[m.key].on} onChange={() => setMeal(m.key, { on: !cfg.meals[m.key].on })} aria-label={m.name + ' reminder'} />
+    </div>)}</div>}
+  </div>
+}
+
 /** Today's food against the targets: one tap for your usual meals, a quick add for the rest. */
 function MealLog({ P, targets }) {
   const setP = usePolice()
@@ -506,6 +557,7 @@ function Food({ S, P }) {
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div>
+    <MealReminders S={S} P={P} />
     <MealLog P={P} targets={m} />
     <ProteinCard weight={weight} />
     <CreatineCard weight={weight} />
