@@ -33,6 +33,25 @@ export const DIETS = [
     ],
   },
   {
+    id: 'recruit-cut', name: "The coach's recruit cut", tag: 'Real results',
+    who: 'The exact day the BadgeFit coach eats while training for the PCT: 114 kg down to 110 kg, stronger in every session. High protein, about 500 kcal under maintenance, carbs timed around runs.',
+    how: [
+      '30-45 g protein at each main meal keeps muscle building while you lose fat.',
+      'Fast carbs (rice cakes) 30-45 min before running: fuel without a heavy stomach.',
+      'Lean cuts for steak (rump, sirloin, eye fillet), not marbled scotch or ribeye.',
+      'Skip the extra shake after a high-protein dinner: about 1,000 kcal a week saved.',
+      'Sauna for recovery, never as weight loss: drink water with electrolytes straight after.',
+    ],
+    day: [
+      'Breakfast: porridge, lite Greek yoghurt, 1 scoop whey, fruit (about 40-45 g protein)',
+      'Lunch: a high-protein shake (about 30 g protein, about 200 kcal)',
+      'Pre-run (30-45 min before): 2-3 rice cakes',
+      'Afternoon: 4 km run (easy, intervals or max) or a push/pull gym session',
+      'Dinner: two lean steaks with vegetables, or a high-protein ready meal (35-40 g protein)',
+      'Night: magnesium, K2, creatine, compression boots',
+    ],
+  },
+  {
     id: 'if-16-8', name: 'Intermittent fasting 16:8', tag: 'Fat loss',
     who: 'For people who are not hungry in the morning and like fewer, bigger meals. It works by making a deficit easier, not by magic.',
     how: [
@@ -92,20 +111,36 @@ export const dietById = id => DIETS.find(d => d.id === id) || null
 const GOAL_FACTOR = { lose: 0.8, recomp: 0.9, maintain: 1, gain: 1.1 }
 const ACTIVITY = { light: 30, moderate: 33, high: 36 } // kcal per kg body weight for maintenance
 
+// Calories a day above or below maintenance, by goal: the deficit is the ~500 kcal that loses
+// about half a kilo of fat a week while training stays strong.
+const GOAL_DELTA = { lose: -500, recomp: -250, maintain: 0, gain: 250 }
+// Training 6-7 sessions a week: Mifflin-St Jeor resting energy × 1.55.
+const ACTIVITY_FACTOR = 1.55
+
+/** Resting energy (Mifflin-St Jeor), or null without height and age. sex: 'male' | 'female'. */
+export function bmr({ weightKg, heightCm, age, sex }) {
+  const w = Number(weightKg), h = Number(heightCm), a = Number(age)
+  if (!(w > 30) || !(h > 120 && h < 230) || !(a >= 14 && a <= 90)) return null
+  return Math.round(10 * w + 6.25 * h - 5 * a + (sex === 'female' ? -161 : 5))
+}
+
 /**
- * Daily targets from body weight (kg), a goal and an activity level: kcal, protein, fat and
- * carbs in grams, and water in litres. A deliberately simple estimate, rounded to be usable.
+ * Daily targets: kcal, protein, fat and carbs in grams, water in litres. With height and age it
+ * uses Mifflin-St Jeor; without them, a rougher per-kg estimate that runs high for heavier people.
  */
-export function macroTargets({ weightKg, goal = 'lose', activity = 'high' } = {}) {
+export function macroTargets({ weightKg, goal = 'lose', activity = 'high', heightCm, age, sex } = {}) {
   const w = Number(weightKg)
   if (!(w > 30 && w < 300)) return null
-  const maintenance = w * (ACTIVITY[activity] || ACTIVITY.high)
-  const kcal = Math.round((maintenance * (GOAL_FACTOR[goal] || 1)) / 10) * 10
+  const rest = bmr({ weightKg: w, heightCm, age, sex })
+  const maintenance = rest ? rest * ACTIVITY_FACTOR : w * (ACTIVITY[activity] || ACTIVITY.high)
+  const kcal = rest
+    ? Math.round((maintenance + (GOAL_DELTA[goal] ?? 0)) / 10) * 10
+    : Math.round((maintenance * (GOAL_FACTOR[goal] || 1)) / 10) * 10
   const protein = Math.round(w * (goal === 'lose' ? 2.2 : 2.0))
   const fat = Math.round(w * 0.8)
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   const water = Math.round(w * 0.035 * 10) / 10
-  return { kcal, protein, fat, carbs, water, maintenance: Math.round(maintenance) }
+  return { kcal, protein, fat, carbs, water, maintenance: Math.round(maintenance), method: rest ? 'mifflin' : 'per-kg' }
 }
 
 export const RECOVERY = [
@@ -113,4 +148,55 @@ export const RECOVERY = [
   { id: 'boots', name: 'Compression boots', how: '20-30 min after long runs and on rest days to flush the legs.' },
   { id: 'sleep', name: 'Sleep', how: '7-9 hours. This is where the muscle and the fitness are actually built.' },
   { id: 'walk', name: 'Recovery walk', how: 'Incline treadmill walk at nose-breathing pace: burns fat without adding fatigue.' },
+]
+
+// --- protein by body weight --------------------------------------------------------------
+// g per kg per day: the general health minimum, an active adult, and building or keeping
+// muscle in a calorie deficit (the recruit's case). Above about 2.2 g/kg nothing more is built.
+export const PROTEIN_LEVELS = [
+  { id: 'normal', name: 'Normal intake', perKg: 0.8, who: 'Not training: the healthy minimum' },
+  { id: 'active', name: 'Active', perKg: 1.6, who: 'Training 3-4 times a week' },
+  { id: 'build', name: 'Build muscle / cutting', perKg: 2.2, who: 'Training hard, losing fat, keeping muscle' },
+]
+
+/** Daily protein in grams for a body weight, per level, and how it splits over 4 meals. */
+export function proteinFor(weightKg) {
+  const w = Number(weightKg)
+  if (!(w > 30 && w < 300)) return null
+  return PROTEIN_LEVELS.map(l => {
+    const g = Math.round(w * l.perKg)
+    return { ...l, grams: g, perMeal: Math.round(g / 4) }
+  })
+}
+
+/** A table of daily protein for a range of body weights (kg), for the reference card. */
+export function proteinTable(from = 50, to = 150, step = 10) {
+  const rows = []
+  for (let w = from; w <= to; w += step) rows.push({ weight: w, ...Object.fromEntries(PROTEIN_LEVELS.map(l => [l.id, Math.round(w * l.perKg)])) })
+  return rows
+}
+
+// --- creatine ----------------------------------------------------------------------------
+// Loading: about 0.3 g/kg a day (≈20 g for most people) split into 4 doses for 5-7 days, then
+// maintenance of about 0.03 g/kg (3-5 g, up to about 10 g for very big athletes). Staying on
+// 15-30 g every day adds no strength over maintenance once the muscle is full, and often upsets
+// the stomach. Skip loading and take 3-5 g daily: the muscle is just as full after 3-4 weeks.
+export function creatineFor(weightKg) {
+  const w = Number(weightKg)
+  if (!(w > 30 && w < 300)) return null
+  const loading = Math.min(30, Math.max(15, Math.round(w * 0.3)))
+  const maintenance = Math.min(10, Math.max(3, Math.round(w * 0.03 * 2) / 2))
+  return { loading, loadingDoses: 4, loadingPerDose: Math.round((loading / 4) * 2) / 2, loadingDays: '5-7', maintenance }
+}
+
+// Supplements worth knowing about. `evidence`: strong | good | some. Police applicants are
+// drug tested: only batch-tested products (Informed Sport, HASTA) are safe from contamination.
+export const SUPPLEMENTS = [
+  { id: 'whey', name: 'Whey protein', evidence: 'strong', dose: '1 scoop (25-30 g protein) when meals fall short', why: 'An easy way to reach your protein target. Food first: a shake after a steak dinner is wasted calories.' },
+  { id: 'creatine', name: 'Creatine monohydrate', evidence: 'strong', dose: 'See your numbers above: load, then 3-5 g every day', why: 'More strength and power on short hard efforts: push-ups, sprints, jumps. Expect 1-2 kg of water weight on the scale, which is muscle water, not fat.' },
+  { id: 'electrolytes', name: 'Electrolytes', evidence: 'good', dose: 'After sauna, long or hot runs: 500-1000 ml with sodium', why: 'Replaces the sodium you sweat out, so your next run does not suffer. Plain water alone after heavy sweating can dilute your blood sodium.' },
+  { id: 'caffeine', name: 'Caffeine', evidence: 'strong', dose: '3 mg per kg, 45-60 min before hard sessions or test day', why: 'Faster and stronger on intervals and the beep test. Try it in training first, never new on test day. None after 2 pm, sleep matters more.' },
+  { id: 'magnesium', name: 'Magnesium (glycinate)', evidence: 'some', dose: '200-400 mg in the evening', why: 'Helps sleep and muscle relaxation, especially when you sweat a lot.' },
+  { id: 'vitd', name: 'Vitamin D3 (+ K2)', evidence: 'good', dose: '1000-2000 IU a day, with a meal containing fat', why: 'Bone health under running impact and immune support, if you are low (get a blood test). K2 helps put calcium into bone.' },
+  { id: 'omega3', name: 'Omega-3 (fish oil)', evidence: 'some', dose: '1-2 g EPA+DHA a day, or oily fish twice a week', why: 'Joint comfort and recovery. Not needed if you eat salmon or sardines regularly.' },
 ]

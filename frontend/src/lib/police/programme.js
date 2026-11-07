@@ -225,6 +225,7 @@ export function weekPlan(level, week, age, opts = {}) {
     days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['Sauna: 15-20 min'] }
     if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
   }
+  if (w === WEEKS) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Taper: half the sets or distance, same intensity']
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
@@ -295,3 +296,30 @@ export function weekNumber(startISO, todayISO) {
   if (!Number.isFinite(ms) || ms < 0) return null
   return Math.min(WEEKS, Math.floor(ms / (7 * 86400000)) + 1)
 }
+
+// --- counting down to a test date --------------------------------------------------------
+const DAY = 86400000
+const isoDay = ms => new Date(ms).toISOString().slice(0, 10)
+
+/**
+ * The start date that puts `testISO` in week 12, so the programme peaks on test day. With a
+ * test 4 weeks away the plan opens at week 9: the peak phase, then the taper.
+ */
+export function startForTest(testISO) {
+  const t = Date.parse(testISO + 'T00:00:00Z')
+  return Number.isFinite(t) ? isoDay(t - 83 * DAY) : null
+}
+
+/** Whole days from today to the test (0 on the day), or null. */
+export function daysUntil(testISO, todayISO) {
+  const t = Date.parse(testISO + 'T00:00:00Z'), n = Date.parse(todayISO + 'T00:00:00Z')
+  return Number.isFinite(t) && Number.isFinite(n) ? Math.round((t - n) / DAY) : null
+}
+
+// The last week before the test: keep the intensity, cut the volume, arrive fresh.
+export const TAPER = [
+  'Taper week: about half the sets and half the running, same intensity',
+  'Last hard session 3-4 days before the test; 2 days before, rest or an easy 20 min jog',
+  'Day before: sleep 8+ hours, carbs at dinner, no new foods, lay out your gear',
+  'Test morning: a normal breakfast 3 hours before, caffeine if you trained with it, full warm-up',
+]

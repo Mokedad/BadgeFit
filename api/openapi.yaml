@@ -172,6 +172,10 @@ tags:
       attached to a logged workout. Stored per profile (one quota for both) and named
       by the SHA-256 of its bytes; the state only carries a `MediaRef`. Every route here is a
       404 when the instance runs with `MEDIA_UPLOADS=0`.
+  - name: community
+    description: >-
+      The community feed (BadgeFit): posts, replies, cheers and reports, shared by everyone
+      signed in to this server. Text only; three reports hide a post until an admin looks.
   - name: coach
     description: >-
       AI Coach: plans, reviews and debriefs. Every route here answers 503 unless the
@@ -3340,6 +3344,132 @@ paths:
         '429': { $ref: '#/components/responses/CoachRefused' }
         '503': { $ref: '#/components/responses/CoachOff' }
 
+  /api/community:
+    get:
+      tags: [community]
+      operationId: getCommunity
+      summary: Read the community feed
+      description: |
+        The newest posts first, up to 50, with their replies and cheer counts. Never an
+        account id: posts carry the name the author chose and `mine` for the viewer's own.
+        Hidden (reported) posts are shown only to admins and their authors.
+      parameters:
+        - name: before
+          in: query
+          required: false
+          schema: { type: integer }
+          description: Only posts older than this time (ms), for the next page.
+      responses:
+        '200':
+          description: The feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts: { type: array, items: { type: object } }
+                  topics: { type: array, items: { type: string } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/post:
+    post:
+      tags: [community]
+      operationId: postCommunityPost
+      summary: Write a post
+      description: Up to 1000 characters of plain text, 10 posts an hour per person.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 1000 }
+                topic: { type: string, enum: [win, question, journey, motivation] }
+      responses:
+        '201': { description: The new post, as the feed shows it }
+        '400': { description: Empty text }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/community/reply:
+    post:
+      tags: [community]
+      operationId: postCommunityReply
+      summary: Reply to a post
+      description: Up to 500 characters of plain text.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, text]
+              properties:
+                id: { type: string }
+                text: { type: string, maxLength: 500 }
+      responses:
+        '201': { description: The new reply }
+        '400': { description: Empty text or no such post }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/community/cheer:
+    post:
+      tags: [community]
+      operationId: postCommunityCheer
+      summary: Cheer a post, or take the cheer back
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, description: The post id }
+      responses:
+        '200': { description: 'The new count and whether the viewer cheers it: `{ cheers, cheered }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/report:
+    post:
+      tags: [community]
+      operationId: postCommunityReport
+      summary: Report a post
+      description: Three reports from different people hide it until an admin restores or deletes it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, description: The post id }
+      responses:
+        '200': { description: '`{ reported, hidden }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/delete:
+    post:
+      tags: [community]
+      operationId: postCommunityDelete
+      summary: Delete a post or a reply
+      description: |
+        Your own post or reply, a reply on your own post, or anything for an admin. An admin
+        sending `restore: true` shows a hidden post again and clears its reports instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+                replyId: { type: string }
+                restore: { type: boolean }
+      responses:
+        '200': { description: '`{ deleted: true }` or `{ restored: true }`' }
+        '403': { description: Not yours to delete }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/coach/ask:
     post:
       tags: [coach]

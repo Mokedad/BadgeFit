@@ -623,6 +623,14 @@ export function cleanPolice(P, now = Date.now()) {
   out.beepPass = beepText(P.beepTarget) || '7.1';
   out.beepGoal = beepText(P.beepGoal) || '7.2';
   if (typeof P.diet === 'string') out.diet = word(P.diet, 24);
+  const test = typeof P.testDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(P.testDate) ? P.testDate : null;
+  if (test) {
+    out.testDate = test;
+    const left = Math.round((Date.parse(test + 'T00:00:00Z') - Date.parse(new Date(now).toISOString().slice(0, 10) + 'T00:00:00Z')) / 86400000);
+    if (left >= 0) out.daysToTest = left;
+  }
+  const kg = pnum(P.weightKg);
+  if (kg != null && kg > 30 && kg < 300) out.weightKg = Math.round(kg * 10) / 10;
   if (typeof P.goal === 'string') out.goal = word(P.goal, 12);
   const results = {};
   for (const r of Array.isArray(P.results) ? P.results : []) {

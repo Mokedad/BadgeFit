@@ -101,3 +101,20 @@ describe('weekNumber', () => {
     expect(weekNumber('2026-01-05', '2026-01-01')).toBeNull()
   })
 })
+
+import { startForTest, daysUntil, TAPER } from './programme.js'
+describe('test countdown', () => {
+  it('puts the test in week 12, so 4 weeks out is week 9', () => {
+    const start = startForTest('2026-12-05')
+    expect(weekNumber(start, '2026-12-05')).toBe(12)
+    expect(weekNumber(start, '2026-11-07')).toBe(8) // 28 days out: the last day of week 8
+    expect(weekNumber(start, '2026-11-08')).toBe(9)
+    expect(daysUntil('2026-12-05', '2026-11-07')).toBe(28)
+    expect(startForTest('nope')).toBeNull()
+  })
+  it('tapers week 12', () => {
+    expect(weekPlan('beginner', 12).days[0].details.join(' ')).toMatch(/Taper/)
+    expect(weekPlan('beginner', 11).days[0].details.join(' ')).not.toMatch(/Taper/)
+    expect(TAPER.length).toBe(4)
+  })
+})

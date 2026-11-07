@@ -18,9 +18,11 @@ import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, WARMUP, zone2, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
-import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, macroTargets } from '../lib/police/nutrition.js'
+import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
+import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
+import MusicBar from '../components/MusicBar.jsx'
 import '../police.css'
 
 const TABS = [
@@ -29,6 +31,7 @@ const TABS = [
   { value: 'plan', label: 'Plan' },
   { value: 'reps', label: 'Reps' },
   { value: 'food', label: 'Food' },
+  { value: 'care', label: 'Care' },
 ]
 
 const policeOf = S => S.police || {}
@@ -70,8 +73,13 @@ function Today({ S, user, P, setTab }) {
       <div className="pf-actions">
         <Button variant="tinted" icon="play" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }}>Hear it</Button>
         {isOn(S, 'coach') && <Button variant="tinted" icon="chat" onClick={() => nav('/coach')}>Talk to {BRAND.coach}</Button>}
+        <Button variant="tinted" onClick={() => nav('/community')}>👥 Community</Button>
       </div>
     </div>
+
+    <TestCountdown P={P} />
+
+    <MusicBar />
 
     <div className="card pf-ready">
       <div className="pf-ring" style={{ '--p': ready.pct }}><span>{ready.pct}%</span></div>
@@ -95,6 +103,29 @@ function Today({ S, user, P, setTab }) {
   </>
 }
 
+/** Days to the test, and setting its date: the programme then counts down so week 12 is test week. */
+function TestCountdown({ P }) {
+  const update = useStore(s => s.update)
+  const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
+  const setDate = d => update(s => {
+    const prev = s.police || {}
+    const next = { ...prev, testDate: d || undefined }
+    // Re-anchor the plan on the test, keeping the phase the lifts are already set to.
+    if (d && startForTest(d) && prev.level) next.start = startForTest(d)
+    s.police = next
+  })
+  return <div className="card pf-count">
+    {left != null && left >= 0
+      ? <div className="pf-count-n"><b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your test</span></div>
+      : <div className="pf-count-n"><b>PCT</b><span>Set your test date</span></div>}
+    <div className="pf-count-m">
+      <label>Test date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
+      {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+      {P.testDate && <p className="pf-sub">The plan counts down so test week is week 12{left != null && left < 84 ? `: you start at week ${Math.max(1, 12 - Math.floor(left / 7))}` : ''}.</p>}
+    </div>
+  </div>
+}
+
 function Setup({ S, P }) {
   const update = useStore(s => s.update)
   const setP = usePolice()
@@ -105,9 +136,10 @@ function Setup({ S, P }) {
       s.routines = [...(s.routines || []), ...built.routines.map(({ police, ...r }) => r)]
       saveProgramme(s, built.programme)
       startProgramme(s, built.programme.id)
-      s.police = { ...(s.police || {}), level, start: todayISO(), programmeId: built.programme.id, keys: built.keys, phase: 1 }
+      const start = (P.testDate && startForTest(P.testDate)) || todayISO()
+      s.police = { ...(s.police || {}), level, start, programmeId: built.programme.id, keys: built.keys, phase: 1 }
     })
-    useUI.getState().toast('Your 12 weeks start today. Let us get to work.')
+    useUI.getState().toast(P.testDate ? 'Your plan now counts down to test day. Let us get to work.' : 'Your 12 weeks start today. Let us get to work.')
   }
   return <div className="card">
     <h3>Build your 12-week programme</h3>
@@ -116,7 +148,7 @@ function Setup({ S, P }) {
     <p className="pf-sub">It adds 7 routines (gym, runs and a recovery walk) and starts a 12-week programme in your Plan. Your current plan comes back when you end it.</p>
     <Button variant="primary" onClick={build}>Build my programme</Button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
-    <button className="pf-link" onClick={() => setP({ level, start: P.start || todayISO() })}>Just show me the plan, I will track it myself</button>
+    <button className="pf-link" onClick={() => setP({ level, start: P.start || (P.testDate && startForTest(P.testDate)) || todayISO() })}>Just show me the plan, I will track it myself</button>
   </div>
 }
 
@@ -292,6 +324,64 @@ function Reps({ S }) {
   </>
 }
 
+function ProteinCard({ weight }) {
+  const p = proteinFor(weight)
+  return <div className="card">
+    <h3>Protein for your body weight</h3>
+    <p className="pf-sub">Body weight × grams per kg, every day.</p>
+    {p && <div className="pf-prot">{p.map(l => <div key={l.id} className={l.id === 'build' ? 'on' : ''}>
+      <span>{l.name}</span><b>{l.grams} g</b><small>{weight} kg × {l.perKg}</small><small>{l.who}</small>
+    </div>)}</div>}
+    {p && <p className="pf-sub">Building muscle while you cut: about <b>{p[2].perMeal} g at each of 4 meals</b>. Your body uses about 30-45 g at a time well.</p>}
+    <details className="pf-more"><summary>Every body weight</summary>
+      <table className="pf-table"><thead><tr><th>Weight</th><th>Normal ×0.8</th><th>Active ×1.6</th><th>Build ×2.2</th></tr></thead>
+        <tbody>{proteinTable().map(r => <tr key={r.weight}><td>{r.weight} kg</td><td>{r.normal} g</td><td>{r.active} g</td><td>{r.build} g</td></tr>)}</tbody></table>
+    </details>
+  </div>
+}
+
+function CreatineCard({ weight }) {
+  const c = creatineFor(weight)
+  if (!c) return null
+  return <div className="card">
+    <h3>Creatine for {weight} kg</h3>
+    <div className="pf-macros pf-cre">
+      <div><b>{c.loading} g</b><span>a day, loading</span></div>
+      <div><b>{c.loadingDoses} × {c.loadingPerDose} g</b><span>split doses</span></div>
+      <div><b>{c.loadingDays}</b><span>days of loading</span></div>
+      <div><b>{c.maintenance} g</b><span>every day after</span></div>
+    </div>
+    <p className="pf-sub">Loading (about 0.3 g per kg) fills your muscles in a week. Then drop to the daily amount: staying on {c.loading} g a day adds no extra strength and often upsets the stomach. In a hurry? Skip loading, take {c.maintenance} g daily, and you are full in 3-4 weeks.</p>
+    <p className="pf-sub">Creatine monohydrate, with water and a meal. Expect 1-2 kg more on the scale: that is water in the muscle, not fat. Check with your doctor first if you have kidney problems.</p>
+  </div>
+}
+
+// --- Care --------------------------------------------------------------------------------
+function CareItem({ it, open }) {
+  return <details className="pf-care" open={open || undefined}>
+    <summary><b>{it.name}</b><span className="pf-sub">{it.what}</span></summary>
+    <p><b>Why:</b> {it.why}</p>
+    <p><b>What to do:</b></p><ul>{it.do.map((x, i) => <li key={i}>{x}</li>)}</ul>
+    <p className="pf-see"><b>See a physio or doctor:</b> {it.see}</p>
+  </details>
+}
+
+function Care() {
+  const [q, setQ] = useState('')
+  const hits = findCare(q)
+  return <>
+    <div className="card pf-jarvis">
+      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">on aches and pains</span></div>
+      <p>{RUN_CARE_INTRO}</p>
+      <label>What is bothering you?<TextField value={q} placeholder="e.g. my shins hurt after running" onChange={e => setQ(e.target.value)} /></label>
+      {q && !hits.length && <p className="pf-sub">Nothing matched. Try one word: shin, heel, knee, ankle, chafe, stitch, tired.</p>}
+    </div>
+    {hits.length > 0 && <div className="card">{hits.map(it => <CareItem key={it.id} it={it} open />)}</div>}
+    {!q && RUN_CARE.map(g => <div key={g.group} className="card"><h3>{g.group}</h3>{g.items.map(it => <CareItem key={it.id} it={it} />)}</div>)}
+    <p className="pf-sub pf-pad">General information, not a diagnosis. Chest pain, fainting, confusion or stopping sweating in the heat: stop and call 000.</p>
+  </>
+}
+
 // --- Food --------------------------------------------------------------------------------
 function Food({ S, P }) {
   const setP = usePolice()
@@ -299,12 +389,15 @@ function Food({ S, P }) {
   const kg = bw ? (S.unit === 'lb' ? bw.w / 2.2046 : bw.w) : null
   const [weight, setWeight] = useState(P.weightKg ?? (kg ? Math.round(kg) : 80))
   const [goal, setGoal] = useState(P.goal || 'lose')
-  const m = macroTargets({ weightKg: weight, goal, activity: 'high' })
+  const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
     <div className="card">
       <h3>Your daily targets</h3>
       <div className="pf-2">
         <label>Body weight (kg)<NumberField value={weight} onChange={x => { setWeight(x); setP({ weightKg: x }) }} /></label>
+        <label>Height (cm)<NumberField value={P.heightCm ?? null} nullable decimal={false} onChange={x => setP({ heightCm: x })} /></label>
+        <label>Age<NumberField value={P.age ?? null} nullable decimal={false} onChange={x => setP({ age: x })} /></label>
+        <label>Sex<Segmented options={[{ value: 'male', label: 'M' }, { value: 'female', label: 'F' }]} value={P.sex || 'male'} onChange={x => setP({ sex: x })} /></label>
       </div>
       <Segmented options={[{ value: 'lose', label: 'Lose fat' }, { value: 'recomp', label: 'Recomp' }, { value: 'gain', label: 'Gain' }]} value={goal} onChange={g => { setGoal(g); setP({ goal: g }) }} />
       {m && <div className="pf-macros">
@@ -314,8 +407,19 @@ function Food({ S, P }) {
         <div><b>{m.fat} g</b><span>fat</span></div>
         <div><b>{m.water} L</b><span>water</span></div>
       </div>}
-      <p className="pf-sub">Estimated for 6-7 training sessions a week. Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
+      <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div>
+    <ProteinCard weight={weight} />
+    <CreatineCard weight={weight} />
+    <details className="card pf-diet">
+      <summary><b>Supplements</b> <span className="pf-chip">What actually works</span></summary>
+      <p className="pf-sub">Food first: supplements fill gaps. Police applicants are drug tested, so only buy batch-tested products (look for Informed Sport).</p>
+      {SUPPLEMENTS.map(x => <div key={x.id} className="pf-supp">
+        <div className="row between"><b>{x.name}</b><span className={'pf-chip ev-' + x.evidence}>{x.evidence === 'strong' ? 'Strong evidence' : x.evidence === 'good' ? 'Good evidence' : 'Some evidence'}</span></div>
+        <p className="pf-sub"><b>Dose:</b> {x.dose}</p>
+        <p className="pf-sub">{x.why}</p>
+      </div>)}
+    </details>
     {DIETS.map(d => <details key={d.id} className="card pf-diet" open={P.diet === d.id}>
       <summary><b>{d.name}</b> <span className="pf-chip">{d.tag}</span></summary>
       <p className="pf-sub">{d.who}</p>
@@ -352,6 +456,7 @@ export default function PoliceFit() {
     {tab === 'plan' && <Plan P={P} />}
     {tab === 'reps' && <Reps S={S} />}
     {tab === 'food' && <Food S={S} P={P} />}
+    {tab === 'care' && <Care />}
     <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>
   </div>
 }

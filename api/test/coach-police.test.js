@@ -10,7 +10,7 @@ const { buildPromptParts } = await import('../coach/core/prompt.js');
 
 const NOW = Date.parse('2026-11-07T10:00:00Z');
 const police = {
-  level: 'intermediate', start: '2026-10-20', age: 28, beepTarget: '7.1', beepGoal: '7.2', diet: 'high-protein',
+  level: 'intermediate', start: '2026-10-20', testDate: '2026-12-05', weightKg: 110, age: 28, beepTarget: '7.1', beepGoal: '7.2', diet: 'high-protein',
   results: [
     { id: 'pushups', v: 18, at: '2026-10-20' }, { id: 'pushups', v: 21, at: '2026-10-27' },
     { id: 'pushups', v: 24, at: '2026-11-03' }, { id: 'pushups', v: 26, at: '2026-11-06' },
@@ -32,6 +32,8 @@ test('cleanPolice keeps the useful part, bounded and typed', () => {
   assert.deepEqual(p.results.grip[0].v, { left: 31, right: 28 });
   assert.deepEqual(p.results.beep, [{ at: '2026-11-02', v: '6.8' }]);
   assert.equal(p.results.hack, undefined);
+  assert.equal(p.daysToTest, 28);
+  assert.equal(p.weightKg, 110);
 });
 
 test('cleanPolice: nothing there, nothing sent', () => {
@@ -46,6 +48,7 @@ test('a question carries it, and the prompt knows to answer as Jarvis', () => {
   assert.equal(p.police.level, 'intermediate');
   const { system } = buildPromptParts('ask', p);
   assert.match(system, /speak as Jarvis/);
+  assert.match(system, /caterpillar/);
   const review = payloadLib.build(S, { handle: 'u1', kind: 'review', now: NOW });
   assert.equal(review.police, undefined);
 });

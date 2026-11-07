@@ -25,8 +25,9 @@ describe('web Content-Security-Policy', () => {
   it('keeps what the app needs: blob: media, narrow video frames, no embedding or plugins', () => {
     expect(directive('img-src')).toContain('blob:')
     expect(directive('media-src')).toContain('blob:')
-    // Only YouTube's privacy-enhanced player (components/YouTubeVideo.jsx), not even this origin.
-    expect(directive('frame-src')).toEqual(['https://www.youtube-nocookie.com'])
+    // Only YouTube's privacy-enhanced player (components/YouTubeVideo.jsx) and Spotify's embed
+    // (components/MusicBar.jsx), not even this origin.
+    expect(directive('frame-src')).toEqual(['https://www.youtube-nocookie.com', 'https://open.spotify.com'])
     expect(directive('frame-ancestors')).toEqual(["'none'"])
     expect(directive('object-src')).toEqual(["'none'"])
   })

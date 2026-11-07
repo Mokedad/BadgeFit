@@ -12,6 +12,7 @@ import './coach.css'
 import './index.css'
 import { hideBoot, handOverFromLaunchScreen } from './lib/boot.js'
 import { guardFocusZoom } from './lib/viewport-zoom.js'
+import { completeLogin } from './lib/spotify.js'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 // A script that dies before the app draws would otherwise leave the boot logo lifting forever.
@@ -19,6 +20,10 @@ window.addEventListener('error', hideBoot, { once: true })
 handOverFromLaunchScreen()
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
+// Back from Spotify's login (lib/spotify.js): before the router reads the URL, so the cleaned
+// address with its #/police lands the person where the login began. The token trade runs on.
+if (!MOBILE) completeLogin()
 
 // The web build lets people pinch to zoom; on iOS a focused small field must not zoom the page.
 if (!MOBILE) guardFocusZoom()

@@ -90,3 +90,62 @@
 .pf label.pf-toggle input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--acc,var(--blue))}
 .pf-toggle span{color:var(--label-2)}
 .pf-toggle b{color:var(--label,inherit)}
+/* test countdown */
+.pf-count{display:flex;gap:16px;align-items:flex-start}
+.pf-count-n{flex:none;width:96px;height:96px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface-2);text-align:center}
+.pf-count-n b{font-size:34px;line-height:1;color:var(--green)}
+.pf-count-n span{font-size:11px;color:var(--label-2);margin-top:4px;padding:0 4px}
+.pf-count-m{flex:1;min-width:0}
+.pf-taper{font-size:14px;margin-top:8px}
+/* protein, creatine, supplements */
+.pf-prot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.pf-prot div{background:var(--surface-2);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pf-prot div.on{box-shadow:inset 0 0 0 2px var(--green)}
+.pf-prot span{font-size:12px;font-weight:600}
+.pf-prot b{font-size:22px}
+.pf-prot small{font-size:11px;color:var(--label-2)}
+.pf-cre{grid-template-columns:repeat(4,1fr)}
+.pf-supp{border-top:1px solid var(--sep);padding-top:10px;margin-top:10px}
+.pf-supp .pf-sub{margin:4px 0}
+.pf-chip.ev-strong{color:var(--green)} .pf-chip.ev-good{color:var(--blue)} .pf-chip.ev-some{color:var(--orange)}
+/* run care */
+.pf-care{border-top:1px solid var(--sep);padding:10px 0}
+.pf-care:first-of-type{border-top:0}
+.pf-care summary{cursor:pointer;display:flex;flex-direction:column;gap:2px;list-style:none}
+.pf-care summary::-webkit-details-marker{display:none}
+.pf-care summary .pf-sub{margin:0;font-size:14px}
+.pf-care p{margin:8px 0 4px}
+.pf-see{background:var(--surface-2);border-radius:10px;padding:8px 10px;font-size:14px}
+/* music (components/MusicBar.jsx), also on the workout screen */
+.mb iframe{width:100%;border:0;border-radius:12px;display:block;margin:6px 0 10px}
+.mb-compact{margin:8px 0}
+.mb-compact iframe{margin:0}
+.mb-l{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--label-2)}
+.mb-row{display:flex;gap:8px;align-items:center}
+.mb-row>*:first-child{flex:1;min-width:0}
+.mb-uri{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all;background:var(--surface-2);padding:6px 8px;border-radius:8px}
+.mb-remote{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:14px;padding:8px 10px;margin:6px 0 10px}
+.mb-remote img{border-radius:6px;flex:none}
+.mb-np{flex:1;min-width:0;display:flex;flex-direction:column}
+.mb-np b,.mb-np span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-np span{font-size:12px;color:var(--label-2)}
+.mb-ctl{display:flex;gap:4px;flex:none}
+.mb-ctl button{width:38px;height:38px;border-radius:50%;border:0;background:var(--surface-3);color:inherit;font-size:16px}
+.mb-ctl .mb-play{background:#1db954;color:#000}
+/* community (views/Community.jsx) */
+.cm-new textarea{width:100%;margin:10px 0 6px;min-height:84px}
+.cm-h{display:flex;align-items:center;gap:10px}
+.cm-av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;font-weight:700;flex:none}
+.cm-who{flex:1;min-width:0;display:flex;flex-direction:column}
+.cm-who span{font-size:12px;color:var(--label-2)}
+.cm-x{background:none;border:0;color:var(--label-2);font-size:14px;padding:6px}
+.cm-text{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;line-height:1.45}
+.cm-acts{display:flex;gap:6px;flex-wrap:wrap}
+.cm-acts button{background:var(--surface-2);border:0;border-radius:999px;padding:7px 12px;color:inherit;font-size:14px}
+.cm-acts .cm-cheer.on{background:var(--green);color:#000;font-weight:700}
+.cm-acts .cm-rep{background:none;color:var(--label-2);margin-left:auto}
+.cm-replies{border-top:1px solid var(--sep);margin-top:10px;padding-top:6px}
+.cm-reply{padding:6px 0;position:relative}
+.cm-reply p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.cm-reply .cm-x{position:absolute;right:0;top:2px}
+.cm-hidden{opacity:.6}

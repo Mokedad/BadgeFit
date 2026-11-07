@@ -38,6 +38,7 @@ import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from 
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
+import * as community from './community.js';
 import { ipv6Groups, guardedLookup, pushEndpointError, MAX_PUSH_ENDPOINT } from './net-guard.js';
 import { createIntegrations } from './integrations/index.js';
 import { integrationRoutes } from './integrations/routes.js';
@@ -1337,6 +1338,8 @@ async function removeEmail(req, res, user, body) {
 // credential and their photos and videos. The admin's delete and the account's own both end here.
 function removeAccount(u) {
   db.users = db.users.filter(x => x.id !== u.id);
+  // Their community posts, replies, cheers and reports (community.js).
+  try { const feed = loadCommunity(); community.forgetUser(feed, u.id); saveCommunity(feed); } catch { /* no feed yet */ }
   db.creds = (db.creds || []).filter(c => c.userId !== u.id);
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
   dropDeviceLinks(db, u.id);
@@ -2074,6 +2077,28 @@ function dataWritable() {
   dataProbe = { at: now, ok };
   return ok;
 }
+
+/* ---------- community (community.js) ----------
+   One shared feed per server, in DATA_DIR/community.json. Loaded on each request (it is small,
+   capped at community.MAX_POSTS) so there is no cache to drift from the file. */
+const communityFile = () => path.join(DATA, 'community.json');
+function loadCommunity() {
+  try { const f = JSON.parse(fs.readFileSync(communityFile(), 'utf8')); return f && Array.isArray(f.posts) ? f : community.emptyFeed(); }
+  catch { return community.emptyFeed(); }
+}
+function saveCommunity(feed) { durableWrite(communityFile(), JSON.stringify(feed)); }
+const COMMUNITY_POSTS = createWindow({ max: 10, windowMs: 3600000 });
+const COMMUNITY_ACTS = createWindow({ max: 120, windowMs: 3600000 });
+setInterval(() => { COMMUNITY_POSTS.sweep(); COMMUNITY_ACTS.sweep(); }, 600000).unref();
+/** Signed in, and inside the hourly budget for this kind of write. */
+function communityGuard(req, res, budget) {
+  const user = readSession(req);
+  if (!user) { json(res, 401, { error: 'not signed in' }); return null; }
+  const wait = budget ? budget.take(user.id) : 0;
+  if (wait) { json(res, 429, { error: 'slow down a little, try again later' }, { 'Retry-After': String(Math.ceil(wait / 1000)) }); return null; }
+  return user;
+}
+const communityAnswer = (res, r, ok = 200) => (r.error ? json(res, r.status || 400, { error: r.error }) : json(res, ok, r));
 
 const routes = {
   // 503 rather than a flag in a 200: the container healthcheck is `wget --spider`, which reads
@@ -2967,6 +2992,55 @@ const routes = {
     auditCount = 0;
     audit(req, 'admin.audit.clear', { user: admin });
     json(res, 200, { ok: true });
+  },
+
+  /* ---------- community ---------- */
+  'GET /api/community': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    const before = Number(new URL(req.url, 'http://x').searchParams.get('before')) || null;
+    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before }), topics: community.TOPICS });
+  },
+  'POST /api/community/post': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_POSTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.addPost(feed, user, { text: body.text, topic: body.topic });
+    if (!r.error) saveCommunity(feed);
+    communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user)[0] }, 201);
+  },
+  'POST /api/community/reply': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.addReply(feed, user, { id: String(body.id || ''), text: body.text });
+    if (!r.error) saveCommunity(feed);
+    communityAnswer(res, r.error ? r : { reply: { ...r.reply, uid: undefined, mine: true } }, 201);
+  },
+  'POST /api/community/cheer': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.toggleCheer(feed, user, String(body.id || ''));
+    if (!r.error) saveCommunity(feed);
+    communityAnswer(res, r);
+  },
+  'POST /api/community/report': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.report(feed, user, String(body.id || ''));
+    if (!r.error) { saveCommunity(feed); audit(req, 'community.report', { user, msg: String(body.id || '').slice(0, 20) }); }
+    communityAnswer(res, r);
+  },
+  'POST /api/community/delete': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const admin = isAdmin(user);
+    const r = admin && body.restore ? community.restore(feed, String(body.id || ''))
+      : community.remove(feed, user, { id: String(body.id || ''), replyId: body.replyId ? String(body.replyId) : null }, admin);
+    if (!r.error) saveCommunity(feed);
+    communityAnswer(res, r);
   },
 
   /* ---------- AI Coach ---------- */
