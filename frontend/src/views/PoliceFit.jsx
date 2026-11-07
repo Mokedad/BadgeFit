@@ -21,6 +21,8 @@ import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.j
 import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
+import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
+import { bwSheet } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import '../police.css'
@@ -78,6 +80,7 @@ function Today({ S, user, P, setTab }) {
     </div>
 
     <TestCountdown P={P} />
+    <BodyCard S={S} P={P} />
 
     <MusicBar />
 
@@ -122,6 +125,35 @@ function TestCountdown({ P }) {
       <label>Test date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
       {P.testDate && <p className="pf-sub">The plan counts down so test week is week 12{left != null && left < 84 ? `: you start at week ${Math.max(1, 12 - Math.floor(left / 7))}` : ''}.</p>}
+    </div>
+  </div>
+}
+
+/** Weight from the start of the programme to now, toward the goal weight (Settings → goal). */
+function BodyCard({ S, P }) {
+  const nav = useNavigate()
+  const unit = S.unit === 'lb' ? 'lb' : 'kg'
+  const b = bodyProgress(S.bodyweight, { startISO: P.start, startWeight: P.startWeight, goal: S.targetW })
+  const spark = b && b.series.length > 1 ? (() => {
+    const lo = Math.min(...b.series), hi = Math.max(...b.series), r = hi - lo || 1
+    return b.series.map((w, i) => `${(i / (b.series.length - 1)) * 100},${30 - ((w - lo) / r) * 28 - 1}`).join(' ')
+  })() : null
+  return <div className="card pf-body">
+    <div className="row between"><h3>Body</h3><Button size="sm" variant="tinted" onClick={() => bwSheet()}>Log weight</Button></div>
+    {b ? <>
+      <div className="pf-macros pf-bodyn">
+        <div><b>{b.start}</b><span>start {unit}</span></div>
+        <div><b>{b.now}</b><span>now {unit}</span></div>
+        <div><b className={b.change <= 0 ? 'up' : 'down'}>{b.change > 0 ? '+' : ''}{b.change}</b><span>change</span></div>
+        {b.toGoal != null && <div><b>{b.toGoal > 0 ? b.toGoal : '✓'}</b><span>{b.toGoal > 0 ? 'to goal' : 'goal hit'}</span></div>}
+      </div>
+      {b.pct != null && <div className="pf-bar"><span style={{ width: b.pct + '%' }} /></div>}
+      {spark && <svg className="pf-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points={spark} /></svg>}
+      {S.targetW == null && <p className="pf-sub">Set a goal weight in Settings to see how far along you are.</p>}
+    </> : <p className="pf-sub">Log your weight a few mornings a week, same time, before breakfast. The weekly average is what counts.</p>}
+    <div className="pf-actions">
+      <Button size="sm" onClick={() => nav('/measurements')}>Measurements</Button>
+      <Button size="sm" onClick={() => nav('/progress-photos')}>Progress photos</Button>
     </div>
   </div>
 }
@@ -171,7 +203,7 @@ function PhaseSync({ S, P, week }) {
 
 function DayCard({ d, today }) {
   return <div className={'pf-day pf-' + d.kind + (today ? ' on' : '')}>
-    <div className="pf-day-h"><span>{d.dayName}</span><b>{d.title}</b></div>
+    <div className="pf-day-h"><span>{d.dayName}{d.minutes ? ` · est. ${d.minutes} min` : ''}</span><b>{d.title}</b></div>
     <ul>{d.details.map((x, i) => <li key={i}>{x}</li>)}</ul>
     {d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{x}</span>)}</div>}
   </div>
@@ -324,6 +356,48 @@ function Reps({ S }) {
   </>
 }
 
+/** Today's food against the targets: one tap for your usual meals, a quick add for the rest. */
+function MealLog({ P, targets }) {
+  const setP = usePolice()
+  const day = todayISO()
+  const [form, setForm] = useState({ name: '', kcal: null, protein: null, keep: false })
+  const tot = dayTotals(P.meals, day, targets)
+  const list = (P.meals || {})[day] || []
+  const add = meal => setP(p => ({ meals: addMeal(p.meals, day, meal) }))
+  const week = lastDays(P.meals, day)
+  const maxK = Math.max(1, ...week.map(d => d.kcal), targets?.kcal || 0)
+  return <div className="card pf-meals">
+    <h3>Today's food</h3>
+    <div className="pf-mt">
+      <div><span>Calories</span><b>{tot.kcal}{targets ? ` / ${targets.kcal}` : ''}</b><div className="pf-bar"><span style={{ width: (tot.kcalPct ?? 0) + '%', background: tot.kcalLeft < 0 ? 'var(--orange)' : undefined }} /></div>
+        <small>{tot.kcalLeft == null ? '' : tot.kcalLeft >= 0 ? `${tot.kcalLeft} left` : `${-tot.kcalLeft} over`}</small></div>
+      <div><span>Protein</span><b>{tot.protein} g{targets ? ` / ${targets.protein} g` : ''}</b><div className="pf-bar"><span style={{ width: (tot.proteinPct ?? 0) + '%' }} /></div>
+        <small>{tot.proteinLeft == null ? '' : tot.proteinLeft > 0 ? `${tot.proteinLeft} g to go` : 'Target hit 💪'}</small></div>
+    </div>
+    {list.length > 0 && <ul className="pf-mlist">{list.map(x => <li key={x.id}><span>{x.name}</span><small>{x.kcal} kcal · {x.protein} g</small>
+      <button className="cm-x" aria-label={'Remove ' + x.name} onClick={() => setP(p => ({ meals: removeMeal(p.meals, day, x.id) }))}>✕</button></li>)}</ul>}
+    <p className="pf-sub">Tap to add:</p>
+    <div className="pf-quick">{quickMeals(P.myMeals).map(q => <button key={q.id} onClick={() => add(q)}><b>{q.name}</b><small>{q.kcal} kcal · {q.protein} g</small></button>)}</div>
+    <details className="pf-more"><summary>Add something else</summary>
+      <div className="pf-2 pf-3">
+        <label>Food<TextField value={form.name} placeholder="e.g. Chicken wrap" onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+        <label>kcal<NumberField value={form.kcal} nullable decimal={false} onChange={v => setForm({ ...form, kcal: v })} /></label>
+        <label>Protein g<NumberField value={form.protein} nullable decimal={false} onChange={v => setForm({ ...form, protein: v })} /></label>
+      </div>
+      <label className="pf-toggle"><input type="checkbox" checked={form.keep} onChange={e => setForm({ ...form, keep: e.target.checked })} /><span>Save to my meals for one-tap next time</span></label>
+      <Button size="sm" variant="primary" disabled={!form.name.trim() || form.kcal == null} onClick={() => {
+        const meal = { name: form.name, kcal: form.kcal, protein: form.protein ?? 0 }
+        setP(p => ({ meals: addMeal(p.meals, day, meal), ...(form.keep && { myMeals: [{ id: 'm' + Date.now().toString(36), ...meal }, ...(p.myMeals || [])].slice(0, 30) }) }))
+        setForm({ name: '', kcal: null, protein: null, keep: false })
+      }}>Add</Button>
+    </details>
+    <div className="pf-week7" aria-label="Calories, last 7 days">{week.map(d => <div key={d.day} title={`${d.day}: ${d.kcal} kcal, ${d.protein} g protein`}>
+      <i style={{ height: Math.round((d.kcal / maxK) * 100) + '%' }} className={targets && d.kcal > targets.kcal ? 'over' : ''} />
+      <span>{new Date(d.day + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'narrow' })}</span></div>)}</div>
+    <p className="pf-sub">Portions are estimates: read the label, or edit by adding your own.</p>
+  </div>
+}
+
 function ProteinCard({ weight }) {
   const p = proteinFor(weight)
   return <div className="card">
@@ -409,6 +483,7 @@ function Food({ S, P }) {
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div>
+    <MealLog P={P} targets={m} />
     <ProteinCard weight={weight} />
     <CreatineCard weight={weight} />
     <details className="card pf-diet">

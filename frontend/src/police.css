@@ -149,3 +149,26 @@
 .cm-reply p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cm-reply .cm-x{position:absolute;right:0;top:2px}
 .cm-hidden{opacity:.6}
+/* body card and meal log */
+.pf-bodyn{grid-template-columns:repeat(4,1fr)}
+.pf-spark{width:100%;height:40px;margin-top:6px}
+.pf-spark polyline{fill:none;stroke:var(--green);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.pf-mt{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0}
+.pf-mt>div{display:flex;flex-direction:column;gap:2px}
+.pf-mt span{font-size:12px;color:var(--label-2)}
+.pf-mt small{font-size:12px;color:var(--label-2)}
+.pf-mt .pf-bar{margin:4px 0 2px}
+.pf-mlist{list-style:none;padding:0;margin:8px 0}
+.pf-mlist li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--sep)}
+.pf-mlist li span{flex:1;min-width:0}
+.pf-mlist small{color:var(--label-2);white-space:nowrap}
+.pf-quick{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pf-quick button{background:var(--surface-2);border:0;border-radius:12px;padding:8px 10px;text-align:left;color:inherit;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pf-quick b{font-size:13px;line-height:1.25}
+.pf-quick small{font-size:11px;color:var(--label-2)}
+.pf-3{grid-template-columns:2fr 1fr 1fr}
+.pf-week7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:80px;margin-top:14px;align-items:end}
+.pf-week7 div{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.pf-week7 i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--blue);min-height:2px}
+.pf-week7 i.over{background:var(--orange)}
+.pf-week7 span{font-size:11px;color:var(--label-2)}

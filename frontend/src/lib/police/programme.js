@@ -11,6 +11,7 @@
 // runs in the normal workout screen with history, progression and the watch.
 import { uid } from '../format.js'
 import { BRAND } from './brand.js'
+import { estimateMinutes } from './meals.js'
 
 export const LEVELS = [
   { id: 'beginner', name: 'Beginner', blurb: 'New to the gym or to running. Six sessions, one full rest day, lighter volume.' },
@@ -228,6 +229,11 @@ export function weekPlan(level, week, age, opts = {}) {
   if (w === WEEKS) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Taper: half the sets or distance, same intensity']
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
+  }
+  // About how long each session takes (meals.js estimateMinutes), as on the routine it installs.
+  for (const d of days) {
+    const r = d.key && d.kind !== 'test' ? routineFor(d.key, lv, phase.range, w) : null
+    if (r) d.minutes = estimateMinutes(r)
   }
   return { level: lv, week: w, phase, test, days }
 }
