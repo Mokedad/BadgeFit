@@ -29,6 +29,11 @@ import { bwSheet } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
+import BeepTrainer from '../components/BeepTrainer.jsx'
+import TestDay from '../components/TestDay.jsx'
+import { testDayResults } from '../lib/police/test-day.js'
+import { CHECKIN_QUESTIONS, checkinCall, adjustNote, checkinLine, addCheckin, CALL_WORD } from '../lib/police/checkin.js'
+import { say, primeSpeech } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
@@ -69,7 +74,7 @@ const usePolice = () => {
 /** Reads text aloud with the browser's own voice, where there is one. */
 
 // --- Today -------------------------------------------------------------------------------
-function Today({ S, user, P, setTab, startRun }) {
+function Today({ S, user, P, setTab, startRun, openTest }) {
   const nav = useNavigate()
   const ready = readiness(P.results, P.beepTarget)
   const pw = planWeekOf(P, todayISO())
@@ -82,8 +87,11 @@ function Today({ S, user, P, setTab, startRun }) {
     [P.name, user?.name, week, pw.last, pw.final, day, pw.after, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fresh = !P.level || !P.start
+  const checkin = P.checkins?.[todayISO()] || null
+  const call = checkinCall(checkin)
   return <>
     {fresh && <Setup S={S} P={P} />}
+    {!fresh && !checkin && <CheckIn P={P} day={day} />}
     {fresh ? null : <div className="card pf-todaycard">
       <div className="row between"><h3>{pw.after ? `📅 After your ${testName}` : pw.final ? `🏁 Final week · week ${week} of ${pw.last}` : `📅 Week ${week} of ${pw.last}`}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
       <p className="pf-sub pf-explain">{pw.after
@@ -98,11 +106,12 @@ function Today({ S, user, P, setTab, startRun }) {
               ? `Your plan is ${pw.last} weeks, up to your ${testName}${pw.last > WEEKS ? ' (the 12-week cycle repeats, ending on test day)' : ''}. Week ${pw.last} is your final week: light training. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}.`
               : `No test date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {day && <DayCard d={day} today />}
+      {call && <p className={'pf-adjust ' + call}><b>{CALL_WORD[call]}</b>{adjustNote(day, call) ? ' · ' + adjustNote(day, call) : ''}</p>}
       {(() => {
         const run = runForDay(day)
         if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
         if (day?.kind === 'gym') return <button className="pf-go" onClick={() => nav('/home')}>🏋️ Start workout</button>
-        if (day?.kind === 'test') return <button className="pf-go" onClick={() => setTab('tests')}>🎯 Log your tests</button>
+        if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>🧪 Start test day</button>
         return null
       })()}
       <PhaseSync S={S} P={P} week={pw.tw || 1} />
@@ -115,6 +124,28 @@ function Today({ S, user, P, setTab, startRun }) {
       <p className="pf-sub">🎧 I talk you through every workout: your next weight after each set, when rest is up, and how you are tracking to your {testName}.{isOn(S, 'coach') ? ' Tap 🎤 in a workout to ask me anything.' : ''}</p>
     </div>
   </>
+}
+
+/** Three taps each morning; Jarvis eases the day off when you are wrecked (lib/police/checkin.js). */
+function CheckIn({ P, day }) {
+  const setP = usePolice()
+  const [c, setC] = useState({})
+  const pickOne = (key, v) => {
+    const next = { ...c, [key]: v }
+    setC(next)
+    if (CHECKIN_QUESTIONS.every(q => next[q.key])) {
+      primeSpeech()
+      setP(p => ({ checkins: addCheckin(p.checkins, todayISO(), next) }))
+      say(checkinLine(next, day))
+    }
+  }
+  return <div className="card pf-checkin">
+    <h3>☀️ Morning check-in</h3>
+    {CHECKIN_QUESTIONS.map(q => <div key={q.key} className="pf-ci-row">
+      <span>{q.label}</span>
+      <div>{q.opts.map(([sym, word], i) => <button key={word} className={c[q.key] === i + 1 ? 'on' : ''} onClick={() => pickOne(q.key, i + 1)} aria-label={`${q.label}: ${word}`} title={word}>{sym}</button>)}</div>
+    </div>)}
+  </div>
 }
 
 /** Everything beyond the workout, the plan and the test: kept, one tap away. */
@@ -309,12 +340,16 @@ function RunTab({ S, P, startRun }) {
 }
 
 // --- Tests -------------------------------------------------------------------------------
-function Tests({ P }) {
+function Tests({ P, openBeep, openTest }) {
   const setP = usePolice()
   const ready = readiness(P.results, P.beepTarget)
   const [open, setOpen] = useState(null)
   return <>
     <TestCountdown P={P} />
+    <div className="pf-tools">
+      <button className="card pf-tool" onClick={openTest}><span aria-hidden="true">🧪</span><b>Test day</b><small>All 6 standards in order, with rests. Baseline now, mock PCT a week out.</small></button>
+      <button className="card pf-tool" onClick={openBeep}><span aria-hidden="true">📣</span><b>Beep test trainer</b><small>Real beeps, Jarvis calls the levels. Saves your score.</small></button>
+    </div>
     <p className="pf-sub pf-pad">Test yourself at the start, then at the end of every 4-week phase. Log every attempt: the latest one counts.</p>
     {ready.rows.map(({ std, latest, ev }) => <div key={std.id} className="card pf-std">
       <button className="pf-std-h" onClick={() => setOpen(open === std.id ? null : std.id)}>
@@ -709,6 +744,7 @@ export default function PoliceFit() {
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
   const [running, setRunning] = useState(() => runById(params.get('run')))
+  const [overlay, setOverlay] = useState(null) // 'beep' | 'test'
   // Members set up under an older plan model: plans start at week 1 when you join and run as long
   // as the test is away. A start far in the future (the old "12 weeks before the test") moves to
   // this week; a recent start is kept.
@@ -735,15 +771,24 @@ export default function PoliceFit() {
   }
   return <div className="narrow pf">
     {running && <RunPlayer run={running} age={P.age} onClose={() => setRunning(null)} onLog={logRun} />}
+    {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
+      setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
+      setOverlay(null); useUI.getState().toast(`📣 Beep test ${v} saved`)
+    }} />}
+    {overlay === 'test' && <TestDay target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} testName={(P.testName || '').trim() || 'PCT'} onClose={() => setOverlay(null)} onSave={vals => {
+      const add = testDayResults(vals, todayISO(), P.beepTarget || DEFAULT_BEEP_TARGET)
+      setP(p => ({ results: [...(p.results || []), ...add] }))
+      setOverlay(null); setTab('tests'); useUI.getState().toast(`🧪 ${add.length} results saved`)
+    }} />}
     <div className="hdr">
       <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label="Home"><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}><h1>{BRAND.name}</h1>
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <PfTabs value={tab} onChange={setTab} />
-    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} />}
+    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openTest={() => setOverlay('test')} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
-    {tab === 'tests' && <Tests P={P} />}
+    {tab === 'tests' && <Tests P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}
     {tab === 'plan' && <Plan S={S} P={P} />}
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}

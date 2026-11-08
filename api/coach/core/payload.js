@@ -658,6 +658,7 @@ export function cleanBrief(b) {
     level: bstr(b.level, 16), week: bnum(b.week), ...(b.afterTest === true ? { afterTest: true } : {}), planWeeks: bnum(b.planWeeks), ...(b.finalWeekNow === true ? { finalWeekNow: true } : {}), daysToTest: bnum(b.daysToTest), weeksToTest: bnum(b.weeksToTest),
     phase: b.phase && typeof b.phase === 'object' ? { n: bnum(b.phase.n), range: bstr(b.phase.range, 8) } : null,
     today: bday(b.today), tomorrow: bday(b.tomorrow),
+    checkin: b.checkin && typeof b.checkin === 'object' ? { sleep: bnum(b.checkin.sleep), sore: bnum(b.checkin.sore), energy: bnum(b.checkin.energy), call: ['go', 'easy', 'light'].includes(b.checkin.call) ? b.checkin.call : null } : null,
     todayRun: b.todayRun && typeof b.todayRun === 'object' ? { name: bstr(b.todayRun.name, 60), minutes: bnum(b.todayRun.minutes), why: bstr(b.todayRun.why, 200) } : null,
     gaps: (Array.isArray(b.gaps) ? b.gaps : []).slice(0, 6).filter(g => g && typeof g === 'object').map(g => ({
       standard: bstr(g.standard, 40), latest: bstr(g.latest, 40), on: bstr(g.on, 10), pct: bnum(g.pct), pass: !!g.pass, area: bstr(g.area, 40), train: bstr(g.train, 120),

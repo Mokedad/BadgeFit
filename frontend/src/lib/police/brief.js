@@ -7,6 +7,7 @@ import { readiness, fmtResult, DEFAULT_BEEP_TARGET } from './standards.js'
 import { runForDay, runsThisWeek, runById, runMinutes } from './runs.js'
 import { dayTotals, bodyProgress } from './meals.js'
 import { macroTargets } from './nutrition.js'
+import { checkinCall } from './checkin.js'
 
 // Which body area and what training moves each standard.
 export const AREAS = {
@@ -58,6 +59,7 @@ export function policeBrief(S, today) {
     gaps: gaps.slice(0, 6),
     runsThisWeek: { count: weekRuns.length, minutes: weekRuns.reduce((a, r) => a + (r.min || 0), 0), last: weekRuns.slice(-3).map(r => ({ run: runById(r.run)?.name || 'Run', on: r.at, rpe: r.rpe || null })) },
     foodToday: { kcal: food.kcal, protein: food.protein, kcalTarget: targets?.kcal || null, proteinTarget: targets?.protein || null },
+    checkin: P.checkins?.[today] ? { ...P.checkins[today], call: checkinCall(P.checkins[today]) } : null,
     weight: body ? { start: body.start, now: body.now, change: body.change, goal: S.targetW || null, unit: S.unit || 'kg' } : null,
   }
 }

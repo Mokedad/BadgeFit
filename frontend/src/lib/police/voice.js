@@ -69,7 +69,7 @@ export async function say(text, opts = {}) {
   // First choice: the server's voice (api/coach/tts.js), played as an audio file. Safari plays a
   // file it has been allowed to play (primeSpeech, on a tap) far more reliably than it speaks.
   if (Date.now() > serverOffUntil) {
-    const blob = await apiPostBlob('/api/coach/speak', { text: String(text) })
+    const blob = preloaded.get(String(text)) || await apiPostBlob('/api/coach/speak', { text: String(text) })
     if (blob && blob.size > 100) {
       const played = await playClip(blob, opts.onStart)
       if (played !== null) return played
@@ -172,3 +172,13 @@ export const stopSpeaking = () => { stopClip?.(); try { window.speechSynthesis?.
 
 /** primeSpeech once: for a listener on the first tap anywhere, so Jarvis can talk in a workout. */
 export function unlockOnce() { if (!unlocked) primeSpeech() }
+
+// Lines fetched ahead of time (the beep test's "Level 7"), so they play the moment they are due.
+const preloaded = new Map()
+/** Fetches the server's clip for `text` now, for a say() that must not wait. */
+export async function preloadSpeech(text) {
+  const k = String(text)
+  if (preloaded.has(k) || Date.now() <= serverOffUntil) return
+  const blob = await apiPostBlob('/api/coach/speak', { text: k })
+  if (blob && blob.size > 100) { preloaded.set(k, blob); if (preloaded.size > 40) preloaded.delete(preloaded.keys().next().value) }
+}

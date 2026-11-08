@@ -8,6 +8,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { say, unlockOnce } from '../lib/police/voice.js'
 import { startLine, tickedSet, setDoneLine, restLine, finishLine } from '../lib/police/workout-voice.js'
+import { checkinCall } from '../lib/police/checkin.js'
 import { daysUntil } from '../lib/police/programme.js'
 import { todayISO, exerciseNameText } from '../lib/format.js'
 
@@ -33,7 +34,13 @@ export default function JarvisWorkout() {
       if (!member(S) || S === P) return
       const A = S.active, B = P?.active
       // A new session.
-      if (A && (!B || A.start !== B.start)) { if (!A.backfill) speak(nameOf => startLine(A, nameOf)); return }
+      if (A && (!B || A.start !== B.start)) {
+        if (A.backfill) return
+        const call = checkinCall(S.police?.checkins?.[todayISO()])
+        const ease = call === 'easy' ? 'Easy day, like we said: about half the sets, nothing to failure. ' : call === 'light' ? 'Light day: two easy sets each, and stop if anything hurts. ' : ''
+        speak(nameOf => ease + startLine(A, nameOf))
+        return
+      }
       // A set ticked in the running one.
       if (A && B && !A.backfill) {
         const at = tickedSet(B, A)
