@@ -226,30 +226,36 @@ export function weekPlan(level, week, age, opts = {}) {
     days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['Sauna: 15-20 min'] }
     if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
   }
-  if (w === WEEKS) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Taper: half the sets or distance, same intensity']
-  // Week 12 is test week: with a test date, the test sits on its real weekday and the day before
-  // is kept easy; the usual end-of-phase re-test does not happen on top of it.
-  if (w === WEEKS && opts.testDow != null) {
+  // The final week (week 12, or the test's week when the test is closer than 12 weeks): light
+  // training and recovery, so the member arrives fresh.
+  const last = finalOf(opts)
+  const final = w === last
+  if (final) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Final week: light training. Half the sets or distance, same intensity, never to failure']
+  // With a test date, the test sits on its real weekday in the final week and the day before is
+  // kept easy; the usual end-of-phase re-test does not happen on top of it.
+  if (final && opts.testDow != null) {
     const name = opts.testName || 'PCT'
     const at = days.findIndex(d => d.day === opts.testDow)
     const before = days.findIndex(d => d.day === (opts.testDow + 6) % 7)
     if (before >= 0 && before !== at) days[before] = { day: days[before].day, dayName: days[before].dayName, kind: 'rest', key: null, title: `Easy day before your ${name}`, details: ['Rest, or a 20 min easy walk or jog with a few strides', 'Sleep 8+ hours, carbs at dinner, lay out your gear'], recovery: ['Compression boots: 20 min'] }
     days[at] = { day: days[at].day, dayName: days[at].dayName, kind: 'test', key: null, title: `${name} day`, details: ['Normal breakfast 3 hours before, water, caffeine only if you trained with it', 'Full warm-up 10-15 min, then trust your training', 'Afterwards: log your results in Tests'], recovery: [] }
-    return finish(days, { lv, w, phase, test: true })
+    return finish(days, { lv, w, phase, test: true, final })
   }
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
-  return finish(days, { lv, w, phase, test })
+  return finish(days, { lv, w, phase, test, final })
 }
 
+const finalOf = opts => { const f = Math.round(Number(opts?.finalWeek)); return f >= 1 && f <= WEEKS ? f : WEEKS }
+
 // About how long each session takes (meals.js estimateMinutes), as on the routine it installs.
-function finish(days, { lv, w, phase, test }) {
+function finish(days, { lv, w, phase, test, final = false }) {
   for (const d of days) {
     const r = d.key && d.kind !== 'test' ? routineFor(d.key, lv, phase.range, w) : null
     if (r) d.minutes = estimateMinutes(r)
   }
-  return { level: lv, week: w, phase, test, days }
+  return { level: lv, week: w, phase, test, final, days }
 }
 
 /** The routine for a day key, in openGym's routine shape. */
@@ -347,7 +353,30 @@ export function planOptsOf(P) {
     beepFocus: !!P?.beepFocus,
     testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
     testName: (P?.testName || 'PCT').slice(0, 24),
+    finalWeek: finalWeekOf(P),
   }
+}
+
+const mondayOf = iso => { const t = Date.parse(iso + 'T00:00:00Z'); return isoDay(t - ((new Date(t).getUTCDay() + 6) % 7) * DAY) }
+
+/**
+ * When a member's plan starts. Everyone starts at week 1: the Monday of the week they join (or the
+ * next Monday, joining Friday to Sunday), so a
+ * test closer than 12 weeks gives a shorter plan ending on the test week. A test further away
+ * starts the 12 weeks later (startForTest), with week 1 on repeat until then (planWeekOf).
+ */
+export function planStart(testISO, todayISO) {
+  // Joining Monday to Thursday, week 1 is this week; Friday to Sunday, it starts next Monday.
+  const dow = new Date(Date.parse(todayISO + 'T00:00:00Z')).getUTCDay()
+  const now = dow >= 1 && dow <= 4 ? mondayOf(todayISO) : mondayOf(isoDay(Date.parse(todayISO + 'T00:00:00Z') + 3 * DAY))
+  const s12 = testISO ? startForTest(testISO) : null
+  return s12 && s12 > now ? s12 : now
+}
+
+/** The plan's last week, 1..12: the week of the test, or 12. */
+export function finalWeekOf(P) {
+  const n = P?.testDate ? rawWeek(P.start, P.testDate) : null
+  return n ? Math.min(WEEKS, n) : WEEKS
 }
 
 /** Whole days from today to the test (0 on the day), or null. */
@@ -371,29 +400,16 @@ export const TAPER = [
  */
 export function planWeekOf(P, today) {
   const raw = rawWeek(P?.start, today)
-  if (raw && raw > WEEKS) {
-    // The 12 weeks (and the test) are behind: keep training on the peak weeks 9-11 in turn, no
-    // re-test and no taper, so the app stays useful until a new date is set.
-    return { week: WEEKS - 3 + ((raw - WEEKS - 1) % 3), before: false, after: true, weeksAfter: raw - WEEKS, startsIn: 0 }
+  const last = finalWeekOf(P)
+  if (raw && raw > last) {
+    // The test (or the 12 weeks) is behind them: training carries on through the plan's later
+    // weeks, then the peak weeks 9-11 in turn, so the app stays useful until a new date is set.
+    return { week: raw <= 11 ? raw : 9 + ((raw - 12) % 3), last, before: false, after: true, final: false, weeksAfter: raw - last, startsIn: 0 }
   }
-  if (raw) return { week: raw, before: false, after: false, startsIn: 0 }
-  if (P?.start && today < P.start) return { week: 1, before: true, after: false, startsIn: daysUntil(P.start, today) }
-  return { week: null, before: false, after: false, startsIn: 0 }
+  if (raw) return { week: raw, last, before: false, after: false, final: raw === last, startsIn: 0 }
+  if (P?.start && today < P.start) return { week: 1, last, before: true, after: false, final: false, startsIn: daysUntil(P.start, today) }
+  return { week: null, last, before: false, after: false, final: false, startsIn: 0 }
 }
-
-/**
- * The weeks this member's plan really has. A test less than 12 weeks away cuts the plan short:
- * it opens at the week the member joined (`P.firstWeek`) and still ends on test day in week 12,
- * so the earlier weeks are left blank. { first, last, weeks }.
- */
-export function planWindow(P) {
-  const f = Math.round(Number(P?.firstWeek))
-  const first = P?.testDate && f >= 1 && f <= WEEKS ? f : 1
-  return { first, last: WEEKS, weeks: WEEKS - first + 1 }
-}
-
-/** The first plan week for a member joining (or moving their test) today: see planWindow. */
-export const firstWeekFor = (start, today) => weekNumber(start, today) || 1
 
 /** Plain words for a phase, for people new to training plans. */
 export const PHASE_WORDS = { 1: 'Build: learn the moves, build your base', 2: 'Strength: heavier, harder intervals', 3: 'Peak: sharpen up for test day' }

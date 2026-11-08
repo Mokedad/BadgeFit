@@ -115,8 +115,8 @@ describe('test countdown', () => {
     expect(startForTest('nope')).toBeNull()
   })
   it('tapers week 12', () => {
-    expect(weekPlan('beginner', 12).days[0].details.join(' ')).toMatch(/Taper/)
-    expect(weekPlan('beginner', 11).days[0].details.join(' ')).not.toMatch(/Taper/)
+    expect(weekPlan('beginner', 12).days[0].details.join(' ')).toMatch(/Final week/)
+    expect(weekPlan('beginner', 11).days[0].details.join(' ')).not.toMatch(/Final week/)
     expect(TAPER.length).toBe(4)
   })
 })
@@ -146,28 +146,48 @@ describe('planWeekOf', () => {
     const P = { start: startForTest('2027-03-27') }
     expect(planWeekOf(P, '2026-11-08')).toMatchObject({ week: 1, before: true })
     expect(planWeekOf(P, '2026-11-08').startsIn).toBeGreaterThan(50)
-    expect(planWeekOf(P, '2027-03-27')).toMatchObject({ week: 12, before: false })
+    expect(planWeekOf({ ...P, testDate: '2027-03-27' }, '2027-03-27')).toMatchObject({ week: 12, before: false, final: true })
     expect(planWeekOf({}, '2026-11-08').week).toBeNull()
   })
 })
 
-import { planWindow, firstWeekFor } from './programme.js'
+import { planStart, finalWeekOf } from './programme.js'
 describe('a test less than 12 weeks away', () => {
-  it('cuts the plan to the weeks left, still ending on test day in week 12', () => {
-    const start = startForTest('2026-12-05')
-    const P = { testDate: '2026-12-05', start, firstWeek: firstWeekFor(start, '2026-11-08') }
-    expect(P.firstWeek).toBe(8)
-    expect(planWindow(P)).toEqual({ first: 8, last: 12, weeks: 5 })
-    expect(planWeekOf(P, '2026-12-05')).toMatchObject({ week: 12, after: false })
-    expect(planWindow({ start, firstWeek: 8 }).first).toBe(1) // no test, no cut
-    expect(planWindow({ testDate: '2026-12-05', firstWeek: 'x' }).first).toBe(1)
+  // Today is Sunday 8 November 2026; the PCT is Saturday 5 December, four weeks on.
+  const P = { testDate: '2026-12-05', testName: 'PCT', start: planStart('2026-12-05', '2026-11-08') }
+  it('starts at week 1 and ends on the test week', () => {
+    expect(P.start).toBe('2026-11-09') // joined on a Sunday: week 1 is next week
+    expect(planStart('2026-12-05', '2026-11-04')).toBe('2026-11-02') // a Wednesday: this week
+    expect(finalWeekOf(P)).toBe(4)
+    expect(planWeekOf(P, '2026-11-08')).toMatchObject({ week: 1, before: true, startsIn: 1 })
+    expect(planWeekOf(P, '2026-11-09')).toMatchObject({ week: 1, last: 4, final: false })
+    expect(planWeekOf(P, '2026-12-05')).toMatchObject({ week: 4, final: true, after: false })
   })
-  it('keeps going after the test on the peak weeks, without a re-test', () => {
-    const P = { testDate: '2026-12-05', start: startForTest('2026-12-05') }
-    expect(planWeekOf(P, '2026-12-06')).toMatchObject({ week: 12, after: false }) // the Sunday of test week
-    const weeks = ['2026-12-07', '2026-12-14', '2026-12-21', '2026-12-28'].map(d => planWeekOf(P, d))
-    expect(weeks.map(w => w.week)).toEqual([9, 10, 11, 9])
-    expect(weeks.every(w => w.after)).toBe(true)
-    expect(weekPlan('beginner', weeks[2].week, null, planOptsOf(P)).days.some(d => d.kind === 'test')).toBe(false)
+  it('the final week is light, with the test on its day; earlier weeks are normal', () => {
+    const o = planOptsOf(P)
+    const fin = weekPlan('beginner', 4, null, o)
+    expect(fin.final).toBe(true)
+    expect(fin.days.find(d => d.day === 6)).toMatchObject({ kind: 'test', title: 'PCT day' })
+    expect(fin.days.find(d => d.day === 5).kind).toBe('rest')
+    expect(fin.days[0].details.join(' ')).toMatch(/Final week: light training/)
+    const w3 = weekPlan('beginner', 3, null, o)
+    expect(w3.final).toBe(false)
+    expect(w3.days[0].details.join(' ')).not.toMatch(/Final week/)
+    expect(weekPlan('beginner', 1, null, o).phase.range).toBe('12-15')
+  })
+  it('a test 12 or more weeks away keeps the full 12, ending on test week', () => {
+    const far = { testDate: '2027-03-27', start: planStart('2027-03-27', '2026-11-08') }
+    expect(far.start).toBe(startForTest('2027-03-27'))
+    expect(finalWeekOf(far)).toBe(12)
+    expect(planWeekOf(far, '2026-11-08')).toMatchObject({ week: 1, before: true })
+    expect(finalWeekOf({ start: '2026-11-02' })).toBe(12)
+  })
+  it('keeps going after the test, never repeating the final week', () => {
+    expect(planWeekOf(P, '2026-12-06')).toMatchObject({ week: 4, final: true }) // Sunday of test week
+    const after = ['2026-12-07', '2026-12-14', '2026-12-21'].map(d => planWeekOf(P, d))
+    expect(after.map(w => w.week)).toEqual([5, 6, 7])
+    expect(after.every(w => w.after && !w.final)).toBe(true)
+    const full = { testDate: '2026-12-05', start: startForTest('2026-12-05') }
+    expect(['2026-12-07', '2026-12-14', '2026-12-21', '2026-12-28'].map(d => planWeekOf(full, d).week)).toEqual([10, 11, 9, 10])
   })
 })

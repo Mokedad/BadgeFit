@@ -72,19 +72,31 @@ export async function say(text, { onStart } = {}) {
   // Sentence by sentence: long utterances get cut off on some phones, and the gaps sound natural.
   const parts = String(text).replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*/g) || [text]
   return new Promise(resolve => {
-    let i = 0
+    let i = 0, timer = null, over = false
+    const end = ok => { if (over) return; over = true; clearTimeout(timer); if (stopCurrent === stop) stopCurrent = null; resolve(ok) }
+    const stop = () => end(false)
+    stopCurrent = stop
     const next = () => {
-      if (i >= parts.length) return resolve(true)
-      const u = new SpeechSynthesisUtterance(parts[i++].trim())
+      clearTimeout(timer)
+      if (over) return
+      if (i >= parts.length) return end(true)
+      const part = parts[i++].trim()
+      const u = new SpeechSynthesisUtterance(part)
       if (voice) { u.voice = voice; u.lang = voice.lang }
       else u.lang = 'en-AU'
       u.rate = DELIVERY.rate; u.pitch = DELIVERY.pitch
-      u.onend = next; u.onerror = () => resolve(false)
+      u.onend = next; u.onerror = () => end(false)
       if (i === 1) onStart?.()
       synth.speak(u)
+      // Some phones never fire `end`: move on after the time the sentence should take.
+      timer = setTimeout(next, speakMs(part))
     }
     next()
   })
 }
 
-export const stopSpeaking = () => { try { window.speechSynthesis?.cancel() } catch { /* none */ } }
+/** A generous guess at how long a sentence takes to say, for the watchdog above. */
+export const speakMs = text => 2500 + String(text).split(/\s+/).length * 480
+
+let stopCurrent = null
+export const stopSpeaking = () => { try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }

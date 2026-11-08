@@ -303,27 +303,33 @@
 .rp-km input{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:10px;font-size:18px}
 
 /* ===== Jarvis live (components/JarvisLive.jsx) ===== */
-.jl{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;color:#fff;background:radial-gradient(120% 70% at 50% 100%,#183463,#0d1b33 70%);padding:var(--sat,0px) 16px var(--sab,0px)}
-.jl-top{display:flex;align-items:center;gap:12px;padding:12px 0}
+.jl{position:fixed;left:12px;right:12px;bottom:calc(var(--sab,0px) + 76px);z-index:200;max-height:min(62vh,560px);display:flex;flex-direction:column;color:#fff;background:#0d1b33;background:radial-gradient(120% 90% at 50% 100%,#183463,#0d1b33 70%);border:1px solid rgba(255,198,41,.35);border-radius:22px;box-shadow:0 18px 50px rgba(0,0,0,.45);padding:0 14px 12px;max-width:520px;margin:0 auto}
+.jl[hidden]{display:none}
+.jl-dot{width:14px;height:14px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc629 55%,#b8860b);box-shadow:0 0 8px #ffc629}
+.jl-ic{border:0;background:rgba(255,255,255,.12);color:#fff;width:32px;height:32px;border-radius:50%;font-size:16px;font-weight:700;line-height:1;flex:none}
+.jl-more{font-size:13px;opacity:.85;margin-top:8px}
+.jl-more select{margin-top:6px;max-width:100%;border-radius:10px;padding:6px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.jl-more option{color:#111}
+.jl-top{display:flex;align-items:center;gap:10px;padding:10px 0 6px}
 .jl-top b{flex:1}
 .jl-hf{display:flex;align-items:center;gap:6px;font-size:13px;opacity:.85}
-.jl-feed{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:8px 0}
-.jl-hint{opacity:.7;text-align:center;margin:auto 0;line-height:1.5}
+.jl-feed{flex:1;min-height:60px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:10px;padding:8px 0}
+.jl-hint{opacity:.7;text-align:center;margin:8px 0;line-height:1.5;font-size:14px}
 .jl-msg{max-width:85%;padding:10px 14px;border-radius:18px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
 .jl-msg.jarvis{align-self:flex-start;background:rgba(255,255,255,.1);border-bottom-left-radius:6px}
 .jl-msg.you{align-self:flex-end;background:#ffc629;color:#111;border-bottom-right-radius:6px}
 .jl-msg.interim{opacity:.6}
 .jl-msg.system{align-self:center;background:rgba(255,80,80,.18);font-size:14px}
-.jl-bottom{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 0 16px}
-.jl-orb{width:96px;height:96px;border-radius:50%;border:0;font-size:36px;color:#111;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc629 55%,#b8860b);box-shadow:0 0 30px rgba(255,198,41,.45)}
+.jl-bottom{display:flex;align-items:center;gap:10px;padding-top:6px}
+.jl-orb{width:52px;height:52px;flex:none;border-radius:50%;border:0;font-size:22px;color:#111;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc629 55%,#b8860b);box-shadow:0 0 30px rgba(255,198,41,.45)}
 .jl-orb.listening{animation:jl-pulse 1s ease-in-out infinite}
 .jl-orb.thinking{filter:saturate(.5);animation:jl-pulse 1.8s ease-in-out infinite}
 .jl-orb.speaking{box-shadow:0 0 0 10px rgba(255,198,41,.25),0 0 40px rgba(255,198,41,.6)}
 .jl-orb:disabled{opacity:.7}
 @keyframes jl-pulse{50%{transform:scale(1.08);box-shadow:0 0 50px rgba(255,198,41,.8)}}
 @media (prefers-reduced-motion:reduce){.jl-orb{animation:none!important}}
-.jl-state{font-size:15px;opacity:.85}
-.jl-type{display:flex;gap:8px;width:100%}
+.jl-state{font-size:13px;opacity:.8;text-align:center;padding:4px 0 2px}
+.jl-type{display:flex;gap:8px;flex:1;min-width:0}
 .jl-type input{flex:1;min-width:0;border-radius:999px;border:0;padding:12px 16px;font:inherit}
 .jl-type button{border:0;border-radius:999px;padding:0 18px;background:#ffc629;color:#111;font-weight:700}
 .jl-voice{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.85;max-width:100%}
@@ -410,3 +416,7 @@
 .pf-weekgrid .pf-weeks i{position:absolute;top:2px;right:4px;font-style:normal;font-size:11px}
 .pf-explain{margin-top:2px}
 .pf-weekgrid .pf-weeks button.off{opacity:.3;background:transparent;box-shadow:inset 0 0 0 1px var(--sep,rgba(128,128,128,.3))}
+.pf-weekgrid .pf-weeks button.final{background:#ffc629;color:#111;box-shadow:0 0 0 2px #b8860b}
+.pf-weekgrid .pf-weeks button.final.on{background:#0d1b33;color:#ffc629;box-shadow:0 0 0 2px #ffc629}
+.pf .jl-type input{width:auto;flex:1 1 auto;min-width:0}
+.pf .jl-type button{flex:none;width:auto}

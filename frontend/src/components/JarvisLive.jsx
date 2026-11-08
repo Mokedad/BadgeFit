@@ -9,10 +9,13 @@ import { useStore } from '../store/useStore.js'
 import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, JOB_ERRORS } from '../lib/coach-api.js'
 import { appendChat } from '../lib/coach.js'
 import { say, stopSpeaking, loadVoices, voiceOptions, pickVoice, savedVoice, saveVoice } from '../lib/police/voice.js'
+import { listenOnce } from '../lib/police/listen.js'
 import '../police.css'
 
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 const POLL_MS = 1500
+// The server has no AI connected yet: say who can fix it and where.
+const OFF_TEXT = 'Jarvis is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'
 const MAX_WAIT_MS = 120000
 
 /** Waits for the answer to the question just asked: the `ask` proposal, or the job's failure. */
@@ -32,7 +35,11 @@ async function waitForAnswer(cancelled) {
   return cancelled() ? null : { error: 'Jarvis took too long to answer. Try again in a moment.' }
 }
 
-export default function JarvisLive({ onClose, opener }) {
+/**
+ * The conversation as a floating panel. `hidden` keeps it alive while minimised (the chat and a
+ * reply in progress carry on); `onPhase` tells the floating orb what Jarvis is doing.
+ */
+export default function JarvisLive({ onClose, onMinimize, opener, hidden = false, onPhase }) {
   const update = useStore(s => s.update)
   const [phase, setPhase] = useState('idle') // idle | listening | thinking | speaking
   const [turns, setTurns] = useState(opener ? [{ who: 'jarvis', text: opener }] : [])
@@ -44,27 +51,29 @@ export default function JarvisLive({ onClose, opener }) {
   const rec = useRef(null), closed = useRef(false), endRef = useRef(null)
 
   useEffect(() => { loadVoices().then(v => { setVoices(voiceOptions(v)); if (!savedVoice()) setVoice(pickVoice(v)?.voiceURI || '') }) }, [])
-  useEffect(() => () => { closed.current = true; try { rec.current?.abort() } catch { /* gone */ } stopSpeaking() }, [])
+  useEffect(() => () => { closed.current = true; rec.current?.cancel(); stopSpeaking() }, [])
+  useEffect(() => { onPhase?.(phase) }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [turns.length, interim, phase])
 
   const speak = async text => { setPhase('speaking'); await say(text); if (!closed.current) setPhase('idle') }
 
-  const listen = () => {
+  const listen = async () => {
     if (!Recognition) return
     stopSpeaking()
-    const r = new Recognition()
-    r.lang = 'en-AU'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1
-    let final = ''
-    r.onresult = e => {
-      let text = ''
-      for (const res of e.results) { text += res[0].transcript; if (res.isFinal) final = text }
-      setInterim(text)
-    }
-    r.onerror = e => { setPhase('idle'); setInterim(''); if (e.error === 'not-allowed') setTurns(t => [...t, { who: 'system', text: 'Microphone blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone).' }]) }
-    r.onend = () => { setInterim(''); if (final.trim()) ask(final.trim()); else if (!closed.current) setPhase('idle') }
-    rec.current = r
     setPhase('listening')
-    try { r.start() } catch { setPhase('idle') }
+    const l = listenOnce(Recognition, { onInterim: setInterim })
+    rec.current = l
+    const out = await l.done
+    if (rec.current === l) rec.current = null
+    setInterim('')
+    if (closed.current) return
+    if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
+      setTurns(t => [...t, { who: 'system', text: 'Microphone blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone), or type below.' }])
+      setPhase('idle'); return
+    }
+    if (out.text) { ask(out.text); return }
+    setPhase('idle')
+    if (out.error) setTurns(t => [...t, { who: 'system', text: 'Voice did not work on this phone just now. Type your question below.' }])
   }
 
   const ask = async text => {
@@ -82,24 +91,26 @@ export default function JarvisLive({ onClose, opener }) {
       await speak(r.answer)
       if (handsFree && Recognition && !closed.current) listen()
     } catch (e) {
-      if (!isDeclined(e)) setTurns(t => [...t, { who: 'system', text: JOB_ERRORS[e?.data?.code] || e?.message || 'Jarvis could not be reached.' }])
+      if (!isDeclined(e)) setTurns(t => [...t, { who: 'system', text: e?.data?.code === 'off' ? OFF_TEXT : JOB_ERRORS[e?.data?.code] || e?.message || 'Jarvis could not be reached.' }])
       setPhase('idle')
     }
   }
 
   const tapMic = () => {
-    if (phase === 'listening') { try { rec.current?.stop() } catch { /* gone */ } return }
+    if (phase === 'listening') { rec.current?.finish(); return }
     if (phase === 'speaking') { stopSpeaking(); setPhase('idle'); return }
     if (phase === 'idle') listen()
   }
 
-  const label = { idle: Recognition ? 'Tap to talk' : 'Type your question', listening: 'Listening…', thinking: 'Jarvis is thinking…', speaking: 'Jarvis is talking · tap to stop' }[phase]
+  const label = { idle: Recognition ? 'Tap to talk' : 'Type your question', listening: 'Listening… tap to send', thinking: 'Jarvis is thinking…', speaking: 'Jarvis is talking · tap to stop' }[phase]
 
-  return <div className="jl" role="dialog" aria-label="Talk to Jarvis">
+  return <div className="jl" role="dialog" aria-label="Talk to Jarvis" hidden={hidden}>
     <div className="jl-top">
-      <button className="rp-x" onClick={onClose} aria-label="Close">✕</button>
-      <b>Jarvis · live</b>
+      <span className="jl-dot" aria-hidden="true" />
+      <b>Jarvis</b>
       <label className="jl-hf"><input type="checkbox" checked={handsFree} onChange={e => setHandsFree(e.target.checked)} /> Hands-free</label>
+      {onMinimize && <button className="jl-ic" onClick={onMinimize} aria-label="Minimise" title="Minimise">–</button>}
+      <button className="jl-ic" onClick={onClose} aria-label="Close" title="Close">✕</button>
     </div>
     <div className="jl-feed">
       {turns.length === 0 && <p className="jl-hint">Ask anything: "What should I work on this week?", "My shins hurt after running", "What do I eat before intervals?"</p>}
@@ -107,20 +118,20 @@ export default function JarvisLive({ onClose, opener }) {
       {interim && <div className="jl-msg you interim">{interim}</div>}
       <div ref={endRef} />
     </div>
+    <div className="jl-state" aria-live="polite">{label}</div>
     <div className="jl-bottom">
-      <button className={'jl-orb ' + phase} onClick={tapMic} disabled={phase === 'thinking' || (!Recognition && phase === 'idle')} aria-label={label}>
-        <span aria-hidden="true">{phase === 'speaking' ? '🔊' : phase === 'thinking' ? '…' : '🎤'}</span>
-      </button>
-      <div className="jl-state" aria-live="polite">{label}</div>
-      {<form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase === 'idle') { ask(typed.trim()); setTyped('') } }}>
-        <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={Recognition ? 'Or type here…' : 'Ask Jarvis…'} aria-label="Your question" />
-        <button type="submit" disabled={!typed.trim() || phase !== 'idle'}>Send</button>
-      </form>}
-      {voices.length > 0 && <label className="jl-voice">🗣️ Voice
-        <select value={voice} onChange={e => { setVoice(e.target.value); saveVoice(e.target.value); say('G\'day. This is my voice now. Let\'s get to work.') }}>
-          {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
-        </select>
-      </label>}
+      {Recognition && <button className={'jl-orb ' + phase} onClick={tapMic} disabled={phase === 'thinking'} aria-label={label}>
+        <span aria-hidden="true">{phase === 'speaking' ? '🔊' : phase === 'thinking' ? '…' : phase === 'listening' ? '⏹' : '🎤'}</span>
+      </button>}
+      <form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase !== 'thinking') { stopSpeaking(); rec.current?.cancel(); ask(typed.trim()); setTyped('') } }}>
+        <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={Recognition ? 'Or type…' : 'Ask Jarvis…'} aria-label="Your question" />
+        <button type="submit" disabled={!typed.trim() || phase === 'thinking'}>Send</button>
+      </form>
     </div>
+    {voices.length > 0 && <details className="jl-more"><summary>🗣️ Voice</summary>
+      <select value={voice} aria-label="Jarvis's voice" onChange={e => { setVoice(e.target.value); saveVoice(e.target.value); say('G\'day. This is my voice now. Let\'s get to work.') }}>
+        {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
+      </select>
+    </details>}
   </div>
 }
