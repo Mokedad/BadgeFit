@@ -4,7 +4,7 @@
 // survive a rotation or a different window size.
 export const ORB = 52
 const EDGE = 28 // dropped this close to the edge = tucked away
-const TOP = 70, BOTTOM = 150 // clear of the header and the tab bar
+const TOP = 130, BOTTOM = 150 // clear of the header (and a screen's own tabs) and the tab bar
 
 /** From a stored { side, y, tucked } or a drop { drop: { x, y } }: { side, y, tucked, top }. */
 export function snapOrb(p, { w, h }) {

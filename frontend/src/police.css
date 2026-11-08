@@ -200,10 +200,10 @@
 /* symbol buttons */
 .pf-syms{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 .pf-sym{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:inherit;padding:0;min-width:58px}
-.pf-sym span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.12)}
-.pf-sym.primary span{background:var(--pf-gold);box-shadow:0 4px 14px rgba(255,198,41,.45)}
+.pf-sym>span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.12)}
+.pf-sym.primary>span{background:var(--pf-gold);box-shadow:0 4px 14px rgba(255,198,41,.45)}
 .pf-sym small{font-size:11px;color:rgba(255,255,255,.8)}
-.pf-sym:active span{transform:scale(.94)}
+.pf-sym:active>span{transform:scale(.94)}
 
 /* the hub's tab bar */
 .pf-tabbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface);border-radius:16px;padding:4px;margin-bottom:14px}
@@ -458,3 +458,5 @@
 .pf-voice{margin-top:10px;font-size:13px;opacity:.9}
 .pf-voice select{margin-top:6px;max-width:100%;border-radius:10px;padding:6px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
 .pf-voice option{color:#111}
+.pf-sym.jv-live>span{padding:0;overflow:hidden}
+.pf-sym.jv-live .jo{width:100%;height:100%}

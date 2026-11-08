@@ -30,6 +30,8 @@ import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
 import { openJarvis } from '../components/JarvisFab.jsx'
+import JarvisOrb, { PHASE_LABEL } from '../components/JarvisOrb.jsx'
+import { useJarvis } from '../store/useJarvis.js'
 import { say, loadVoices, voiceOptions, pickVoice, savedVoice, saveVoice } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
@@ -51,6 +53,16 @@ const recSym = x => (/sauna/i.test(x) ? '🧖 ' : /boots/i.test(x) ? '🦵 ' : /
 function SymButton({ sym, label, onClick, primary }) {
   return <button className={'pf-sym' + (primary ? ' primary' : '')} onClick={onClick} aria-label={label} title={label}>
     <span aria-hidden="true">{sym}</span><small>{label}</small>
+  </button>
+}
+
+/** Jarvis's button on the hub: the 🎤 at rest, his sound waves while a call runs (store/useJarvis.js). */
+function JarvisSym() {
+  const active = useJarvis(s => s.active)
+  const phase = useJarvis(s => s.phase)
+  const label = active ? PHASE_LABEL[phase] : 'Ask ' + BRAND.coach
+  return <button className={'pf-sym primary' + (active ? ' jv-live' : '')} onClick={openJarvis} aria-label={label} title={label}>
+    <span aria-hidden="true">{active ? <JarvisOrb /> : '🎤'}</span><small>{active ? { listening: 'Listening', thinking: 'Thinking', speaking: 'Talking', idle: 'Tap to talk' }[phase] : 'Ask ' + BRAND.coach}</small>
   </button>
 }
 
@@ -106,7 +118,7 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
       {(more ? lines : lines.slice(0, 3)).map((l, i) => <p key={i}>{l}</p>)}
       {lines.length > 3 && <button className="pf-more-btn" onClick={() => setMore(!more)}>{more ? 'Less' : 'More'}</button>}
       <div className="pf-syms">
-        {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => openJarvis(lines[0])} />}
+        {isOn(S, 'coach') && <JarvisSym />}
         <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
         <SymButton sym="🏃" label="Runs" onClick={() => setTab('run')} />
       </div>

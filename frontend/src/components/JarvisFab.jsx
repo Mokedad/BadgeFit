@@ -65,8 +65,9 @@ export default function JarvisFab() {
   const style = pos.free
     ? { left: pos.free.x - ORB / 2, top: pos.free.y - ORB / 2 }
     : { top: pos.top, [pos.side]: pos.tucked ? -ORB * 0.55 : 12 }
-  // Home has Jarvis in its header (views/Home.jsx), so no floating orb there.
-  const onHome = loc.pathname === '/home' || loc.pathname === '/'
+  // Home has Jarvis in its header (views/Home.jsx) and the BadgeFit hub its Ask Jarvis button
+  // (views/PoliceFit.jsx), so no floating orb on either.
+  const onHome = loc.pathname === '/home' || loc.pathname === '/' || loc.pathname === '/police'
   return <>
     {!onHome && <div className={'jarvis-fab' + (pos.free ? ' dragging' : '') + (pos.tucked && !active ? ' tucked' : '') + (active ? ' live' : '')} style={pos.tucked && active ? { ...style, [pos.side]: 12 } : style}>
       <button type="button" className="jarvis-fab-b"
