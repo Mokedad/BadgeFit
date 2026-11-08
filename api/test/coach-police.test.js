@@ -52,3 +52,26 @@ test('a question carries it, and the prompt knows to answer as Jarvis', () => {
   const review = payloadLib.build(S, { handle: 'u1', kind: 'review', now: NOW });
   assert.equal(review.police, undefined);
 });
+
+test('the trainer brief from the device is cleaned, bounded and reaches the prompt', () => {
+  const S = { unit: 'kg', routines: [], workouts: [], police };
+  const brief = {
+    level: 'intermediate', week: 8, daysToTest: 27, phase: { n: 2, range: '6-8' },
+    today: { title: 'Recovery: treadmill incline walk', kind: 'walk', minutes: 40, details: ['30 min brisk walk', 'x'.repeat(900), 'a', 'b', 'c'] },
+    gaps: Array.from({ length: 9 }, (_, i) => ({ standard: 'Push-ups', latest: '22 reps', pct: 88, pass: false, area: 'Chest', train: 'push-ups', evil: '<script>' })),
+    foodToday: { kcal: 520, protein: '42', kcalTarget: 2740, proteinTarget: 242 },
+    junk: { deep: 'ignored' },
+  };
+  const p = payloadLib.build(S, { handle: 'u1', kind: 'ask', note: 'What should I do today?', now: NOW, police: brief });
+  const b = p.police.brief;
+  assert.equal(b.today.details.length, 4);
+  assert.ok(b.today.details[1].length <= 160);
+  assert.equal(b.gaps.length, 6);
+  assert.equal(b.gaps[0].evil, undefined);
+  assert.equal(b.foodToday.protein, 42);
+  assert.equal(b.junk, undefined);
+  assert.match(buildPromptParts('ask', p).system, /be their personal trainer/);
+  // a brief alone (no BadgeFit state on the server yet) still counts
+  assert.ok(payloadLib.build({ unit: 'kg', routines: [], workouts: [] }, { handle: 'u1', kind: 'ask', note: 'x', now: NOW, police: brief }).police.brief);
+  assert.equal(payloadLib.cleanBrief('nope'), null);
+});

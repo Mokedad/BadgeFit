@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState } from 'react'
+import { workoutControlsSheet, isPaused, resumeWorkout } from '../workout-controls.jsx'
+import RepRangeCoach from '../components/RepRangeCoach.jsx'
 import MusicBar from '../components/MusicBar.jsx'
 import SwipeCards from '../components/SwipeCards.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
@@ -820,6 +822,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     </div>}
     {entry.note && <div className="exnote">{entry.note}</div>}
     {planLine}
+    {/* BadgeFit (components/RepRangeCoach.jsx): the rep-range rule after every set, from the first workout. */}
+    {S.police?.level && !editing && mode === 'reps' && <RepRangeCoach entry={entry} unit={S.unit} onApply={(i, w) => mutSet(i, x => ({ ...x, w }))} />}
     {refLine}
     {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
       aria-label={t('Open exercise settings')} onClick={onProgressionSettings}>
@@ -1701,6 +1705,17 @@ function ActiveWorkout() {
   // Named for the watch first: gone from its snapshot it would look finished, and be saved to Apple Health (#776).
   // The watch's own Discard (confirmed there) runs this too.
   const discardNow = () => { markDiscarded(useStore.getState().S.active?.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') }
+  // Hold Finish (BadgeFit, workout-controls.jsx): pause, finish, something else today, wipe today,
+  // cancel. A tap stays the plain Finish sheet; the click that ends a hold is swallowed.
+  const heldRef = useRef(false)
+  const holdTimer = useRef(null)
+  const finishHold = {
+    onPointerDown: () => { heldRef.current = false; clearTimeout(holdTimer.current); holdTimer.current = setTimeout(() => { heldRef.current = true; try { navigator.vibrate?.(30) } catch { /* none */ } workoutControlsSheet({ discardNow }) }, 550) },
+    onPointerUp: () => clearTimeout(holdTimer.current),
+    onPointerLeave: () => clearTimeout(holdTimer.current),
+    onPointerCancel: () => clearTimeout(holdTimer.current),
+    onContextMenu: e => e.preventDefault(),
+  }
   const discardWorkout = () => confirmSheet({
     title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true,
     onConfirm: discardNow,
@@ -2404,13 +2419,15 @@ function ActiveWorkout() {
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
-      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}{!(A.backfill || editing) && isOn(S, 'health') && <LiveHeartRate />}</div>{gymShown && (gymSwitchable
+      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} pausedAt={A.pausedAt} />} · {t('{0} sets', done + '/' + total)}{!(A.backfill || editing) && isOn(S, 'health') && <LiveHeartRate />}</div>{gymShown && (gymSwitchable
         ? <button type="button" className="whdr-gym" onClick={openGymMenu} aria-label={t('Gym: {0}', gymShown)}><Icon name="house" />{gymShown}</button>
         : <span className="whdr-gym"><Icon name="house" />{gymShown}</span>)}</div>
       {!chipRow && sessionMap}
       <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
-        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
+        title={editing ? undefined : 'Tap to finish · hold for pause, change or cancel'}
+        {...(editing ? {} : finishHold)}
+        onClick={() => { if (heldRef.current) { heldRef.current = false; return } editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }) }}>{editing ? t('Save') : isPaused(A) ? '⏸ ' + t('Finish') : t('Finish')}</button>
     </div>
     {/* The volume so far rides at the end of the progress bar (#774): one line that never wraps,
         so a growing number cannot reflow the header the way a third item in the line above did
@@ -2424,8 +2441,10 @@ function ActiveWorkout() {
     {listMode && chipRow}
     </div>
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
+    {/* Paused from the hold-Finish controls (workout-controls.jsx): one tap carries on. */}
+    {!editing && isPaused(A) && <button type="button" className="wk-paused" onClick={resumeWorkout}>⏸ Paused · tap to resume</button>}
     {/* BadgeFit music (components/MusicBar.jsx): only when a playlist or Spotify is set up. */}
-    {!editing && <MusicBar compact sessionKey={A.start} />}
+    {!editing && <MusicBar compact sessionKey={A.id || A.start} />}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
 
     {A.entries.length ? (listMode ? (

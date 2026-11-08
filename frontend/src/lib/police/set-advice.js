@@ -44,3 +44,21 @@ export function sessionAdvice(sets, range, unit = 'kg') {
   const last = out.filter(s => s.advice).at(-1)
   return { sets: out, nextStart: last ? last.advice.weight : null }
 }
+
+/**
+ * The rule live, inside a workout: from the session's rows ([{ w, r, done, warmup? }]) and the
+ * exercise's range, the last finished work set, the next one still to do, and the advice for it.
+ * `firstTime` is true while no work set is done yet (the first set sets the starting point).
+ * null without a range or for rows with no load (body weight: there the reps climb instead).
+ */
+export function liveAdvice(sets, range, unit = 'kg') {
+  if (!range || !(range.min > 0) || !(range.max >= range.min)) return null
+  const work = (sets || []).map((s, i) => ({ s, i })).filter(x => x.s && !x.s.warmup && x.s.kind !== 'warmup')
+  const done = work.filter(x => x.s.done && Number(x.s.r) > 0)
+  const last = done.at(-1)
+  const next = work.find(x => !x.s.done)
+  if (!last) return { firstTime: true, range, nextIdx: next?.i ?? null }
+  if (!(Number(last.s.w) > 0)) return null
+  const advice = nextSetAdvice({ reps: last.s.r, weight: last.s.w, range, unit })
+  return { firstTime: false, range, lastIdx: last.i, nextIdx: next?.i ?? null, advice, reps: Number(last.s.r), weight: Number(last.s.w) }
+}

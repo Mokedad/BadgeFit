@@ -647,6 +647,31 @@ export function cleanPolice(P, now = Date.now()) {
   return out.level || Object.keys(results).length ? out : null;
 }
 
+// BadgeFit's trainer brief (frontend/src/lib/police/brief.js), sent by the device with a question.
+// The client's, so every field is typed and cut: short strings, small numbers, a few list items.
+const bstr = (v, n = 120) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').slice(0, n) : null);
+const bnum = v => { const x = pnum(v); return x == null ? null : Math.round(x * 10) / 10; };
+const bday = d => (d && typeof d === 'object' ? { title: bstr(d.title, 80), kind: bstr(d.kind, 12), minutes: bnum(d.minutes), details: (Array.isArray(d.details) ? d.details : []).slice(0, 4).map(x => bstr(x, 160)).filter(Boolean) } : null);
+export function cleanBrief(b) {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
+  const out = {
+    level: bstr(b.level, 16), week: bnum(b.week), daysToTest: bnum(b.daysToTest), weeksToTest: bnum(b.weeksToTest),
+    phase: b.phase && typeof b.phase === 'object' ? { n: bnum(b.phase.n), range: bstr(b.phase.range, 8) } : null,
+    today: bday(b.today), tomorrow: bday(b.tomorrow),
+    todayRun: b.todayRun && typeof b.todayRun === 'object' ? { name: bstr(b.todayRun.name, 60), minutes: bnum(b.todayRun.minutes), why: bstr(b.todayRun.why, 200) } : null,
+    gaps: (Array.isArray(b.gaps) ? b.gaps : []).slice(0, 6).filter(g => g && typeof g === 'object').map(g => ({
+      standard: bstr(g.standard, 40), latest: bstr(g.latest, 40), on: bstr(g.on, 10), pct: bnum(g.pct), pass: !!g.pass, area: bstr(g.area, 40), train: bstr(g.train, 120),
+    })),
+    runsThisWeek: b.runsThisWeek && typeof b.runsThisWeek === 'object' ? {
+      count: bnum(b.runsThisWeek.count), minutes: bnum(b.runsThisWeek.minutes),
+      last: (Array.isArray(b.runsThisWeek.last) ? b.runsThisWeek.last : []).slice(0, 3).map(r => ({ run: bstr(r?.run, 60), on: bstr(r?.on, 10), rpe: bnum(r?.rpe) })),
+    } : null,
+    foodToday: b.foodToday && typeof b.foodToday === 'object' ? { kcal: bnum(b.foodToday.kcal), protein: bnum(b.foodToday.protein), kcalTarget: bnum(b.foodToday.kcalTarget), proteinTarget: bnum(b.foodToday.proteinTarget) } : null,
+    weight: b.weight && typeof b.weight === 'object' ? { start: bnum(b.weight.start), now: bnum(b.weight.now), change: bnum(b.weight.change), goal: bnum(b.weight.goal), unit: bstr(b.weight.unit, 4) } : null,
+  };
+  return out.today || out.gaps.length || out.week ? out : null;
+}
+
 export function build(S, opts = {}) {
   if (typeof opts.handle !== 'string' || !opts.handle) throw new Error('payload.build: opts.handle is required');
   const coach = S.coach || {};
@@ -749,7 +774,8 @@ export function build(S, opts = {}) {
     // programme, standards results and goals, so the answer speaks to their test. It also
     // switches the reply to the Jarvis voice (prompts/ask.md).
     const police = cleanPolice(S.police, now);
-    if (police) p.police = police;
+    const brief = cleanBrief(opts.police);
+    if (police || brief) p.police = { ...(police || {}), ...(brief && { brief }) };
   } else if (opts.kind === 'adapt') {
     // An exercise in the workout running now, and why it needs a rethink: pain, a busy rack, a
     // short day, feeling great. The session as it stands (each entry with its index, so a change

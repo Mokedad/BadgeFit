@@ -3492,6 +3492,12 @@ paths:
                 text:
                   type: string
                   description: The question. Cut at the instance's message length.
+                police:
+                  type: object
+                  description: |
+                    BadgeFit's trainer brief, sent by the device: today's planned session,
+                    the test countdown, the standards gaps by body area, this week's runs and
+                    today's food. Cleaned and bounded by the payload builder (cleanBrief).
                 today:
                   type: object
                   description: The session running on the device (`entries` with their sets), or absent.

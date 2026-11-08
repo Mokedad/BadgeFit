@@ -32,3 +32,23 @@ describe('sessionAdvice', () => {
     expect(s.nextStart).toBe(140)
   })
 })
+
+import { liveAdvice } from './set-advice.js'
+describe('liveAdvice: the rule inside a workout', () => {
+  const r46 = { min: 4, max: 6 }
+  it('first time: no set done yet, points at the first work set', () => {
+    expect(liveAdvice([{ w: 20, r: 10, done: true, warmup: true }, { w: 0, r: 0 }], r46)).toEqual({ firstTime: true, range: r46, nextIdx: 1 })
+  })
+  it('after a set: advice for the next one', () => {
+    const a = liveAdvice([{ w: 60, r: 8, done: true }, { w: 60, r: 6 }, { w: 60, r: 6 }], r46, 'kg')
+    expect(a).toMatchObject({ lastIdx: 0, nextIdx: 1, advice: { action: 'up', weight: 62.5 } })
+  })
+  it('reads the last done set, skips warm-ups, none left at the end', () => {
+    const a = liveAdvice([{ w: 40, r: 5, done: true, warmup: true }, { w: 60, r: 5, done: true }, { w: 60, r: 3, done: true }], r46)
+    expect(a).toMatchObject({ lastIdx: 2, nextIdx: null, advice: { action: 'down', weight: 57.5 } })
+  })
+  it('nothing without a range or a load', () => {
+    expect(liveAdvice([{ w: 60, r: 5, done: true }], null)).toBeNull()
+    expect(liveAdvice([{ w: 0, r: 12, done: true }], { min: 8, max: 12 })).toBeNull()
+  })
+})

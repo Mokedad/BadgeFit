@@ -334,3 +334,9 @@
 .pf label.jl-hf,.pf label.jl-voice{flex-direction:row;align-items:center;color:#fff}
 .pf label.jl-hf input{width:18px;height:18px;flex:none}
 .pf label.jl-voice select{width:auto}
+/* rep-range coach in the workout (components/RepRangeCoach.jsx) */
+.rrc{font-size:13px;font-weight:600;border-radius:10px;padding:6px 10px;margin:4px 0 6px;background:var(--surface-2)}
+.rrc.up{background:var(--surface-2);background:color-mix(in srgb,var(--green) 18%,transparent)}
+.rrc.down{background:var(--surface-2);background:color-mix(in srgb,var(--orange) 20%,transparent)}
+.rrc.stay,.rrc.first{background:var(--surface-2);background:color-mix(in srgb,var(--acc) 18%,transparent)}
+.wk-paused{display:block;width:100%;margin:8px 0;border:0;border-radius:12px;padding:12px;font-weight:700;background:var(--acc);color:var(--on-acc)}

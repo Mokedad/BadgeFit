@@ -123,7 +123,9 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
           kind: 'ask',
           lang: body.lang,
           note: text.slice(0, cfgStore.MAX_MESSAGE_LEN_CEILING),
-          today: body.today && typeof body.today === 'object' && !Array.isArray(body.today) ? body.today : null
+          today: body.today && typeof body.today === 'object' && !Array.isArray(body.today) ? body.today : null,
+          // BadgeFit's trainer brief, cleaned and bounded by the payload builder (cleanBrief).
+          police: body.police && typeof body.police === 'object' && !Array.isArray(body.police) ? body.police : null
         });
         json(res, 202, { job });
       } catch (e) { failEnqueue(res, e); }

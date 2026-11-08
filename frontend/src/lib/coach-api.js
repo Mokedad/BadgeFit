@@ -5,6 +5,8 @@
 // server every thirty seconds forever because a feature exists is an app that costs battery
 // for a feature nobody is using.
 
+import { todayISO } from './format.js'
+import { policeBrief } from './police/brief.js'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api } from './api.js'
 import { DEMO } from './demo.js'
@@ -93,7 +95,9 @@ const _requestDebrief = async workoutId => DEMO ? (await demo()).demoDebrief(S()
 export const requestDebrief = (...a) => asked(_requestDebrief)(...a).then(track)
 // A question in the chat, answered in words (the `ask` job). The session running here goes along
 // (lib/coach-context.js): the server never holds it.
-const _askCoach = async text => DEMO ? (await demo()).demoAsk(S(), text) : LOCAL() ? (await local()).localAsk(S(), text, todayForCoach(S())) : api('/api/coach/ask', { method: 'POST', body: JSON.stringify({ text, today: todayForCoach(S()), lang: getLang() }) })
+// A BadgeFit member's trainer brief (lib/police/brief.js) rides along too: today's plan, the test
+// countdown, the gaps by body area, this week's runs and today's food.
+const _askCoach = async text => DEMO ? (await demo()).demoAsk(S(), text) : LOCAL() ? (await local()).localAsk(S(), text, todayForCoach(S()), policeBrief(S(), todayISO())) : api('/api/coach/ask', { method: 'POST', body: JSON.stringify({ text, today: todayForCoach(S()), police: policeBrief(S(), todayISO()), lang: getLang() }) })
 export const askCoach = (...a) => asked(_askCoach)(...a).then(track)
 // "Ask the Coach" on an exercise mid-workout (the `adapt` job): `entry` is its index in the running
 // session, `reason` one of pain/busy/short/great/tired/other, `text` optional. The session goes
