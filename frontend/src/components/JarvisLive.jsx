@@ -6,7 +6,10 @@
 // app's AI Coach (lib/coach-api.js askCoach), which answers as Jarvis for a BadgeFit member
 // (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
-import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, JOB_ERRORS } from '../lib/coach-api.js'
+import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, JOB_ERRORS, disclosure, coachVia } from '../lib/coach-api.js'
+import { consentTarget, allowAi } from '../lib/coach-consent.js'
+import { hasConsent, emptyCoach, CONSENT_VERSION } from '../lib/coach.js'
+import { useStore } from '../store/useStore.js'
 import { say, stopSpeaking } from '../lib/police/voice.js'
 import { useJarvis } from '../store/useJarvis.js'
 import { useUI } from '../store/useUI.js'
@@ -18,6 +21,26 @@ const POLL_MS = 1500
 // The server has no AI connected yet: say who can fix it and where.
 const OFF_TEXT = 'Jarvis is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'
 const MAX_WAIT_MS = 120000
+
+/**
+ * The Coach's go-ahead, asked once, the first time someone talks to Jarvis: the app's own sheet
+ * names the AI service and lists what goes there (components/CoachConsentSheet.jsx). One "Allow"
+ * records both the provider consent and the Coach's own go-ahead (as the Coach's intake does), so
+ * Jarvis just works from then on. A model on the member's own network is no third party: no sheet.
+ */
+async function ensureJarvisConsent() {
+  if (hasConsent(useStore.getState().S)) return true
+  const target = consentTarget(await disclosure().catch(() => null), coachVia())
+  if (target && !target.local) {
+    const { askAiConsent } = await import('./CoachConsentSheet.jsx')
+    if (!await askAiConsent(target)) return false
+    await allowAi(target).catch(() => {})
+  }
+  useStore.getState().update(s => { s.coach = { ...(s.coach || emptyCoach()), consent: { agreedAt: new Date().toISOString(), version: CONSENT_VERSION } } })
+  // The server checks the go-ahead in the saved copy, so it is sent now, not after the debounce.
+  await useStore.getState().pushState?.()
+  return true
+}
 
 /** Waits for the answer to the question just asked: the `ask` proposal, or the job's failure. */
 async function waitForAnswer(cancelled) {
@@ -82,6 +105,7 @@ export default function JarvisLive() {
     setNote('')
     setPhase('thinking')
     try {
+      if (!await ensureJarvisConsent()) { problem('Okay. Jarvis will wait until you say yes.'); return }
       await askCoach(text)
       const r = await waitForAnswer(() => closed.current)
       if (!r || closed.current) return
