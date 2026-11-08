@@ -1,4 +1,5 @@
-// Jarvis, always around (BadgeFit): a small gold orb floating on every screen. Tap it and the
+// Jarvis, always around (BadgeFit): a gold orb in the Home header, and floating on every other
+// screen. Tap it and the
 // conversation opens as a floating panel (components/JarvisLive.jsx) over the bottom of the
 // screen, not over all of it; – minimises it back to the orb and the chat carries on (a reply
 // still arrives and is spoken). Drag the orb anywhere; it snaps to the nearest side, and pushed
@@ -15,8 +16,8 @@ const JarvisLive = lazy(() => import('./JarvisLive.jsx'))
 const KEY = 'badgefit_jarvis_orb'
 const EVENT = 'badgefit:jarvis'
 
-/** Opens Jarvis from anywhere, with an optional first line from him. */
-export const openJarvis = opener => window.dispatchEvent(new CustomEvent(EVENT, { detail: { opener } }))
+/** Opens Jarvis from anywhere (the Home header, the BadgeFit hub). */
+export const openJarvis = () => window.dispatchEvent(new CustomEvent(EVENT))
 
 const loadPos = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null } catch { return null } }
 const savePos = p => { try { localStorage.setItem(KEY, JSON.stringify(p)) } catch { /* private mode */ } }
@@ -33,13 +34,9 @@ export default function JarvisFab() {
   const drag = useRef(null)
   const on = !!user && !!S.police?.level && isOn(S, 'coach')
 
-  const greet = () => { const h = new Date().getHours(); return h < 12 ? 'Morning.' : h < 18 ? 'Afternoon.' : 'Evening.' }
-  const open = opener => {
-    setMounted(m => m || { opener: opener || `${greet()} ${loc.pathname === '/workout' ? 'How is the session going?' : 'What do you need?'}` })
-    setShown(true)
-  }
+  const open = () => { setMounted(m => m || {}); setShown(true) }
   useEffect(() => {
-    const h = e => open(e.detail?.opener)
+    const h = () => open()
     window.addEventListener(EVENT, h)
     return () => window.removeEventListener(EVENT, h)
   }) // re-bound each render so `open` sees the current screen
@@ -75,14 +72,16 @@ export default function JarvisFab() {
     ? { left: pos.free.x - ORB / 2, top: pos.free.y - ORB / 2 }
     : { top: pos.top, [pos.side]: pos.tucked ? -ORB * 0.55 : 12 }
   const busy = mounted && phase !== 'idle'
+  // Home has Jarvis in its header (views/Home.jsx), so no floating orb there.
+  const onHome = loc.pathname === '/home' || loc.pathname === '/'
   return <>
-    {!shown && <button type="button" className={'jarvis-fab' + (pos.free ? ' dragging' : '') + (pos.tucked ? ' tucked' : '') + (busy ? ' busy' : '') + (mounted ? ' live' : '')} style={style}
+    {!shown && !onHome && <button type="button" className={'jarvis-fab' + (pos.free ? ' dragging' : '') + (pos.tucked ? ' tucked' : '') + (busy ? ' busy' : '') + (mounted ? ' live' : '')} style={style}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { drag.current = null; setPos(p => snapOrb(p.free ? { drop: p.free } : p, view())) }}
       aria-label={mounted ? 'Open Jarvis (conversation running)' : 'Talk to Jarvis'} title="Jarvis: tap to talk, drag to move">
       <span className="jarvis-fab-orb" aria-hidden="true" />
     </button>}
     {mounted && <Suspense fallback={null}><div className="pf">
-      <JarvisLive opener={mounted.opener} hidden={!shown} onPhase={setPhase} onMinimize={() => setShown(false)} onClose={() => { setShown(false); setMounted(null); setPhase('idle') }} />
+      <JarvisLive hidden={!shown} onPhase={setPhase} onMinimize={() => setShown(false)} onClose={() => { setShown(false); setMounted(null); setPhase('idle') }} />
     </div></Suspense>}
   </>
 }

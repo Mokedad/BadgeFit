@@ -726,7 +726,7 @@ export default function PoliceFit() {
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <PfTabs value={tab} onChange={setTab} />
-    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openJarvis={opener => openJarvis((opener ? opener + ' ' : '') + 'What do you need?')} />}
+    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openJarvis={() => openJarvis()} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests P={P} />}
     {tab === 'plan' && <Plan S={S} P={P} />}

@@ -1,13 +1,12 @@
-// Talk to Jarvis, live (BadgeFit): tap the mic, speak, Jarvis answers out loud in an Australian
-// voice (lib/police/voice.js), then listens again, like a conversation. Speech recognition is
-// the browser's own (Safari on iPhone and Chrome on Android have it); where it is missing, a text
-// box stands in. The answer comes from the app's AI Coach (lib/coach-api.js askCoach), which
-// answers as Jarvis for a BadgeFit member (api/coach/prompts/ask.md). The exchange is also kept
-// in the Coach chat, so nothing said here is lost. English only, like the BadgeFit hub.
+// Talk to Jarvis, live (BadgeFit): voice only. Speak, Jarvis answers out loud in an Australian
+// voice (lib/police/voice.js), then listens again, like a call. Nothing is shown as text and
+// nothing is saved to the chat: the screen only shows a symbol for what is happening (listening,
+// thinking, talking). Speech recognition is the browser's own (lib/police/listen.js); where it is
+// missing or blocked, a small keyboard button lets you type instead. The answer comes from the
+// app's AI Coach (lib/coach-api.js askCoach), which answers as Jarvis for a BadgeFit member
+// (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
-import { useStore } from '../store/useStore.js'
 import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, JOB_ERRORS } from '../lib/coach-api.js'
-import { appendChat } from '../lib/coach.js'
 import { say, stopSpeaking, loadVoices, voiceOptions, pickVoice, savedVoice, saveVoice } from '../lib/police/voice.js'
 import { listenOnce } from '../lib/police/listen.js'
 import '../police.css'
@@ -36,102 +35,95 @@ async function waitForAnswer(cancelled) {
 }
 
 /**
- * The conversation as a floating panel. `hidden` keeps it alive while minimised (the chat and a
- * reply in progress carry on); `onPhase` tells the floating orb what Jarvis is doing.
+ * The call as a small floating card. `hidden` keeps it alive while minimised (a reply in progress
+ * still arrives and is spoken); `onPhase` tells the floating orb what Jarvis is doing.
  */
-export default function JarvisLive({ onClose, onMinimize, opener, hidden = false, onPhase }) {
-  const update = useStore(s => s.update)
+export default function JarvisLive({ onClose, onMinimize, hidden = false, onPhase }) {
   const [phase, setPhase] = useState('idle') // idle | listening | thinking | speaking
-  const [turns, setTurns] = useState(opener ? [{ who: 'jarvis', text: opener }] : [])
-  const [interim, setInterim] = useState('')
+  const [note, setNote] = useState('')
+  const [typing, setTyping] = useState(!Recognition)
   const [typed, setTyped] = useState('')
-  const [handsFree, setHandsFree] = useState(true)
   const [voices, setVoices] = useState([])
   const [voice, setVoice] = useState(savedVoice() || '')
-  const rec = useRef(null), closed = useRef(false), endRef = useRef(null)
+  const rec = useRef(null), closed = useRef(false)
 
   useEffect(() => { loadVoices().then(v => { setVoices(voiceOptions(v)); if (!savedVoice()) setVoice(pickVoice(v)?.voiceURI || '') }) }, [])
-  useEffect(() => () => { closed.current = true; rec.current?.cancel(); stopSpeaking() }, [])
+  useEffect(() => {
+    if (Recognition) listen() // opened with a tap: start listening straight away
+    return () => { closed.current = true; rec.current?.cancel(); stopSpeaking() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onPhase?.(phase) }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { endRef.current?.scrollIntoView?.({ block: 'end' }) }, [turns.length, interim, phase])
 
-  const speak = async text => { setPhase('speaking'); await say(text); if (!closed.current) setPhase('idle') }
+  // A problem is said out loud as well as shown in one short line.
+  const problem = text => { setNote(text); setPhase('idle'); say(text) }
 
   const listen = async () => {
     if (!Recognition) return
     stopSpeaking()
+    setNote('')
     setPhase('listening')
-    const l = listenOnce(Recognition, { onInterim: setInterim })
+    const l = listenOnce(Recognition, {})
     rec.current = l
     const out = await l.done
     if (rec.current === l) rec.current = null
-    setInterim('')
     if (closed.current) return
     if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
-      setTurns(t => [...t, { who: 'system', text: 'Microphone blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone), or type below.' }])
+      setTyping(true)
+      setNote('Microphone blocked. Allow it in Settings → Safari → Microphone, or type.')
       setPhase('idle'); return
     }
     if (out.text) { ask(out.text); return }
     setPhase('idle')
-    if (out.error) setTurns(t => [...t, { who: 'system', text: 'Voice did not work on this phone just now. Type your question below.' }])
+    if (out.error) { setTyping(true); setNote('Voice did not work just now. Tap to try again, or type.') }
   }
 
   const ask = async text => {
-    setTurns(t => [...t, { who: 'you', text }])
+    setNote('')
     setPhase('thinking')
     try {
       await askCoach(text)
-      update(s => { appendChat(s, { role: 'user', kind: 'text', text }) })
       const r = await waitForAnswer(() => closed.current)
       if (!r || closed.current) return
-      if (r.error) { setTurns(t => [...t, { who: 'system', text: r.error }]); setPhase('idle'); return }
-      update(s => { if (!(s.coach?.chat || []).some(m => m.pid === r.id)) appendChat(s, { role: 'coach', kind: 'text', text: r.answer, pid: r.id }) })
+      if (r.error) { problem(r.error); return }
       resolvePending({ accepted: ['ask'] }).catch(() => {})
-      setTurns(t => [...t, { who: 'jarvis', text: r.answer }])
-      await speak(r.answer)
-      if (handsFree && Recognition && !closed.current) listen()
+      setPhase('speaking')
+      await say(r.answer)
+      if (closed.current) return
+      if (Recognition) listen(); else setPhase('idle')
     } catch (e) {
-      if (!isDeclined(e)) setTurns(t => [...t, { who: 'system', text: e?.data?.code === 'off' ? OFF_TEXT : JOB_ERRORS[e?.data?.code] || e?.message || 'Jarvis could not be reached.' }])
-      setPhase('idle')
+      if (isDeclined(e)) { setPhase('idle'); return }
+      problem(e?.data?.code === 'off' ? OFF_TEXT : JOB_ERRORS[e?.data?.code] || e?.message || 'Jarvis could not be reached.')
     }
   }
 
-  const tapMic = () => {
+  const tapOrb = () => {
     if (phase === 'listening') { rec.current?.finish(); return }
-    if (phase === 'speaking') { stopSpeaking(); setPhase('idle'); return }
+    if (phase === 'speaking') { stopSpeaking(); return }
     if (phase === 'idle') listen()
   }
 
-  const label = { idle: Recognition ? 'Tap to talk' : 'Type your question', listening: 'Listening… tap to send', thinking: 'Jarvis is thinking…', speaking: 'Jarvis is talking · tap to stop' }[phase]
+  const label = { idle: Recognition ? 'Tap to talk' : 'Type to ask', listening: 'Listening… tap when done', thinking: 'Thinking…', speaking: 'Talking · tap to stop' }[phase]
 
-  return <div className="jl" role="dialog" aria-label="Talk to Jarvis" hidden={hidden}>
+  return <div className="jl jl-v" role="dialog" aria-label="Talk to Jarvis" hidden={hidden}>
     <div className="jl-top">
-      <span className="jl-dot" aria-hidden="true" />
       <b>Jarvis</b>
-      <label className="jl-hf"><input type="checkbox" checked={handsFree} onChange={e => setHandsFree(e.target.checked)} /> Hands-free</label>
       {onMinimize && <button className="jl-ic" onClick={onMinimize} aria-label="Minimise" title="Minimise">–</button>}
-      <button className="jl-ic" onClick={onClose} aria-label="Close" title="Close">✕</button>
+      <button className="jl-ic" onClick={onClose} aria-label="End" title="End">✕</button>
     </div>
-    <div className="jl-feed">
-      {turns.length === 0 && <p className="jl-hint">Ask anything: "What should I work on this week?", "My shins hurt after running", "What do I eat before intervals?"</p>}
-      {turns.map((t, i) => <div key={i} className={'jl-msg ' + t.who}>{t.text}</div>)}
-      {interim && <div className="jl-msg you interim">{interim}</div>}
-      <div ref={endRef} />
+    <button className={'jv-orb ' + phase} onClick={tapOrb} disabled={phase === 'thinking' || !Recognition} aria-label={label}>
+      <span className="jv-waves" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+      <span className="jv-ico" aria-hidden="true">{phase === 'idle' ? '🎤' : ''}</span>
+    </button>
+    <div className="jl-state" aria-live="polite">{note || label}</div>
+    <div className="jv-tools">
+      {Recognition && <button className="jl-ic" onClick={() => setTyping(!typing)} aria-label="Type instead" title="Type instead">⌨️</button>}
+      {voices.length > 0 && <select className="jv-voice" value={voice} aria-label="Jarvis's voice" onChange={e => { setVoice(e.target.value); saveVoice(e.target.value); say('G\'day. This is my voice now. Let\'s get to work.') }}>
+        {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>🗣️ {v.name}</option>)}
+      </select>}
     </div>
-    <div className="jl-state" aria-live="polite">{label}</div>
-    <div className="jl-bottom">
-      {Recognition && <button className={'jl-orb ' + phase} onClick={tapMic} disabled={phase === 'thinking'} aria-label={label}>
-        <span aria-hidden="true">{phase === 'speaking' ? '🔊' : phase === 'thinking' ? '…' : phase === 'listening' ? '⏹' : '🎤'}</span>
-      </button>}
-      <form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase !== 'thinking') { stopSpeaking(); rec.current?.cancel(); ask(typed.trim()); setTyped('') } }}>
-        <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={Recognition ? 'Or type…' : 'Ask Jarvis…'} aria-label="Your question" />
-        <button type="submit" disabled={!typed.trim() || phase === 'thinking'}>Send</button>
-      </form>
-    </div>
-    {voices.length > 0 && <details className="jl-more"><summary>🗣️ Voice</summary>
-      <select value={voice} aria-label="Jarvis's voice" onChange={e => { setVoice(e.target.value); saveVoice(e.target.value); say('G\'day. This is my voice now. Let\'s get to work.') }}>
-        {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
-      </select>
-    </details>}
+    {typing && <form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase !== 'thinking') { stopSpeaking(); rec.current?.cancel(); ask(typed.trim()); setTyped('') } }}>
+      <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Ask Jarvis…" aria-label="Your question" />
+      <button type="submit" disabled={!typed.trim() || phase === 'thinking'}>Send</button>
+    </form>}
   </div>
 }
