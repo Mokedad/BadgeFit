@@ -33,7 +33,9 @@ import RecoveryHint from '../components/RecoveryHint.jsx'
 import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
+import { planWeekOf } from '../lib/police/programme.js'
 import { openJarvis } from '../components/JarvisFab.jsx'
+import JarvisOrb, { JarvisEnd } from '../components/JarvisOrb.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -127,7 +129,9 @@ export default function Home() {
   const onToday = () => (S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
-  const progChip = programmeChip(S)
+  // A BadgeFit member's programme runs as long as their plan (lib/police/programme.js), not 12 weeks.
+  const bfPlan = S.police?.level && S.police?.start && S.programme?.id && S.programme.id === S.police.programmeId ? planWeekOf(S.police, todayISO()) : null
+  const progChip = bfPlan?.week ? (bfPlan.after ? 'Plan done, training on' : bfPlan.final ? `Final week · ${bfPlan.week} of ${bfPlan.last}` : `Week ${bfPlan.week} of ${bfPlan.last}`) : programmeChip(S)
   // A BadgeFit server (passkeys off): someone not set up yet goes straight to the BadgeFit welcome,
   // once per visit, instead of an empty training log.
   const config = useStore(st => st.config)
@@ -143,7 +147,7 @@ export default function Home() {
       <SeasonDeco spot="header-bats" />
       <div><h1>{user ? t('Hi {0}', user.name) : BRAND.name}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <div className="hdr-btns">
-        {S.police?.level && on('coach') && <button type="button" className="jarvis-hdr" onClick={openJarvis} aria-label="Talk to Jarvis" title="Talk to Jarvis"><span className="jarvis-fab-orb" aria-hidden="true" /></button>}
+        {S.police?.level && on('coach') && <span className="jarvis-hdr-w"><button type="button" className="jarvis-hdr" onClick={openJarvis} aria-label="Talk to Jarvis" title="Talk to Jarvis"><JarvisOrb /></button><JarvisEnd /></span>}
         <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
       </div>
     </div>
@@ -157,7 +161,7 @@ export default function Home() {
 
     <div className="card">
       {/* A running programme (lib/programmes.js) wrote this week's plan: where it stands, one tap from its screen. */}
-      {progChip && <button type="button" className="chip ichip prog-chip" onClick={() => nav('/plan/programmes')}><Icon name="calendar" /><span>{progChip}</span></button>}
+      {progChip && <button type="button" className="chip ichip prog-chip" onClick={() => nav(bfPlan?.week ? '/police?tab=plan' : '/plan/programmes')}><Icon name="calendar" /><span>{progChip}</span></button>}
       {/* A coach week runs by order, not by weekday, so its progress row stands in for the
           seven dots (components/QueueRow.jsx). The today row below stays as it is: the queue's
           next session reaches it through effectiveRoutineIds like any planned routine. */}

@@ -195,7 +195,10 @@ const DAY_NAMES = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5:
  */
 export function weekPlan(level, week, age, opts = {}) {
   const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
-  const w = Math.min(WEEKS, Math.max(1, week | 0 || 1))
+  // `week` is the member's own plan week (1..planWeeks, or past it after the test); `w` is the
+  // week of the 12-week template it trains (templateWeek).
+  const n = Math.max(1, week | 0 || 1)
+  const w = templateWeek(n, opts.planWeeks)
   const phase = phaseOf(lv, w)
   const vo2 = vo2For(w)
   const test = TEST_WEEKS.includes(w)
@@ -228,8 +231,7 @@ export function weekPlan(level, week, age, opts = {}) {
   }
   // The final week (week 12, or the test's week when the test is closer than 12 weeks): light
   // training and recovery, so the member arrives fresh.
-  const last = finalOf(opts)
-  const final = w === last
+  const final = n === lengthOf(opts.planWeeks)
   if (final) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Final week: light training. Half the sets or distance, same intensity, never to failure']
   // With a test date, the test sits on its real weekday in the final week and the day before is
   // kept easy; the usual end-of-phase re-test does not happen on top of it.
@@ -239,23 +241,37 @@ export function weekPlan(level, week, age, opts = {}) {
     const before = days.findIndex(d => d.day === (opts.testDow + 6) % 7)
     if (before >= 0 && before !== at) days[before] = { day: days[before].day, dayName: days[before].dayName, kind: 'rest', key: null, title: `Easy day before your ${name}`, details: ['Rest, or a 20 min easy walk or jog with a few strides', 'Sleep 8+ hours, carbs at dinner, lay out your gear'], recovery: ['Compression boots: 20 min'] }
     days[at] = { day: days[at].day, dayName: days[at].dayName, kind: 'test', key: null, title: `${name} day`, details: ['Normal breakfast 3 hours before, water, caffeine only if you trained with it', 'Full warm-up 10-15 min, then trust your training', 'Afterwards: log your results in Tests'], recovery: [] }
-    return finish(days, { lv, w, phase, test: true, final })
+    return finish(days, { lv, w, n, phase, test: true, final })
   }
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
-  return finish(days, { lv, w, phase, test, final })
+  return finish(days, { lv, w, n, phase, test, final })
 }
 
-const finalOf = opts => { const f = Math.round(Number(opts?.finalWeek)); return f >= 1 && f <= WEEKS ? f : WEEKS }
+const lengthOf = L => { const x = Math.round(Number(L)); return x >= 1 ? x : WEEKS }
+
+/**
+ * The template week (1..12) that plan week `n` of an `L`-week plan trains. Up to 12 weeks the
+ * plan is weeks 1..L. Longer plans repeat the 12-week cycle: the weeks left over come first as
+ * a lead-in from week 1, then whole cycles, so the last cycle's week 12 is the test week. After
+ * the plan (n > L) training carries on: the later weeks, then the peak weeks 9-11 in turn.
+ */
+export function templateWeek(n, L) {
+  const len = lengthOf(L)
+  n = Math.max(1, n | 0 || 1)
+  if (n > len) return n <= 11 ? n : 9 + ((n - Math.max(len, 11) - 1) % 3)
+  const lead = len % WEEKS
+  return n <= lead ? n : ((n - lead - 1) % WEEKS) + 1
+}
 
 // About how long each session takes (meals.js estimateMinutes), as on the routine it installs.
-function finish(days, { lv, w, phase, test, final = false }) {
+function finish(days, { lv, w, n = w, phase, test, final = false }) {
   for (const d of days) {
     const r = d.key && d.kind !== 'test' ? routineFor(d.key, lv, phase.range, w) : null
     if (r) d.minutes = estimateMinutes(r)
   }
-  return { level: lv, week: w, phase, test, final, days }
+  return { level: lv, week: n, tw: w, phase, test, final, days }
 }
 
 /** The routine for a day key, in openGym's routine shape. */
@@ -353,30 +369,26 @@ export function planOptsOf(P) {
     beepFocus: !!P?.beepFocus,
     testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
     testName: (P?.testName || 'PCT').slice(0, 24),
-    finalWeek: finalWeekOf(P),
+    planWeeks: planLengthOf(P),
   }
 }
 
 const mondayOf = iso => { const t = Date.parse(iso + 'T00:00:00Z'); return isoDay(t - ((new Date(t).getUTCDay() + 6) % 7) * DAY) }
 
 /**
- * When a member's plan starts. Everyone starts at week 1: the Monday of the week they join (or the
- * next Monday, joining Friday to Sunday), so a
- * test closer than 12 weeks gives a shorter plan ending on the test week. A test further away
- * starts the 12 weeks later (startForTest), with week 1 on repeat until then (planWeekOf).
+ * When a member's plan starts: week 1 is the Monday of the week they join (or the next Monday,
+ * joining Friday to Sunday). The plan then runs as many weeks as it takes to reach the test
+ * (planLengthOf). `testISO` is kept for the callers; it no longer moves the start.
  */
 export function planStart(testISO, todayISO) {
-  // Joining Monday to Thursday, week 1 is this week; Friday to Sunday, it starts next Monday.
   const dow = new Date(Date.parse(todayISO + 'T00:00:00Z')).getUTCDay()
-  const now = dow >= 1 && dow <= 4 ? mondayOf(todayISO) : mondayOf(isoDay(Date.parse(todayISO + 'T00:00:00Z') + 3 * DAY))
-  const s12 = testISO ? startForTest(testISO) : null
-  return s12 && s12 > now ? s12 : now
+  return dow >= 1 && dow <= 4 ? mondayOf(todayISO) : mondayOf(isoDay(Date.parse(todayISO + 'T00:00:00Z') + 3 * DAY))
 }
 
-/** The plan's last week, 1..12: the week of the test, or 12. */
-export function finalWeekOf(P) {
+/** How many weeks the member's plan has: up to the test's week, or 12 without a test. */
+export function planLengthOf(P) {
   const n = P?.testDate ? rawWeek(P.start, P.testDate) : null
-  return n ? Math.min(WEEKS, n) : WEEKS
+  return n || WEEKS
 }
 
 /** Whole days from today to the test (0 on the day), or null. */
@@ -394,21 +406,18 @@ export const TAPER = [
 ]
 
 /**
- * Where the member is in the plan today: { week, before, startsIn }. With a test more than 12
- * weeks away the plan's start is still ahead: until then it is week 1 on repeat (`before`), so
- * the base is built and the real 12 weeks still end on test day. null week without a plan.
+ * Where the member is in the plan today: { week (their plan week), tw (the template week it
+ * trains), last (plan length), final, before, after, startsIn }. `before`: joined Friday to
+ * Sunday, week 1 starts Monday. null week without a plan.
  */
 export function planWeekOf(P, today) {
   const raw = rawWeek(P?.start, today)
-  const last = finalWeekOf(P)
-  if (raw && raw > last) {
-    // The test (or the 12 weeks) is behind them: training carries on through the plan's later
-    // weeks, then the peak weeks 9-11 in turn, so the app stays useful until a new date is set.
-    return { week: raw <= 11 ? raw : 9 + ((raw - 12) % 3), last, before: false, after: true, final: false, weeksAfter: raw - last, startsIn: 0 }
-  }
-  if (raw) return { week: raw, last, before: false, after: false, final: raw === last, startsIn: 0 }
-  if (P?.start && today < P.start) return { week: 1, last, before: true, after: false, final: false, startsIn: daysUntil(P.start, today) }
-  return { week: null, last, before: false, after: false, final: false, startsIn: 0 }
+  const last = planLengthOf(P)
+  const tw = n => templateWeek(n, last)
+  if (raw && raw > last) return { week: raw, tw: tw(raw), last, before: false, after: true, final: false, weeksAfter: raw - last, startsIn: 0 }
+  if (raw) return { week: raw, tw: tw(raw), last, before: false, after: false, final: raw === last, startsIn: 0 }
+  if (P?.start && today < P.start) return { week: 1, tw: 1, last, before: true, after: false, final: false, startsIn: daysUntil(P.start, today) }
+  return { week: null, tw: null, last, before: false, after: false, final: false, startsIn: 0 }
 }
 
 /** Plain words for a phase, for people new to training plans. */

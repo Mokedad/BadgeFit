@@ -443,3 +443,19 @@
 .hdr-btns{display:flex;align-items:center;gap:10px}
 .jarvis-hdr{width:44px;height:44px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;background:#0d1b33;box-shadow:0 4px 12px rgba(13,27,51,.3)}
 .jarvis-hdr .jarvis-fab-orb{width:24px;height:24px}
+/* Jarvis's button face and call state (components/JarvisOrb.jsx) */
+.jo{display:grid;place-items:center;width:100%;height:100%;border-radius:50%}
+.jo.listening,.jo.speaking{background:#ffc629;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc629 55%,#b8860b);box-shadow:0 0 0 4px rgba(255,198,41,.3),0 0 18px rgba(255,198,41,.7)}
+.jo.thinking .jarvis-fab-orb{animation:jl-pulse .9s ease-in-out infinite}
+.jo-waves{display:flex;align-items:center;gap:3px;height:24px}
+.jo-waves i{display:block;width:4px;height:8px;border-radius:3px;background:#0d1b33;animation:jo-bar .9s ease-in-out infinite}
+.jo-waves i:nth-child(2){animation-delay:.15s}.jo-waves i:nth-child(3){animation-delay:.3s}.jo-waves i:nth-child(4){animation-delay:.45s}
+.jo.speaking .jo-waves i{animation-duration:.55s}
+@keyframes jo-bar{50%{height:22px}}
+@media (prefers-reduced-motion:reduce){.jo-waves i{animation:none;height:16px}.jo.thinking .jarvis-fab-orb{animation:none}}
+.jo-end{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;padding:0;font-size:11px;font-weight:800;line-height:1;background:#fff;color:#0d1b33;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.jarvis-hdr-w{position:relative;display:inline-grid}
+.jl.jl-t{bottom:calc(var(--sab,0px) + 76px)}
+.pf-voice{margin-top:10px;font-size:13px;opacity:.9}
+.pf-voice select{margin-top:6px;max-width:100%;border-radius:10px;padding:6px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.pf-voice option{color:#111}

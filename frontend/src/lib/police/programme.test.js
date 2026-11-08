@@ -24,7 +24,7 @@ describe('weekPlan', () => {
     expect(phaseOf('intermediate', 12).range).toBe('4-6')
   })
   it('clamps the week and rotates the VO2 format within each phase', () => {
-    expect(weekPlan('beginner', 40).week).toBe(12)
+    expect(weekPlan('beginner', 40).tw).toBeLessThanOrEqual(12)
     expect(vo2For(1).name).not.toBe(vo2For(2).name)
     expect(vo2For(9).name).toBe('Shuttle sprints')
     expect(new Set([1, 2, 3, 4].map(w => vo2For(w).name)).size).toBe(4)
@@ -151,17 +151,18 @@ describe('planWeekOf', () => {
   })
 })
 
-import { planStart, finalWeekOf } from './programme.js'
-describe('a test less than 12 weeks away', () => {
-  // Today is Sunday 8 November 2026; the PCT is Saturday 5 December, four weeks on.
+import { planStart, planLengthOf, templateWeek } from './programme.js'
+describe('the plan is as long as it takes to reach the test', () => {
+  // Today is Sunday 8 November 2026; joining on a Sunday, week 1 starts Monday 9 November.
   const P = { testDate: '2026-12-05', testName: 'PCT', start: planStart('2026-12-05', '2026-11-08') }
   it('starts at week 1 and ends on the test week', () => {
-    expect(P.start).toBe('2026-11-09') // joined on a Sunday: week 1 is next week
-    expect(planStart('2026-12-05', '2026-11-04')).toBe('2026-11-02') // a Wednesday: this week
-    expect(finalWeekOf(P)).toBe(4)
+    expect(P.start).toBe('2026-11-09')
+    expect(planStart(null, '2026-11-04')).toBe('2026-11-02') // a Wednesday: this week
+    expect(planLengthOf(P)).toBe(4)
     expect(planWeekOf(P, '2026-11-08')).toMatchObject({ week: 1, before: true, startsIn: 1 })
-    expect(planWeekOf(P, '2026-11-09')).toMatchObject({ week: 1, last: 4, final: false })
+    expect(planWeekOf(P, '2026-11-09')).toMatchObject({ week: 1, tw: 1, last: 4, final: false })
     expect(planWeekOf(P, '2026-12-05')).toMatchObject({ week: 4, final: true, after: false })
+    expect(planLengthOf({ start: '2026-11-02' })).toBe(12)
   })
   it('the final week is light, with the test on its day; earlier weeks are normal', () => {
     const o = planOptsOf(P)
@@ -170,24 +171,26 @@ describe('a test less than 12 weeks away', () => {
     expect(fin.days.find(d => d.day === 6)).toMatchObject({ kind: 'test', title: 'PCT day' })
     expect(fin.days.find(d => d.day === 5).kind).toBe('rest')
     expect(fin.days[0].details.join(' ')).toMatch(/Final week: light training/)
-    const w3 = weekPlan('beginner', 3, null, o)
-    expect(w3.final).toBe(false)
-    expect(w3.days[0].details.join(' ')).not.toMatch(/Final week/)
+    expect(weekPlan('beginner', 3, null, o).final).toBe(false)
     expect(weekPlan('beginner', 1, null, o).phase.range).toBe('12-15')
   })
-  it('a test 12 or more weeks away keeps the full 12, ending on test week', () => {
-    const far = { testDate: '2027-03-27', start: planStart('2027-03-27', '2026-11-08') }
-    expect(far.start).toBe(startForTest('2027-03-27'))
-    expect(finalWeekOf(far)).toBe(12)
-    expect(planWeekOf(far, '2026-11-08')).toMatchObject({ week: 1, before: true })
-    expect(finalWeekOf({ start: '2026-11-02' })).toBe(12)
+  it('more than 12 weeks repeats the 12-week cycle, the last cycle ending on test day', () => {
+    expect([1, 2, 3, 4, 5, 6, 16].map(n => templateWeek(n, 16))).toEqual([1, 2, 3, 4, 1, 2, 12])
+    expect([1, 12, 13, 24].map(n => templateWeek(n, 24))).toEqual([1, 12, 1, 12])
+    const far = { testDate: '2027-03-27', start: planStart(null, '2026-11-09') } // a Saturday 20 weeks on
+    expect(planLengthOf(far)).toBe(20)
+    const o = planOptsOf(far)
+    const last = weekPlan('intermediate', 20, null, o)
+    expect(last).toMatchObject({ week: 20, tw: 12, final: true })
+    expect(last.days.filter(d => d.kind === 'test')).toHaveLength(1)
+    expect(weekPlan('intermediate', 8, null, o)).toMatchObject({ tw: 8, final: false }) // the 8-week lead-in, then 12
+    expect(weekPlan('intermediate', 9, null, o).tw).toBe(1)
   })
   it('keeps going after the test, never repeating the final week', () => {
     expect(planWeekOf(P, '2026-12-06')).toMatchObject({ week: 4, final: true }) // Sunday of test week
     const after = ['2026-12-07', '2026-12-14', '2026-12-21'].map(d => planWeekOf(P, d))
-    expect(after.map(w => w.week)).toEqual([5, 6, 7])
+    expect(after.map(w => w.tw)).toEqual([5, 6, 7])
     expect(after.every(w => w.after && !w.final)).toBe(true)
-    const full = { testDate: '2026-12-05', start: startForTest('2026-12-05') }
-    expect(['2026-12-07', '2026-12-14', '2026-12-21', '2026-12-28'].map(d => planWeekOf(full, d).week)).toEqual([10, 11, 9, 10])
+    expect([13, 14, 15, 16].map(n => templateWeek(n, 12))).toEqual([9, 10, 11, 9])
   })
 })

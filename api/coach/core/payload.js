@@ -655,7 +655,7 @@ const bday = d => (d && typeof d === 'object' ? { title: bstr(d.title, 80), kind
 export function cleanBrief(b) {
   if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
   const out = {
-    level: bstr(b.level, 16), week: bnum(b.week), ...(b.afterTest === true ? { afterTest: true } : {}), finalWeek: bnum(b.finalWeek), ...(b.finalWeekNow === true ? { finalWeekNow: true } : {}), daysToTest: bnum(b.daysToTest), weeksToTest: bnum(b.weeksToTest),
+    level: bstr(b.level, 16), week: bnum(b.week), ...(b.afterTest === true ? { afterTest: true } : {}), planWeeks: bnum(b.planWeeks), ...(b.finalWeekNow === true ? { finalWeekNow: true } : {}), daysToTest: bnum(b.daysToTest), weeksToTest: bnum(b.weeksToTest),
     phase: b.phase && typeof b.phase === 'object' ? { n: bnum(b.phase.n), range: bstr(b.phase.range, 8) } : null,
     today: bday(b.today), tomorrow: bday(b.tomorrow),
     todayRun: b.todayRun && typeof b.todayRun === 'object' ? { name: bstr(b.todayRun.name, 60), minutes: bnum(b.todayRun.minutes), why: bstr(b.todayRun.why, 200) } : null,
