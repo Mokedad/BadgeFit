@@ -5,7 +5,7 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -21,7 +21,7 @@ import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, PHASE_WORDS, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, planWindow, firstWeekFor, PHASE_WORDS, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
@@ -76,12 +76,14 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
   const pw = planWeekOf(P, todayISO())
+  const win = planWindow(P)
+  const testName = (P.testName || '').trim() || 'PCT'
   const week = pw.week
   const dow = new Date().getDay()
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const day = plan?.days.find(d => d.day === dow)
-  const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, seed: Number(todayISO().replace(/-/g, '')) }),
-    [P.name, user?.name, week, day, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, after: pw.after, seed: Number(todayISO().replace(/-/g, '')) }),
+    [P.name, user?.name, week, day, pw.after, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fresh = !P.level || !P.start
   return <>
@@ -98,10 +100,14 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
     </div>
 
     {fresh ? null : <div className="card pf-todaycard">
-      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
-      <p className="pf-sub pf-explain">{pw.before
-        ? `Your 12-week plan starts in ${pw.startsIn} days, so it ends on your test day. Until then, repeat week 1 to build your base.`
-        : `Your plan has 12 weeks in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
+      <div className="row between"><h3>{pw.after ? `📅 After your ${testName}` : win.first > 1 ? `📅 Week ${week - win.first + 1} of ${win.weeks}` : `📅 Week ${week} of ${WEEKS}`}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
+      <p className="pf-sub pf-explain">{pw.after
+        ? `Your plan is done. It keeps going with peak training (weeks 9 to 11 in turn) so you stay ready. Got another test? Set the new date in Tests.`
+        : pw.before
+          ? `Your 12-week plan starts in ${pw.startsIn} days, so it ends on your test day. Until then, repeat week 1 to build your base.`
+          : win.first > 1
+            ? `Your ${testName} is less than 12 weeks away, so your plan is cut to ${win.weeks} ${win.weeks === 1 ? 'week' : 'weeks'} (plan weeks ${win.first} to 12) and ends on ${testName} day. This is plan week ${week}. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}.`
+            : `Your plan has 12 weeks in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {day && <DayCard d={day} today />}
       {(() => {
         const run = runForDay(day)
@@ -140,7 +146,7 @@ function TestCountdown({ P }) {
     const prev = s.police || {}
     const next = { ...prev, testDate: d || undefined, phase: undefined }
     // Re-anchor the plan on the test, keeping the phase the lifts are already set to.
-    if (d && startForTest(d) && prev.level) next.start = startForTest(d)
+    if (d && startForTest(d) && prev.level) { next.start = startForTest(d); next.firstWeek = firstWeekFor(next.start, todayISO()) }
     s.police = next
   })
   return <div className="card pf-count">
@@ -206,7 +212,7 @@ function Setup({ S, P }) {
       s.routines = [...(s.routines || []), ...routines]
       saveProgramme(s, built.programme)
       startProgramme(s, built.programme.id)
-      s.police = { ...(s.police || {}), level, start, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
+      s.police = { ...(s.police || {}), level, start, firstWeek: weekAt, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
         ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}) }
     })
     useUI.getState().toast(date ? `Your plan counts down to your test. Week ${weekAt} starts now.` : 'Your 12 weeks start today. Let us get to work.')
@@ -224,7 +230,7 @@ function Setup({ S, P }) {
     <NumberField value={kg} nullable onChange={setKg} aria-label="Weight in kg" />
     <button className="pf-go" onClick={build}>Start my plan</button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
-    <button className="pf-link" onClick={() => setP({ level, start: P.start || (date && startForTest(date)) || todayISO(), ...(date ? { testDate: date } : {}) })}>Just show me the plan, I will track it myself</button>
+    <button className="pf-link" onClick={() => { const start = P.start || (date && startForTest(date)) || todayISO(); setP({ level, start, firstWeek: firstWeekFor(start, todayISO()), ...(date ? { testDate: date } : {}) }) }}>Just show me the plan, I will track it myself</button>
   </div>
 }
 
@@ -365,8 +371,10 @@ function LogForm({ std, P, onDone }) {
 function Plan({ S, P }) {
   const setP = usePolice()
   const level = P.level || 'beginner'
-  const current = planWeekOf(P, todayISO()).week || 1
-  const [week, setWeek] = useState(current)
+  const pw = planWeekOf(P, todayISO())
+  const win = planWindow(P)
+  const current = pw.week || 1
+  const [week, setWeek] = useState(Math.max(current, win.first))
   const plan = weekPlan(level, week, P.age, planOptsOf(P))
   const z2 = zone2(P.age)
   return <>
@@ -379,12 +387,17 @@ function Plan({ S, P }) {
     </div>
     <label className="pf-toggle"><input type="checkbox" checked={!!P.beepFocus} onChange={e => setP({ beepFocus: e.target.checked })} />
       <span><b>Beep focus</b><br />The beep test is my weak point: make Saturday a second interval session.</span></label>
+    {pw.after
+      ? <p className="pf-sub pf-explain">Your {(P.testName || '').trim() || 'PCT'} is done and so are the 12 weeks. You now train on the peak weeks 9 to 11 in turn (this week: week {current}). Set a new date in Tests to start a fresh countdown.</p>
+      : win.first > 1 && <p className="pf-sub pf-explain">Your test is less than 12 weeks away, so your plan starts at week {win.first} and ends on test day in week 12. Weeks 1 to {win.first - 1} are left out.</p>}
     <div className="pf-weekgrid" role="tablist" aria-label="Weeks of the plan">
       {[1, 2, 3].map(ph => <div key={ph} className="pf-phase-row">
         <div className="pf-phase-l"><b>Phase {ph}</b><span>{PHASE_WORDS[ph].split(':')[0]} · weeks {ph * 4 - 3}-{ph * 4}</span></div>
         <div className="pf-weeks">{[0, 1, 2, 3].map(k => ph * 4 - 3 + k).map(n =>
-          <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>
-            <small>Week</small>{n}{n === WEEKS && P.testDate ? <i>🎯</i> : null}</button>)}</div>
+          n < win.first
+            ? <button key={n} className="off" disabled aria-label={`Week ${n}: not in your plan`}><small>Week</small>{n}</button>
+            : <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start && !pw.after ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>
+              <small>Week</small>{n}{n === WEEKS && P.testDate ? <i>🎯</i> : null}</button>)}</div>
       </div>)}
     </div>
     <div className="card">
@@ -677,6 +690,10 @@ export default function PoliceFit() {
   const setP = usePolice()
   const [running, setRunning] = useState(() => runById(params.get('run')))
   const [jarvis, setJarvis] = useState(null)
+  // Members set up before plans were cut to the test: their plan starts at the week they are in.
+  useEffect(() => {
+    if (P.testDate && P.start && P.firstWeek == null && !planWeekOf(P, todayISO()).after) setP({ firstWeek: firstWeekFor(P.start, todayISO()) })
+  }, [P.testDate, P.start, P.firstWeek]) // eslint-disable-line react-hooks/exhaustive-deps
   const logRun = entry => {
     setP(p => ({ runLog: [...(p.runLog || []), { id: Date.now().toString(36), at: todayISO(), ...entry }].slice(-200) }))
     setRunning(null)

@@ -2,7 +2,7 @@
 // "what should I do today?". Built on the device from the BadgeFit data and sent with a question
 // to the AI Coach (lib/coach-api.js askCoach → api/coach/core/payload.js cleanBrief), which
 // answers as Jarvis (api/coach/prompts/ask.md). Pure: everything comes in as arguments.
-import { weekPlan, weekNumber, phaseOf, daysUntil, planOptsOf, planWeekOf } from './programme.js'
+import { weekPlan, phaseOf, daysUntil, planOptsOf, planWeekOf } from './programme.js'
 import { readiness, fmtResult, DEFAULT_BEEP_TARGET } from './standards.js'
 import { runForDay, runsThisWeek, runById, runMinutes } from './runs.js'
 import { dayTotals, bodyProgress } from './meals.js'
@@ -25,11 +25,12 @@ const dayLine = d => d && { title: d.title, kind: d.kind, minutes: d.minutes || 
 export function policeBrief(S, today) {
   const P = S?.police
   if (!P?.level && !(P?.results || []).length) return null
-  const week = planWeekOf(P, today).week
+  const pw = planWeekOf(P, today)
+  const week = pw.week
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayDay = plan?.days.find(d => d.day === dow(today)) || null
   const tomorrowISO = new Date(Date.parse(today + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10)
-  const tomorrowWeek = weekNumber(P.start, tomorrowISO)
+  const tomorrowWeek = planWeekOf(P, tomorrowISO).week
   const tomorrowDay = P.level && tomorrowWeek ? weekPlan(P.level, tomorrowWeek, P.age, planOptsOf(P)).days.find(d => d.day === dow(tomorrowISO)) : null
   const run = runForDay(todayDay)
   const ready = readiness(P.results, P.beepTarget || DEFAULT_BEEP_TARGET)
@@ -45,6 +46,7 @@ export function policeBrief(S, today) {
   return {
     level: P.level || null,
     week: week || null,
+    afterTest: pw.after || undefined,
     phase: P.level && week ? { n: phaseOf(P.level, week).n, range: phaseOf(P.level, week).range } : null,
     daysToTest: days != null && days >= 0 ? days : null,
     weeksToTest: days != null && days >= 0 ? Math.round((days / 7) * 10) / 10 : null,

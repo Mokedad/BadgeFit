@@ -43,12 +43,14 @@ const greeting = hour => (hour < 12 ? 'Good morning' : hour < 18 ? 'Good afterno
  * The day's briefing as a list of sentences.
  * `day` is one entry of weekPlan().days; `ready` is readiness() from standards.js.
  */
-export function briefing({ name, hour = 9, week, day, ready, seed = Date.now() } = {}) {
+export function briefing({ name, hour = 9, week, day, ready, after = false, seed = Date.now() } = {}) {
   const who = name ? `, ${name}` : ''
   const out = [`${greeting(hour)}${who}.`]
   out.push(pick(LINES.open, seed))
   if (week && day) {
-    out.push(`You are in week ${week} of your 12-week plan. Today is ${day.title}.`)
+    out.push(after
+      ? `Your 12 weeks are done. We keep you sharp until the next date: today is ${day.title}.`
+      : `You are in week ${week} of your 12-week plan. Today is ${day.title}.`)
     if (day.details?.[0]) out.push(day.details[0] + '.')
     const kind = day.kind === 'gym' ? 'gym' : day.kind === 'run' || day.kind === 'test' ? 'run' : 'rest'
     out.push(pick(LINES[kind], seed + 1))

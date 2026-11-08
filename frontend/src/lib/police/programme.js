@@ -311,10 +311,16 @@ export function applyPhaseRange(routines, level, week, keys = {}) {
 
 /** The programme week for a start date (ISO day) and today, 1..12, or null before the start. */
 export function weekNumber(startISO, todayISO) {
+  const w = rawWeek(startISO, todayISO)
+  return w && Math.min(WEEKS, w)
+}
+
+// The week count without the 12-week cap (13 is the week after the plan ends), or null.
+function rawWeek(startISO, todayISO) {
   if (!startISO || !todayISO) return null
   const ms = Date.parse(todayISO + 'T00:00:00Z') - Date.parse(startISO + 'T00:00:00Z')
   if (!Number.isFinite(ms) || ms < 0) return null
-  return Math.min(WEEKS, Math.floor(ms / (7 * 86400000)) + 1)
+  return Math.floor(ms / (7 * 86400000)) + 1
 }
 
 // --- counting down to a test date --------------------------------------------------------
@@ -364,11 +370,30 @@ export const TAPER = [
  * the base is built and the real 12 weeks still end on test day. null week without a plan.
  */
 export function planWeekOf(P, today) {
-  const w = weekNumber(P?.start, today)
-  if (w) return { week: w, before: false, startsIn: 0 }
-  if (P?.start && today < P.start) return { week: 1, before: true, startsIn: daysUntil(P.start, today) }
-  return { week: null, before: false, startsIn: 0 }
+  const raw = rawWeek(P?.start, today)
+  if (raw && raw > WEEKS) {
+    // The 12 weeks (and the test) are behind: keep training on the peak weeks 9-11 in turn, no
+    // re-test and no taper, so the app stays useful until a new date is set.
+    return { week: WEEKS - 3 + ((raw - WEEKS - 1) % 3), before: false, after: true, weeksAfter: raw - WEEKS, startsIn: 0 }
+  }
+  if (raw) return { week: raw, before: false, after: false, startsIn: 0 }
+  if (P?.start && today < P.start) return { week: 1, before: true, after: false, startsIn: daysUntil(P.start, today) }
+  return { week: null, before: false, after: false, startsIn: 0 }
 }
+
+/**
+ * The weeks this member's plan really has. A test less than 12 weeks away cuts the plan short:
+ * it opens at the week the member joined (`P.firstWeek`) and still ends on test day in week 12,
+ * so the earlier weeks are left blank. { first, last, weeks }.
+ */
+export function planWindow(P) {
+  const f = Math.round(Number(P?.firstWeek))
+  const first = P?.testDate && f >= 1 && f <= WEEKS ? f : 1
+  return { first, last: WEEKS, weeks: WEEKS - first + 1 }
+}
+
+/** The first plan week for a member joining (or moving their test) today: see planWindow. */
+export const firstWeekFor = (start, today) => weekNumber(start, today) || 1
 
 /** Plain words for a phase, for people new to training plans. */
 export const PHASE_WORDS = { 1: 'Build: learn the moves, build your base', 2: 'Strength: heavier, harder intervals', 3: 'Peak: sharpen up for test day' }

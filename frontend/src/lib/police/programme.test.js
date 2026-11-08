@@ -150,3 +150,24 @@ describe('planWeekOf', () => {
     expect(planWeekOf({}, '2026-11-08').week).toBeNull()
   })
 })
+
+import { planWindow, firstWeekFor } from './programme.js'
+describe('a test less than 12 weeks away', () => {
+  it('cuts the plan to the weeks left, still ending on test day in week 12', () => {
+    const start = startForTest('2026-12-05')
+    const P = { testDate: '2026-12-05', start, firstWeek: firstWeekFor(start, '2026-11-08') }
+    expect(P.firstWeek).toBe(8)
+    expect(planWindow(P)).toEqual({ first: 8, last: 12, weeks: 5 })
+    expect(planWeekOf(P, '2026-12-05')).toMatchObject({ week: 12, after: false })
+    expect(planWindow({ start, firstWeek: 8 }).first).toBe(1) // no test, no cut
+    expect(planWindow({ testDate: '2026-12-05', firstWeek: 'x' }).first).toBe(1)
+  })
+  it('keeps going after the test on the peak weeks, without a re-test', () => {
+    const P = { testDate: '2026-12-05', start: startForTest('2026-12-05') }
+    expect(planWeekOf(P, '2026-12-06')).toMatchObject({ week: 12, after: false }) // the Sunday of test week
+    const weeks = ['2026-12-07', '2026-12-14', '2026-12-21', '2026-12-28'].map(d => planWeekOf(P, d))
+    expect(weeks.map(w => w.week)).toEqual([9, 10, 11, 9])
+    expect(weeks.every(w => w.after)).toBe(true)
+    expect(weekPlan('beginner', weeks[2].week, null, planOptsOf(P)).days.some(d => d.kind === 'test')).toBe(false)
+  })
+})
