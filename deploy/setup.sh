@@ -51,6 +51,11 @@ if [ ! -f .env ]; then
       -e "s|^SPOTIFY_CLIENT_ID=.*|SPOTIFY_CLIENT_ID=$SPOT|" .env.example > .env
   chmod 600 .env
 fi
+# Settings added in later versions, appended to an older .env with their defaults.
+grep -q '^PASSKEYS=' .env || echo 'PASSKEYS=0' >> .env
+for k in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET APPLE_SERVICES_ID APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY; do
+  grep -q "^$k=" .env || echo "$k=" >> .env
+done
 # shellcheck disable=SC1091
 set -a; . ./.env; set +a
 

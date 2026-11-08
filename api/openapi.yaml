@@ -3344,6 +3344,46 @@ paths:
         '429': { $ref: '#/components/responses/CoachRefused' }
         '503': { $ref: '#/components/responses/CoachOff' }
 
+  /api/auth/google:
+    get:
+      tags: [auth]
+      operationId: getAuthGoogle
+      summary: Start Sign in with Google
+      description: Redirects to Google with a signed state cookie. 404 unless GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.
+      responses:
+        '302': { description: To Google's sign-in }
+        '404': { description: Not set up on this server }
+  /api/auth/google/callback:
+    get:
+      tags: [auth]
+      operationId: getAuthGoogleCallback
+      summary: Return from Google
+      description: |
+        Trades the code for an ID token at Google, checks it (issuer, audience, expiry, nonce)
+        and signs in the profile linked to that Google account, or creates one (not on an
+        invite-only server). Redirects to the app; on failure to `/?login=<reason>`.
+      responses:
+        '302': { description: Back to the app, signed in, or with ?login=<reason> }
+  /api/auth/apple:
+    get:
+      tags: [auth]
+      operationId: getAuthApple
+      summary: Start Sign in with Apple
+      description: Redirects to Apple with a signed state cookie. 404 unless the APPLE_* settings are complete.
+      responses:
+        '302': { description: To Apple's sign-in }
+        '404': { description: Not set up on this server }
+  /api/auth/apple/callback:
+    post:
+      tags: [auth]
+      operationId: postAuthAppleCallback
+      summary: Return from Apple (form post)
+      description: |
+        Apple's form_post return (application/x-www-form-urlencoded: code, state, user). Held
+        to the signed state cookie and the nonce rather than the same-origin check. Same
+        outcome as the Google return.
+      responses:
+        '302': { description: Back to the app, signed in, or with ?login=<reason> }
   /api/community:
     get:
       tags: [community]

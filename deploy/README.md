@@ -61,7 +61,28 @@ You set a daily limit per person there, which keeps the cost under control.
 
 The daily briefing, "Hear it" and everything else work without a key.
 
-## 6. Spotify remote control (optional, 5 min)
+## 6. Continue with Google / Apple (optional)
+
+The sign-in screen shows **Continue with Google / Apple** as soon as the keys are in
+`/opt/badgefit/deploy/.env`. After adding them, run the setup command again.
+
+**Google (free, about 10 min):** console.cloud.google.com → create a project → **APIs & Services
+→ OAuth consent screen** (External, app name BadgeFit, your email) → **Credentials → Create
+credentials → OAuth client ID → Web application**. Under *Authorised redirect URIs* add
+`https://app.YOURDOMAIN/api/auth/google/callback`. Copy the **Client ID** and **Client secret**
+into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+**Apple (needs an Apple Developer account, about A$149/year):** developer.apple.com → Certificates,
+IDs & Profiles → **Identifiers → Services IDs** → new, tick *Sign in with Apple*, configure with
+domain `app.YOURDOMAIN` and return URL `https://app.YOURDOMAIN/api/auth/apple/callback`. Then
+**Keys** → new key with *Sign in with Apple* → download the `.p8` file. Fill in `APPLE_SERVICES_ID`
+(the Services ID), `APPLE_TEAM_ID` (top right of the developer site), `APPLE_KEY_ID` and
+`APPLE_PRIVATE_KEY` (the .p8 contents on one line, with `\n` where the line breaks were).
+
+Accounts made with Google or Apple are separate from password accounts: someone who already has
+a password account keeps signing in with the password.
+
+## 7. Spotify remote control (optional, 5 min)
 
 1. developer.spotify.com → Dashboard → **Create app**.
 2. Redirect URI: `https://app.YOURDOMAIN/` (with the slash). API: **Web API**.

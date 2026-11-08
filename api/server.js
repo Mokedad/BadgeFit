@@ -39,6 +39,7 @@ import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
 import * as community from './community.js';
+import * as social from './social-login.js';
 import { cleanMealReminders, dueMeals, mealPush } from './meal-reminders.js';
 import { ipv6Groups, guardedLookup, pushEndpointError, MAX_PUSH_ENDPOINT } from './net-guard.js';
 import { createIntegrations } from './integrations/index.js';
@@ -703,7 +704,9 @@ const clearCookie = COOKIE === LEGACY_COOKIE
 // any site sign a visitor into the attacker's account and collect what they log (login CSRF).
 // The watch relay's two routes for the watch are the same kind: the code in the body, or a watch
 // token in the Authorization header, which no browser attaches on its own.
-const CSRF_EXEMPT = new Set(['POST /api/pair/redeem', 'POST /api/watch/redeem', 'POST /api/watch/box']);
+// Sign in with Apple returns with a cross-site form POST by design; that route is held to the
+// signed state cookie and the nonce instead (social-login.js), so it is exempt here.
+const CSRF_EXEMPT = new Set(['POST /api/pair/redeem', 'POST /api/watch/redeem', 'POST /api/watch/box', 'POST /api/auth/apple/callback']);
 // The routes that answer to the credential in the body and never to a Bearer. No Bearer is the
 // credential that acts there, so none buys the shortcut below: any valid token would do, the
 // attacker's own included.
@@ -2095,6 +2098,69 @@ function dataWritable() {
   return ok;
 }
 
+/* ---------- Sign in with Apple / Google (social-login.js) ---------- */
+const PASSKEYS_OFF = /^(0|false|no|off)$/i.test(process.env.PASSKEYS || '');
+const OAUTH_COOKIE = 'bf_oauth';
+const oauthCookie = (value, maxAge) => `${OAUTH_COOKIE}=${value}; Path=/api/auth; Max-Age=${maxAge}; HttpOnly;${SECURE ? ' Secure; SameSite=None' : ' SameSite=Lax'}`;
+const cookieValue = (req, name) => {
+  for (const part of String(req.headers.cookie || '').split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) return v.join('=');
+  }
+  return null;
+};
+const redirect = (res, to, cookies = []) => { res.writeHead(302, { Location: to, 'Cache-Control': 'no-store', ...(cookies.length ? { 'Set-Cookie': cookies } : {}) }); res.end(); };
+const appHome = (q = '') => ORIGIN.replace(/\/$/, '') + '/' + q;
+function socialStart(p) {
+  return async (req, res) => {
+    if (!social.configured().includes(p)) return json(res, 404, { error: 'not set up on this server' });
+    const { st, cookie } = social.makeState(p, SECRET);
+    const url = social.authorizeUrl(p, { clientId: social.clientIdOf(p), redirect: social.redirectUri(p, ORIGIN), state: st.s, nonce: st.n });
+    redirect(res, url, [oauthCookie(cookie, 600)]);
+  };
+}
+// Apple's form_post body: x-www-form-urlencoded, small, read here (readBody takes JSON only).
+const readForm = req => new Promise((resolve, reject) => {
+  let size = 0; const chunks = [];
+  req.on('data', d => { size += d.length; if (size > 16384) { req.destroy(); reject(new HttpError(413, 'body too large')); } else chunks.push(d); });
+  req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')))));
+  req.on('error', reject);
+});
+async function socialFinish(p, req, res, { code, state, user: appleUser, error }) {
+  const clear = oauthCookie('', 0);
+  const fail = why => { audit(req, 'auth.social.fail', { ok: false, msg: p + ' · ' + why }); redirect(res, appHome('?login=' + encodeURIComponent(why)), [clear]); };
+  if (!social.configured().includes(p)) return fail('off');
+  if (error) return fail('cancelled');
+  const st = social.readState(cookieValue(req, OAUTH_COOKIE), SECRET);
+  if (!st || st.p !== p || st.s !== state || !code) return fail('expired');
+  let claims;
+  try {
+    const idToken = await social.exchangeCode(p, String(code).slice(0, 2048), { clientId: social.clientIdOf(p), redirect: social.redirectUri(p, ORIGIN) });
+    claims = social.checkIdToken(p, idToken, { clientId: social.clientIdOf(p), nonce: st.n });
+  } catch (e) { console.error('social sign-in', p, e.message); return fail('failed'); }
+  // Found by the provider's own id only: an e-mail typed into a profile here was never verified,
+  // so matching on it would hand that profile to whoever owns the address at Google or Apple.
+  let user = db.users.find(u => u.social?.[p] === claims.sub);
+  let isNew = false;
+  if (user && user.disabled) return fail('disabled');
+  if (!user) {
+    if (INVITE_ONLY) return fail('invite');
+    let parsed = null;
+    try { parsed = appleUser ? JSON.parse(String(appleUser).slice(0, 2000)) : null; } catch { parsed = null; }
+    let name = social.nameFor(claims, parsed, p);
+    for (let i = 0; nameTaken(name) && i < 20; i++) name = social.nameFor(claims, parsed, p).slice(0, 27) + ' ' + crypto.randomInt(100, 1000);
+    if (nameTaken(name)) return fail('failed');
+    const created = new Date().toISOString();
+    user = { id: crypto.randomBytes(12).toString('base64url'), name, created, social: { [p]: claims.sub }, ...(claims.email && !emailTaken(claims.email) ? { email: claims.email } : {}) };
+    claimFirstAdmin(req, user);
+    db.users.push(user);
+    saveDb();
+    isNew = true;
+  }
+  audit(req, isNew ? 'auth.register.ok' : 'auth.login.ok', { user, msg: p });
+  redirect(res, appHome(isNew ? '?welcome=1#/police' : '#/police'), [...sessionCookie(user), clear]);
+}
+
 /* ---------- community (community.js) ----------
    One shared feed per server, in DATA_DIR/community.json. Loaded on each request (it is small,
    capped at community.MAX_POSTS) so there is no cache to drift from the file. */
@@ -2147,6 +2213,9 @@ const routes = {
     // that has no Coach. The key's absence is that answer.
     json(res, 200, {
       invite_only: INVITE_ONLY, allow_guest: ALLOW_GUEST,
+      // BadgeFit: PASSKEYS=0 hides passkeys (password only), and the sign-in providers offered.
+      ...(PASSKEYS_OFF ? { passkeys: false } : {}),
+      ...(social.configured().length ? { social: social.configured() } : {}),
       // Only when on, so an instance without passwords answers exactly as it did before (#118).
       ...(PASSWORD_LOGIN ? { password_login: true } : {}),
       // Public: the sign-in screen is the first thing that reads it.
@@ -3009,6 +3078,18 @@ const routes = {
     auditCount = 0;
     audit(req, 'admin.audit.clear', { user: admin });
     json(res, 200, { ok: true });
+  },
+
+  /* ---------- Sign in with Apple / Google ---------- */
+  'GET /api/auth/google': socialStart('google'),
+  'GET /api/auth/apple': socialStart('apple'),
+  'GET /api/auth/google/callback': async (req, res) => {
+    const q = new URL(req.url, 'http://x').searchParams;
+    await socialFinish('google', req, res, { code: q.get('code'), state: q.get('state'), error: q.get('error') });
+  },
+  'POST /api/auth/apple/callback': async (req, res) => {
+    const f = await readForm(req);
+    await socialFinish('apple', req, res, { code: f.code, state: f.state, user: f.user, error: f.error });
   },
 
   /* ---------- community ---------- */

@@ -89,7 +89,9 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, seed: Number(todayISO().replace(/-/g, '')) }),
     [P.name, user?.name, week, day, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fresh = !P.level || !P.start
   return <>
+    {fresh && <Setup S={S} P={P} />}
     <div className="card pf-jarvis">
       <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your recruit coach</span></div>
       {(more ? lines : lines.slice(0, 3)).map((l, i) => <p key={i}>{l}</p>)}
@@ -102,7 +104,7 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
       </div>
     </div>
 
-    {!P.level || !P.start ? <Setup S={S} P={P} /> : <div className="card pf-todaycard">
+    {fresh ? null : <div className="card pf-todaycard">
       <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}</span></div>
       {day && <DayCard d={day} today />}
       {(() => {
@@ -189,29 +191,44 @@ function BodyCard({ S, P }) {
   </div>
 }
 
+/**
+ * The welcome: three questions a beginner can answer in ten seconds, then one button. With a
+ * test date the plan opens on the week that leads to it, already on that week's rep range.
+ */
 function Setup({ S, P }) {
   const update = useStore(s => s.update)
   const setP = usePolice()
   const [level, setLevel] = useState(P.level || 'beginner')
+  const [date, setDate] = useState(P.testDate || '')
+  const [kg, setKg] = useState(P.weightKg ?? null)
   const build = () => {
     const built = buildPoliceProgramme(level, Date.now(), { beepFocus: P.beepFocus })
+    const start = (date && startForTest(date)) || todayISO()
+    const weekAt = weekNumber(start, todayISO()) || 1
     update(s => {
-      s.routines = [...(s.routines || []), ...built.routines.map(({ police, ...r }) => r)]
+      const routines = applyPhaseRange(built.routines, level, weekAt, built.keys).map(({ police, ...r }) => r)
+      s.routines = [...(s.routines || []), ...routines]
       saveProgramme(s, built.programme)
       startProgramme(s, built.programme.id)
-      const start = (P.testDate && startForTest(P.testDate)) || todayISO()
-      s.police = { ...(s.police || {}), level, start, programmeId: built.programme.id, keys: built.keys, phase: 1 }
+      s.police = { ...(s.police || {}), level, start, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
+        ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}) }
     })
-    useUI.getState().toast(P.testDate ? 'Your plan now counts down to test day. Let us get to work.' : 'Your 12 weeks start today. Let us get to work.')
+    useUI.getState().toast(date ? `Your plan counts down to your test. Week ${weekAt} starts now.` : 'Your 12 weeks start today. Let us get to work.')
   }
-  return <div className="card">
-    <h3>Build your 12-week programme</h3>
-    <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={setLevel} />
-    <p className="pf-sub">{LEVELS.find(l => l.id === level).blurb}</p>
-    <p className="pf-sub">It adds 7 routines (gym, runs and a recovery walk) and starts a 12-week programme in your Plan. Your current plan comes back when you end it.</p>
-    <Button variant="primary" onClick={build}>Build my programme</Button>
+  return <div className="card pf-welcome">
+    <h3>👋 Let's set you up</h3>
+    <p className="pf-q">1. How fit are you now?</p>
+    <div className="pf-choice">
+      <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>🌱 New to training</b><small>Gym or running is new, or it has been a while</small></button>
+      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => setLevel('intermediate')}><b>💪 I train regularly</b><small>Training for 6 months or more</small></button>
+    </div>
+    <p className="pf-q">2. When is your PCT? <small>(skip if not booked)</small></p>
+    <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="PCT date" />
+    <p className="pf-q">3. Your weight in kg <small>(for food targets)</small></p>
+    <NumberField value={kg} nullable onChange={setKg} aria-label="Weight in kg" />
+    <button className="pf-go" onClick={build}>Start my plan</button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
-    <button className="pf-link" onClick={() => setP({ level, start: P.start || (P.testDate && startForTest(P.testDate)) || todayISO() })}>Just show me the plan, I will track it myself</button>
+    <button className="pf-link" onClick={() => setP({ level, start: P.start || (date && startForTest(date)) || todayISO(), ...(date ? { testDate: date } : {}) })}>Just show me the plan, I will track it myself</button>
   </div>
 }
 

@@ -17,6 +17,7 @@ const LABELS = {
   'auth.login.ok': 'Signed in',
   'auth.login.fail': 'Sign-in failed',
   'auth.register.ok': 'Created a profile',
+  'auth.social.fail': 'Sign in with Apple or Google did not work',
   'auth.register.fail': 'Profile creation failed',
   'auth.register.denied': 'Signup refused',
   'auth.logout': 'Signed out',

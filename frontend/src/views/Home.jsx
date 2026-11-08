@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW, setsDoneActive } from '../lib/history.js'
@@ -122,6 +122,14 @@ export default function Home() {
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
   const progChip = programmeChip(S)
+  // A BadgeFit server (passkeys off): someone not set up yet goes straight to the BadgeFit welcome,
+  // once per visit, instead of an empty training log.
+  const config = useStore(st => st.config)
+  useEffect(() => {
+    if (config?.passkeys !== false || S.police?.level) return
+    try { if (sessionStorage.getItem('badgefit_welcomed')) return; sessionStorage.setItem('badgefit_welcomed', '1') } catch { /* private mode */ }
+    nav('/police')
+  }, [config?.passkeys]) // eslint-disable-line react-hooks/exhaustive-deps
   const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
 
   return <div className="narrow">

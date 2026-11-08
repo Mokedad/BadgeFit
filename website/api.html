@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>98 endpoints</span>
+    <span>102 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -636,6 +636,102 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">429</span>
     <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAuthGoogle">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/google</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Start Sign in with Google</span>
+  </summary>
+  <div class="ep-body">
+<p>Redirects to Google with a signed state cookie. 404 unless GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s3">302</span>
+    <span class="p-desc">To Google's sign-in</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not set up on this server</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAuthGoogleCallback">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/google/callback</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Return from Google</span>
+  </summary>
+  <div class="ep-body">
+<p>Trades the code for an ID token at Google, checks it (issuer, audience, expiry, nonce) and signs in the profile linked to that Google account, or creates one (not on an invite-only server). Redirects to the app; on failure to <code>/?login=&lt;reason&gt;</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s3">302</span>
+    <span class="p-desc">Back to the app</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAuthApple">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/apple</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Start Sign in with Apple</span>
+  </summary>
+  <div class="ep-body">
+<p>Redirects to Apple with a signed state cookie. 404 unless the APPLE_* settings are complete.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s3">302</span>
+    <span class="p-desc">To Apple's sign-in</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not set up on this server</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postAuthAppleCallback">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/auth/apple/callback</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Return from Apple (form post)</span>
+  </summary>
+  <div class="ep-body">
+<p>Apple's form_post return (application/x-www-form-urlencoded: code, state, user). Held to the signed state cookie and the nonce rather than the same-origin check. Same outcome as the Google return.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s3">302</span>
+    <span class="p-desc">Back to the app</span>
   </div>
     </div>
   </div>

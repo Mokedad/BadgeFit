@@ -9,7 +9,11 @@ import { useState, useRef, useEffect } from 'react'
 import Icon from '../components/Icon.jsx'
 import { Button, Segmented } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
-import { passwordOn, PasswordRegisterForm, openPasswordSignIn } from '../components/PasswordAuth.jsx'
+import { passwordOn, PasswordRegisterForm, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
+import { appBase } from '../lib/api.js'
+import { MOBILE } from '../lib/mobile.js'
+import { BRAND } from '../lib/police/brand.js'
+import '../police.css'
 import { openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { openLostAccess } from '../components/LostAccess.jsx'
 
@@ -66,6 +70,43 @@ function RegisterSheet({ close }) {
   </>
 }
 
+// Why a Sign in with Apple / Google came back without a session (api/server.js socialFinish).
+const SOCIAL_FAIL = {
+  cancelled: 'Sign-in was cancelled.',
+  expired: 'That sign-in took too long or came from somewhere else. Please try again.',
+  invite: 'This app is invite-only. Create an account with your invite code first.',
+  disabled: 'This account is switched off. Ask the admin.',
+  failed: 'Sign-in did not work. Please try again.',
+  off: 'That sign-in option is not set up yet.',
+}
+
+/**
+ * BadgeFit's sign-in (PASSKEYS=0 on the server): no passkeys, just the big buttons a beginner
+ * expects. Apple and Google appear once the server has their keys (api/social-login.js); the
+ * phone app sends people to the browser for those, so it shows them only on the web for now.
+ */
+function SimpleLogin({ config }) {
+  const social = MOBILE ? [] : (config?.social || [])
+  useEffect(() => {
+    const q = new URLSearchParams(location.search)
+    const why = q.get('login')
+    if (why) { useUI.getState().toast(SOCIAL_FAIL[why] || SOCIAL_FAIL.failed); history.replaceState(null, '', location.pathname + location.hash) }
+  }, [])
+  const go = p => { location.href = appBase().replace(/\/$/, '') + '/api/auth/' + p }
+  return <div className="narrow login-simple">
+    <div className="ls-shield" aria-hidden="true">🛡️</div>
+    <h1>{BRAND.name}</h1>
+    <p className="ls-tag">{BRAND.tagline}</p>
+    {social.includes('apple') && <button className="ls-btn ls-apple" onClick={() => go('apple')}><svg className="ls-apple-i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4.2 7.8 3.3 9.5c-1.9 3.3-.5 8.1 1.4 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3-.1 0-2.9-1.1-3-4.8ZM13.8 4.9c.7-.9 1.3-2.2 1.1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.5Z"/></svg> Continue with Apple</button>}
+    {social.includes('google') && <button className="ls-btn ls-google" onClick={() => go('google')}><span className="ls-g" aria-hidden="true">G</span> Continue with Google</button>}
+    {social.length > 0 && <div className="ls-or"><span>or</span></div>}
+    <button className="ls-btn ls-primary" onClick={() => openPasswordRegister()}>Create account</button>
+    <button className="ls-btn" onClick={() => openPasswordSignIn()}>I already have an account</button>
+    <button className="ls-link" onClick={openLostAccess}>Forgot your password?</button>
+    <p className="ls-fine">Your training, your data. Free to start.</p>
+  </div>
+}
+
 export default function Login() {
   const { setUser, adoptProfile, setGuest } = useStore()
   const config = useStore(s => s.config)
@@ -81,6 +122,8 @@ export default function Login() {
     <h1 className="t-large" style={{ fontWeight: 700, margin: '10px 0 4px' }}>openGym</h1>
   </>
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
+
+  if (!DEMO && config?.passkeys === false && passwordOn(config)) return <SimpleLogin config={config} />
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
