@@ -90,7 +90,9 @@ docker image prune -f >/dev/null
 
 say "Nightly backup at 03:17"
 chmod +x backup.sh
-( crontab -l 2>/dev/null | grep -v badgefit-backup; echo "17 3 * * * $DIR/deploy/backup.sh >/var/log/badgefit-backup.log 2>&1 # badgefit-backup" ) | crontab -
+# A fresh server has no crontab: `crontab -l` fails and grep then matches nothing, so both are
+# allowed to fail here, or `set -e` stops the script before it finishes.
+{ crontab -l 2>/dev/null | grep -v badgefit-backup || true; echo "17 3 * * * $DIR/deploy/backup.sh >/var/log/badgefit-backup.log 2>&1 # badgefit-backup"; } | crontab -
 
 say "Done"
 cat <<EOF
