@@ -71,7 +71,12 @@ function lazyView(load) {
   const Lazy = lazy(fetchIt)
   views.push(fetchIt)
   return function LazyView(props) {
-    return View ? <View {...props} /> : <Suspense fallback={null}><Lazy {...props} /></Suspense>
+    // Which path renders is fixed for the life of this mount. Switching from <Lazy> to <View> on
+    // the first re-render after the chunk arrived swapped the element type and remounted the
+    // screen: anything open on it (a tab, a guided run, a conversation) was wiped by the next
+    // store update.
+    const [Direct] = useState(() => View)
+    return Direct ? <Direct {...props} /> : <Suspense fallback={null}><Lazy {...props} /></Suspense>
   }
 }
 const Admin = lazyView(() => import('./views/Admin.jsx'))

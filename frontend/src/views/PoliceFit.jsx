@@ -29,6 +29,8 @@ import { bwSheet } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
+import JarvisLive from '../components/JarvisLive.jsx'
+import { say } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
@@ -68,22 +70,15 @@ const usePolice = () => {
 }
 
 /** Reads text aloud with the browser's own voice, where there is one. */
+/** Reads lines aloud in Jarvis's Australian voice (lib/police/voice.js). */
 function speak(lines) {
-  try {
-    const synth = window.speechSynthesis
-    if (!synth) return false
-    synth.cancel()
-    const u = new SpeechSynthesisUtterance(lines.join(' '))
-    const en = synth.getVoices().filter(v => /^en(-|_)(GB|AU)/i.test(v.lang))
-    if (en.length) u.voice = en.find(v => /daniel|male|george|james/i.test(v.name)) || en[0]
-    u.rate = 1.02; u.pitch = 0.9
-    synth.speak(u)
-    return true
-  } catch { return false }
+  if (typeof window === 'undefined' || !window.speechSynthesis) return false
+  say(lines.join(' '))
+  return true
 }
 
 // --- Today -------------------------------------------------------------------------------
-function Today({ S, user, P, setTab, startRun }) {
+function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const nav = useNavigate()
   const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
@@ -101,7 +96,7 @@ function Today({ S, user, P, setTab, startRun }) {
       {lines.length > 3 && <button className="pf-more-btn" onClick={() => setMore(!more)}>{more ? 'Less' : 'More'}</button>}
       <div className="pf-syms">
         <SymButton sym="🔊" label="Hear it" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }} />
-        {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => nav('/coach')} />}
+        {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => openJarvis(lines[0])} />}
         <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
         <SymButton sym="🏃" label="Runs" onClick={() => setTab('run')} />
       </div>
@@ -646,12 +641,14 @@ export default function PoliceFit() {
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
   const [running, setRunning] = useState(null)
+  const [jarvis, setJarvis] = useState(null)
   const logRun = entry => {
     setP(p => ({ runLog: [...(p.runLog || []), { id: Date.now().toString(36), at: todayISO(), ...entry }].slice(-200) }))
     setRunning(null)
     useUI.getState().toast('Run saved. That is another level banked. 🏁')
   }
   return <div className="narrow pf">
+    {jarvis && <JarvisLive opener={jarvis.opener} onClose={() => setJarvis(null)} />}
     {running && <RunPlayer run={running} age={P.age} onClose={() => setRunning(null)} onLog={logRun} />}
     <div className="hdr">
       <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label="Home"><Icon name="chevronLeft" /></button>
@@ -659,7 +656,7 @@ export default function PoliceFit() {
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <PfTabs value={tab} onChange={setTab} />
-    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} />}
+    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openJarvis={opener => setJarvis({ opener: (opener ? opener + ' ' : '') + 'What do you need?' })} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests P={P} />}
     {tab === 'plan' && <Plan S={S} P={P} />}

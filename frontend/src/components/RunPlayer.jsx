@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ZONES, hrFor, runMinutes } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
+import { say } from '../lib/police/voice.js'
 import '../police.css'
 
 const fmt = sec => { const s = Math.max(0, Math.round(sec)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
@@ -26,10 +27,7 @@ function cue(audio, text, kind) {
     }
   } catch { /* no audio */ }
   try { navigator.vibrate?.(kind === 'work' ? [200, 100, 200] : [300]) } catch { /* no vibration */ }
-  try {
-    const s = window.speechSynthesis
-    if (s && text) { s.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; s.speak(u) }
-  } catch { /* no voice */ }
+  if (text) say(text).catch(() => {}) // Jarvis's Australian voice (lib/police/voice.js)
 }
 
 export default function RunPlayer({ run, age, onClose, onLog }) {

@@ -41,7 +41,13 @@ function Remote({ link }) {
 }
 
 /** compact: the one-line version for the workout screen (no setup there, only playing). */
-export default function MusicBar({ compact = false }) {
+/**
+ * compact: the one-line version for the workout screen. `sessionKey` names the workout (its start
+ * time): with "Start my playlist when a workout starts" on, a connected account starts the
+ * playlist once per workout; without the account, the player is shown with a nudge to tap play
+ * (browsers do not let a page start sound by itself).
+ */
+export default function MusicBar({ compact = false, sessionKey = null }) {
   const [prefs, setPrefs] = useState(musicPrefs)
   const [draft, setDraft] = useState(prefs.link || '')
   const [cid, setCid] = useState(prefs.clientId || '')
@@ -49,9 +55,20 @@ export default function MusicBar({ compact = false }) {
   const link = parseSpotifyLink(prefs.link)
   const savePrefs = patch => { setMusicPrefs(patch); setPrefs(musicPrefs()) }
 
+  useEffect(() => {
+    if (!compact || !sessionKey || !prefs.autoPlay || !connected || !link) return
+    const k = 'badgefit_autoplay_' + sessionKey
+    try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1') } catch { /* private mode */ }
+    play(link.uri).then(r => {
+      if (r?.status === 404) toast('Open Spotify once on this phone, then it starts by itself next time')
+      else if (r?.ok) toast('🎵 Your playlist is on. Let\'s go.')
+    }).catch(() => {})
+  }, [compact, sessionKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (compact) {
     if (!link && !connected) return null
-    return <div className="mb mb-compact">
+    return <div className={'mb mb-compact' + (prefs.autoPlay && !connected && sessionKey ? ' mb-nudge' : '')}>
+      {prefs.autoPlay && !connected && sessionKey && <div className="mb-nudge-t">🎵 Tap ▶ to start your playlist</div>}
       {connected ? <Remote link={link} /> : <iframe title="Spotify" src={link.embed} height="80" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />}
     </div>
   }
@@ -70,6 +87,8 @@ export default function MusicBar({ compact = false }) {
         }}>Save</Button>
       </div>
     </label>
+    <label className="pf-toggle"><input type="checkbox" checked={!!prefs.autoPlay} disabled={!link} onChange={e => savePrefs({ autoPlay: e.target.checked })} />
+      <span><b>▶ Start my playlist when a workout starts</b><br />{connected ? 'Plays on your Spotify straight away.' : 'Shows the player ready on your workout screen, one tap to start. Connect Spotify below and it starts by itself.'}</span></label>
     <p className="pf-sub">In Spotify: ⋯ on a playlist → Share → Copy link. It plays right here and on the workout screen, so you never have to leave mid-set.</p>
     {connected
       ? <Button size="sm" onClick={() => { disconnect(); setConnected(false) }}>Disconnect Spotify</Button>

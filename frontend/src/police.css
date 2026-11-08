@@ -239,7 +239,7 @@
 
 /* ===== guided run (components/RunPlayer.jsx): full screen, colour says work or recover ===== */
 .rp{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;color:#fff;background:#0d1b33;
-  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px));transition:background .4s}
+  padding:var(--sat,0px) 16px var(--sab,0px);transition:background .4s}
 .rp-work{background:linear-gradient(170deg,#c2410c,#7c1d0b)}
 .rp-rest,.rp-cool{background:linear-gradient(170deg,#1d4ed8,#0d1b33)}
 .rp-warm{background:linear-gradient(170deg,#183463,#0d1b33)}
@@ -301,3 +301,36 @@
 .pf-logrow small{color:var(--label-2)}
 .rp-km{color:#fff;opacity:1}
 .rp-km input{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:10px;font-size:18px}
+
+/* ===== Jarvis live (components/JarvisLive.jsx) ===== */
+.jl{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;color:#fff;background:radial-gradient(120% 70% at 50% 100%,#183463,#0d1b33 70%);padding:var(--sat,0px) 16px var(--sab,0px)}
+.jl-top{display:flex;align-items:center;gap:12px;padding:12px 0}
+.jl-top b{flex:1}
+.jl-hf{display:flex;align-items:center;gap:6px;font-size:13px;opacity:.85}
+.jl-feed{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:8px 0}
+.jl-hint{opacity:.7;text-align:center;margin:auto 0;line-height:1.5}
+.jl-msg{max-width:85%;padding:10px 14px;border-radius:18px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.jl-msg.jarvis{align-self:flex-start;background:rgba(255,255,255,.1);border-bottom-left-radius:6px}
+.jl-msg.you{align-self:flex-end;background:#ffc629;color:#111;border-bottom-right-radius:6px}
+.jl-msg.interim{opacity:.6}
+.jl-msg.system{align-self:center;background:rgba(255,80,80,.18);font-size:14px}
+.jl-bottom{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 0 16px}
+.jl-orb{width:96px;height:96px;border-radius:50%;border:0;font-size:36px;color:#111;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc629 55%,#b8860b);box-shadow:0 0 30px rgba(255,198,41,.45)}
+.jl-orb.listening{animation:jl-pulse 1s ease-in-out infinite}
+.jl-orb.thinking{filter:saturate(.5);animation:jl-pulse 1.8s ease-in-out infinite}
+.jl-orb.speaking{box-shadow:0 0 0 10px rgba(255,198,41,.25),0 0 40px rgba(255,198,41,.6)}
+.jl-orb:disabled{opacity:.7}
+@keyframes jl-pulse{50%{transform:scale(1.08);box-shadow:0 0 50px rgba(255,198,41,.8)}}
+@media (prefers-reduced-motion:reduce){.jl-orb{animation:none!important}}
+.jl-state{font-size:15px;opacity:.85}
+.jl-type{display:flex;gap:8px;width:100%}
+.jl-type input{flex:1;min-width:0;border-radius:999px;border:0;padding:12px 16px;font:inherit}
+.jl-type button{border:0;border-radius:999px;padding:0 18px;background:#ffc629;color:#111;font-weight:700}
+.jl-voice{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.85;max-width:100%}
+.jl-voice select{max-width:230px;border-radius:10px;padding:6px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.jl-voice option{color:#111}
+.mb-nudge{border-radius:14px;box-shadow:0 0 0 2px var(--acc);padding:6px}
+.mb-nudge-t{font-size:13px;font-weight:700;padding:2px 4px 6px;color:var(--acc-ink,var(--acc))}
+.pf label.jl-hf,.pf label.jl-voice{flex-direction:row;align-items:center;color:#fff}
+.pf label.jl-hf input{width:18px;height:18px;flex:none}
+.pf label.jl-voice select{width:auto}

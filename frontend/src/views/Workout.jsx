@@ -2425,7 +2425,7 @@ function ActiveWorkout() {
     </div>
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {/* BadgeFit music (components/MusicBar.jsx): only when a playlist or Spotify is set up. */}
-    {!editing && <MusicBar compact />}
+    {!editing && <MusicBar compact sessionKey={A.start} />}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
 
     {A.entries.length ? (listMode ? (
