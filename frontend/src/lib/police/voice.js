@@ -1,11 +1,10 @@
-// Jarvis's voice: the most natural Australian male voice the device has, read out with the
-// browser's own speech (no account, no cost, works offline). A generic Aussie bloke, never an
-// imitation of any real person. The person can pick another voice; the choice is a fact about
-// this device (its installed voices), so it stays in localStorage and does not sync.
+// Jarvis's voice: one Australian male voice, no options. First choice is the server's voice
+// (api/coach/tts.js, Gemini text-to-speech) played as an audio file, which iPhones play far more
+// reliably than their own speech synthesis. Without it (another AI provider, offline, the phone
+// app unpaired) the device's own speech reads it, with the most natural Australian male voice
+// the device has. A generic Aussie bloke, never an imitation of any real person.
 //
-// Best results: iPhone Settings → Accessibility → Spoken Content → Voices → English → Australian
-// → download "Lee (Premium)" or "(Enhanced)". Edge has "William (Natural)", Australian English.
-
+import { apiPostBlob } from '../api.js'
 const KEY = 'badgefit_voice'
 // Known Australian male voices across iOS/macOS, Windows/Edge and Android, best first.
 const AU_MALE = ['lee', 'william', 'gordon', 'james', 'darren', 'duncan', 'ken', 'tim', 'neil']
@@ -61,13 +60,59 @@ export function loadVoices() {
 export const DELIVERY = { rate: 0.97, pitch: 0.92 }
 
 /**
- * Says `text` in Jarvis's voice. Resolves when it has finished (or failed), so a conversation
- * can listen again straight after. Returns false when the device cannot speak.
+ * Says `text` in Jarvis's voice: one Australian male voice, no options. Resolves when it has
+ * finished (or failed), so a conversation can listen again straight after. Returns false when
+ * nothing could be played.
  */
-export async function say(text, { onStart } = {}) {
+export async function say(text, opts = {}) {
+  if (!text) return false
+  // First choice: the server's voice (api/coach/tts.js), played as an audio file. Safari plays a
+  // file it has been allowed to play (primeSpeech, on a tap) far more reliably than it speaks.
+  if (Date.now() > serverOffUntil) {
+    const blob = await apiPostBlob('/api/coach/speak', { text: String(text) })
+    if (blob && blob.size > 100) {
+      const played = await playClip(blob, opts.onStart)
+      if (played !== null) return played
+    } else serverOffUntil = Date.now() + 60000 // not on this server, or down: the phone's voice for a minute
+  }
+  return sayOnDevice(text, opts)
+}
+
+// The one audio player for Jarvis, unlocked by a tap (primeSpeech) and reused for every clip.
+let player = null, serverOffUntil = 0, stopClip = null, unlocked = false
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
+function playerOf() {
+  if (!player && typeof Audio !== 'undefined') { player = new Audio(); player.preload = 'auto'; player.setAttribute?.('playsinline', '') }
+  return player
+}
+
+/** Plays one clip: true when it finished, false when stopped or broken, null when not allowed. */
+function playClip(blob, onStart) {
+  const a = playerOf()
+  if (!a) return Promise.resolve(null)
+  stopSpeaking()
+  const url = URL.createObjectURL(blob)
+  return new Promise(resolve => {
+    let over = false, timer = null
+    const end = v => { if (over) return; over = true; clearTimeout(timer); a.onended = a.onerror = null; if (stopClip === stop) stopClip = null; setTimeout(() => URL.revokeObjectURL(url), 1000); resolve(v) }
+    const stop = () => { try { a.pause() } catch { /* gone */ } end(false) }
+    stopClip = stop
+    a.onended = () => end(true)
+    a.onerror = () => end(false)
+    a.src = url
+    a.play().then(() => {
+      onStart?.()
+      // A clip that never says it ended (a stalled player) still lets the call go on.
+      timer = setTimeout(() => end(true), (Number.isFinite(a.duration) && a.duration > 0 ? a.duration * 1000 : 60000) + 3000)
+    }, () => end(null))
+  })
+}
+
+/** The phone's own speech synthesis: the fallback when the server has no voice. */
+async function sayOnDevice(text, { onStart } = {}) {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
   if (!synth || !text) return false
-  const voice = pickVoice(await loadVoices(), savedVoice())
+  const voice = pickVoice(await loadVoices())
   // iPhone Safari drops an utterance queued straight after cancel(), and can sit paused.
   if (synth.speaking || synth.pending) { synth.cancel(); await new Promise(r => setTimeout(r, 150)) }
   try { synth.resume() } catch { /* not paused */ }
@@ -110,6 +155,9 @@ const held = []
  * the answer.
  */
 export function primeSpeech() {
+  // The audio player first: a silent clip played inside the tap unlocks it for the answer.
+  const a = playerOf()
+  if (a && (a.paused || a.ended) && !stopClip) { try { a.src = SILENT_WAV; a.play()?.then?.(() => { unlocked = true }, () => {}) } catch { /* nothing to unlock */ } }
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
   if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return
   try {
@@ -120,4 +168,7 @@ export function primeSpeech() {
     synth.speak(u)
   } catch { /* nothing to unlock */ }
 }
-export const stopSpeaking = () => { try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }
+export const stopSpeaking = () => { stopClip?.(); try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }
+
+/** primeSpeech once: for a listener on the first tap anywhere, so Jarvis can talk in a workout. */
+export function unlockOnce() { if (!unlocked) primeSpeech() }

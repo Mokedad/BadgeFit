@@ -29,49 +29,34 @@ import { bwSheet } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
-import { openJarvis } from '../components/JarvisFab.jsx'
-import JarvisOrb, { PHASE_LABEL } from '../components/JarvisOrb.jsx'
-import { useJarvis } from '../store/useJarvis.js'
-import { say, loadVoices, voiceOptions, pickVoice, savedVoice, saveVoice } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
+// The lean hub: the workout of the day, the plan to the test, the test itself. The rest is kept
+// under More, one tap away, so a new recruit sees three things.
 const TABS = [
   { value: 'today', label: 'Today', sym: '⭐' },
-  { value: 'run', label: 'Run', sym: '🏃' },
   { value: 'plan', label: 'Plan', sym: '📅' },
-  { value: 'tests', label: 'Tests', sym: '🎯' },
-  { value: 'food', label: 'Food', sym: '🍽️' },
-  { value: 'care', label: 'Care', sym: '🩹' },
+  { value: 'tests', label: 'PCT', sym: '🎯' },
+  { value: 'more', label: 'More', sym: '➕' },
 ]
+const MORE = [
+  { value: 'run', label: 'Runs', sym: '🏃', sub: 'Guided runs: base, intervals, VO2' },
+  { value: 'food', label: 'Food', sym: '🍽️', sub: 'Meals, protein, meal reminders' },
+  { value: 'care', label: 'Care', sym: '🩹', sub: 'Sore shins, knees, recovery' },
+]
+const ALL_TABS = [...TABS, ...MORE]
 
 // Symbols for the kinds of day and the recovery chips, so a week reads at a glance.
 const DAY_SYM = { gym: '🏋️', run: '🏃', walk: '🚶', rest: '😴', test: '🎯' }
 const recSym = x => (/sauna/i.test(x) ? '🧖 ' : /boots/i.test(x) ? '🦵 ' : /sleep/i.test(x) ? '🛌 ' : '')
 
-/** A round symbol button with a small word under it: compact, and still says what it does. */
-function SymButton({ sym, label, onClick, primary }) {
-  return <button className={'pf-sym' + (primary ? ' primary' : '')} onClick={onClick} aria-label={label} title={label}>
-    <span aria-hidden="true">{sym}</span><small>{label}</small>
-  </button>
-}
-
-/** Jarvis's button on the hub: the 🎤 at rest, his sound waves while a call runs (store/useJarvis.js). */
-function JarvisSym() {
-  const active = useJarvis(s => s.active)
-  const phase = useJarvis(s => s.phase)
-  const label = active ? PHASE_LABEL[phase] : 'Ask ' + BRAND.coach
-  return <button className={'pf-sym primary' + (active ? ' jv-live' : '')} onClick={openJarvis} aria-label={label} title={label}>
-    <span aria-hidden="true">{active ? <JarvisOrb /> : '🎤'}</span><small>{active ? { listening: 'Listening', thinking: 'Thinking', speaking: 'Talking', idle: 'Tap to talk' }[phase] : 'Ask ' + BRAND.coach}</small>
-  </button>
-}
-
 /** The hub's tabs: a symbol with a short word, six across. */
 function PfTabs({ value, onChange }) {
   return <nav className="pf-tabbar" role="tablist" aria-label="BadgeFit">
-    {TABS.map(x => <button key={x.value} role="tab" aria-selected={x.value === value} className={x.value === value ? 'on' : ''} onClick={() => onChange(x.value)}>
+    {TABS.map(x => { const on = x.value === value || (x.value === 'more' && MORE.some(m => m.value === value)); return <button key={x.value} role="tab" aria-selected={on} className={on ? 'on' : ''} onClick={() => onChange(x.value)}>
       <span aria-hidden="true">{x.sym}</span><small>{x.label}</small>
-    </button>)}
+    </button> })}
   </nav>
 }
 
@@ -84,22 +69,8 @@ const usePolice = () => {
 /** Reads text aloud with the browser's own voice, where there is one. */
 
 // --- Today -------------------------------------------------------------------------------
-/** Which voice Jarvis speaks with, from the ones this phone has (lib/police/voice.js). */
-function VoicePick() {
-  const [voices, setVoices] = useState([])
-  const [voice, setVoice] = useState(savedVoice() || '')
-  useEffect(() => { loadVoices().then(v => { setVoices(voiceOptions(v)); if (!savedVoice()) setVoice(pickVoice(v)?.voiceURI || '') }) }, [])
-  if (voices.length < 2) return null
-  return <details className="pf-voice"><summary>🗣️ Jarvis's voice</summary>
-    <select value={voice} aria-label="Jarvis's voice" onChange={e => { setVoice(e.target.value); saveVoice(e.target.value); say('G\'day. This is my voice now. Let\'s get to work.') }}>
-      {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
-    </select>
-  </details>
-}
-
-function Today({ S, user, P, setTab, startRun, openJarvis }) {
+function Today({ S, user, P, setTab, startRun }) {
   const nav = useNavigate()
-  const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
   const pw = planWeekOf(P, todayISO())
   const testName = (P.testName || '').trim() || 'PCT'
@@ -113,18 +84,6 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const fresh = !P.level || !P.start
   return <>
     {fresh && <Setup S={S} P={P} />}
-    <div className="card pf-jarvis">
-      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your recruit coach</span></div>
-      {(more ? lines : lines.slice(0, 3)).map((l, i) => <p key={i}>{l}</p>)}
-      {lines.length > 3 && <button className="pf-more-btn" onClick={() => setMore(!more)}>{more ? 'Less' : 'More'}</button>}
-      <div className="pf-syms">
-        {isOn(S, 'coach') && <JarvisSym />}
-        <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
-        <SymButton sym="🏃" label="Runs" onClick={() => setTab('run')} />
-      </div>
-      {isOn(S, 'coach') && <VoicePick />}
-    </div>
-
     {fresh ? null : <div className="card pf-todaycard">
       <div className="row between"><h3>{pw.after ? `📅 After your ${testName}` : pw.final ? `🏁 Final week · week ${week} of ${pw.last}` : `📅 Week ${week} of ${pw.last}`}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
       <p className="pf-sub pf-explain">{pw.after
@@ -150,19 +109,30 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
     </div>}
 
     <StatusStrip S={S} P={P} ready={ready} setTab={setTab} />
+    <div className="card pf-jarvis">
+      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your trainer</span></div>
+      {lines.slice(1, 3).map((l, i) => <p key={i}>{l}</p>)}
+      <p className="pf-sub">🎧 I talk you through every workout: your next weight after each set, when rest is up, and how you are tracking to your {testName}.{isOn(S, 'coach') ? ' Tap 🎤 in a workout to ask me anything.' : ''}</p>
+    </div>
   </>
+}
+
+/** Everything beyond the workout, the plan and the test: kept, one tap away. */
+function More({ setTab }) {
+  const nav = useNavigate()
+  const row = (sym, label, sub, go) => <button key={label} className="pf-more-row" onClick={go}><span aria-hidden="true">{sym}</span><span><b>{label}</b><small>{sub}</small></span><Icon name="chevronRight" /></button>
+  return <div className="card pf-more-list">
+    {MORE.map(m => row(m.sym, m.label, m.sub, () => setTab(m.value)))}
+    {row('👥', 'Community', 'Train alongside other recruits', () => nav('/community'))}
+  </div>
 }
 
 /** Three numbers at a glance: days to the test, readiness, weight change. Each opens its tab. */
 function StatusStrip({ S, P, ready, setTab }) {
   const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
-  const b = bodyProgress(S.bodyweight, { startISO: P.start, startWeight: P.startWeight, goal: S.targetW })
-  const runs = runsThisWeek(P.runLog, todayISO()).length
-  return <div className="pf-strip">
+  return <div className="pf-strip pf-strip2">
     <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
     <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
-    <button onClick={() => setTab('run')}><b>{runs}</b><span>🏃 runs this week</span></button>
-    <button onClick={() => setTab('food')}><b>{b ? (b.change > 0 ? '+' : '') + b.change : '–'}</b><span>⚖️ kg change</span></button>
   </div>
 }
 
@@ -735,7 +705,7 @@ export default function PoliceFit() {
   // The open tab lives in the URL (#/police?tab=plan), so it survives the screen remounting
   // when the store changes, and a link can open a tab directly.
   const [params, setParams] = useSearchParams()
-  const tab = TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
+  const tab = ALL_TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
   const [running, setRunning] = useState(() => runById(params.get('run')))
@@ -771,12 +741,13 @@ export default function PoliceFit() {
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <PfTabs value={tab} onChange={setTab} />
-    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openJarvis={() => openJarvis()} />}
+    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests P={P} />}
     {tab === 'plan' && <Plan S={S} P={P} />}
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}
+    {tab === 'more' && <More setTab={setTab} />}
     <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>
   </div>
 }

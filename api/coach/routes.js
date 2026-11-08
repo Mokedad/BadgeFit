@@ -4,6 +4,7 @@
  * are closures over the db and the session secret, and passing them in keeps this module free
  * of a cycle (and trivially testable against fakes).
  */
+import { makeSpeaker } from './tts.js';
 import * as cfgStore from './config.js';
 import * as jobs from './jobs.js';
 import { computeCohort } from './cohort.js';
@@ -28,6 +29,7 @@ const hostOf = url => { try { return url ? new URL(url).host : null; } catch { r
 const HTTP_FOR = { off: 503, busy: 409, cap: 429, consent: 403, shared: 409, unprivileged: 503 };
 
 export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
+  const speaker = makeSpeaker();
   /** Every user route starts the same way: signed in, feature on, feature reachable. The class
    *  goes beside the words, as enqueue's refusal sends it: the app shows its own translated line
    *  for the class, and these English words only where it has none. */
@@ -113,6 +115,17 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
 
     // A question in the chat. Answered in words; nothing to apply. The running session rides
     // along when there is one, since the server never holds it.
+    // Jarvis's voice (BadgeFit, coach/tts.js): one short line in, a WAV out. Signed in and the
+    // Coach on, like every route here; only the words to be spoken leave, never training data.
+    'POST /api/coach/speak': async (req, res) => {
+      const user = guard(req, res); if (!user) return;
+      const body = await readBody(req);
+      const r = await speaker.speak(user.id, body && body.text);
+      if (!r.ok) return json(res, r.status, { error: r.error, code: r.status === 501 ? 'unsupported' : r.status === 429 ? 'cap' : 'voice' });
+      res.writeHead(200, { 'content-type': 'audio/wav', 'content-length': r.wav.length, 'cache-control': 'private, max-age=86400' });
+      res.end(r.wav);
+    },
+
     'POST /api/coach/ask': async (req, res) => {
       const user = guard(req, res); if (!user) return;
       const body = await readBody(req);

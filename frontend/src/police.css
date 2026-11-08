@@ -460,3 +460,13 @@
 .pf-voice option{color:#111}
 .pf-sym.jv-live>span{padding:0;overflow:hidden}
 .pf-sym.jv-live .jo{width:100%;height:100%}
+.jarvis-ask{background:#0d1b33!important;border-radius:50%}
+.jarvis-ask .jarvis-fab-orb{width:20px;height:20px}
+.jarvis-ask .jo-waves{height:18px;gap:2px}.jarvis-ask .jo-waves i{width:3px}
+.pf-more-list{padding:4px 0}
+.pf-more-row{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;background:none;border:0;border-top:1px solid var(--sep);color:inherit;text-align:left}
+.pf-more-row:first-child{border-top:0}
+.pf-more-row>span:first-child{font-size:22px;width:30px;text-align:center}
+.pf-more-row>span:nth-child(2){flex:1;display:flex;flex-direction:column;gap:2px}
+.pf-more-row small{color:var(--label-2);font-size:13px}
+.pf-strip.pf-strip2{grid-template-columns:repeat(2,1fr)}

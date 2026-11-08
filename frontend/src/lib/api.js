@@ -57,6 +57,22 @@ function refusal(status, body) {
   return (body && body.error) || ('HTTP ' + status)
 }
 
+/**
+ * A POST whose answer is a file (Jarvis's voice, /api/coach/speak): the Blob, or null when the
+ * server cannot give one (any error, offline, not paired). Never throws.
+ */
+export async function apiPostBlob(path, body, ms = 35000) {
+  if (MOBILE && !remoteBase) return null
+  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null
+  const timer = ctl ? setTimeout(() => ctl.abort(), ms) : null
+  try {
+    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, remoteHeaders()), body: JSON.stringify(body), ...(ctl ? { signal: ctl.signal } : {}) })
+    if (!r.ok) return null
+    return await r.blob()
+  } catch { return null } finally { clearTimeout(timer) }
+}
+
 export async function api(path, opts) {
   const { timeout, ...init } = opts || {}
   // A phone with no server to talk to: local mode, or a pairing that is gone. There is no
