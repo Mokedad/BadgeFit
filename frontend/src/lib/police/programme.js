@@ -227,10 +227,24 @@ export function weekPlan(level, week, age, opts = {}) {
     if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
   }
   if (w === WEEKS) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Taper: half the sets or distance, same intensity']
+  // Week 12 is test week: with a test date, the test sits on its real weekday and the day before
+  // is kept easy; the usual end-of-phase re-test does not happen on top of it.
+  if (w === WEEKS && opts.testDow != null) {
+    const name = opts.testName || 'PCT'
+    const at = days.findIndex(d => d.day === opts.testDow)
+    const before = days.findIndex(d => d.day === (opts.testDow + 6) % 7)
+    if (before >= 0 && before !== at) days[before] = { day: days[before].day, dayName: days[before].dayName, kind: 'rest', key: null, title: `Easy day before your ${name}`, details: ['Rest, or a 20 min easy walk or jog with a few strides', 'Sleep 8+ hours, carbs at dinner, lay out your gear'], recovery: ['Compression boots: 20 min'] }
+    days[at] = { day: days[at].day, dayName: days[at].dayName, kind: 'test', key: null, title: `${name} day`, details: ['Normal breakfast 3 hours before, water, caffeine only if you trained with it', 'Full warm-up 10-15 min, then trust your training', 'Afterwards: log your results in Tests'], recovery: [] }
+    return finish(days, { lv, w, phase, test: true })
+  }
   if (test) {
     days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
   }
-  // About how long each session takes (meals.js estimateMinutes), as on the routine it installs.
+  return finish(days, { lv, w, phase, test })
+}
+
+// About how long each session takes (meals.js estimateMinutes), as on the routine it installs.
+function finish(days, { lv, w, phase, test }) {
   for (const d of days) {
     const r = d.key && d.kind !== 'test' ? routineFor(d.key, lv, phase.range, w) : null
     if (r) d.minutes = estimateMinutes(r)
@@ -308,12 +322,26 @@ const DAY = 86400000
 const isoDay = ms => new Date(ms).toISOString().slice(0, 10)
 
 /**
- * The start date that puts `testISO` in week 12, so the programme peaks on test day. With a
- * test 4 weeks away the plan opens at week 9: the peak phase, then the taper.
+ * The start date that puts `testISO` in week 12, so the programme peaks on test day. The weeks
+ * run Monday to Sunday like the plan's days: the start is the Monday 11 weeks before the test's
+ * own week, so plan week 12 is the calendar week of the test. With a test 4 weeks away the plan
+ * opens around week 8-9: the peak phase, then the taper.
  */
 export function startForTest(testISO) {
   const t = Date.parse(testISO + 'T00:00:00Z')
-  return Number.isFinite(t) ? isoDay(t - 83 * DAY) : null
+  if (!Number.isFinite(t)) return null
+  const monday = t - ((new Date(t).getUTCDay() + 6) % 7) * DAY
+  return isoDay(monday - 77 * DAY)
+}
+
+/** The plan options that follow from the member's settings: beep focus and the test day. */
+export function planOptsOf(P) {
+  const t = P?.testDate ? Date.parse(P.testDate + 'T00:00:00Z') : NaN
+  return {
+    beepFocus: !!P?.beepFocus,
+    testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
+    testName: (P?.testName || 'PCT').slice(0, 24),
+  }
 }
 
 /** Whole days from today to the test (0 on the day), or null. */

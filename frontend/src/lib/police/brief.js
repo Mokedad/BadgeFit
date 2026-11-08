@@ -2,7 +2,7 @@
 // "what should I do today?". Built on the device from the BadgeFit data and sent with a question
 // to the AI Coach (lib/coach-api.js askCoach → api/coach/core/payload.js cleanBrief), which
 // answers as Jarvis (api/coach/prompts/ask.md). Pure: everything comes in as arguments.
-import { weekPlan, weekNumber, phaseOf, daysUntil } from './programme.js'
+import { weekPlan, weekNumber, phaseOf, daysUntil, planOptsOf } from './programme.js'
 import { readiness, fmtResult, DEFAULT_BEEP_TARGET } from './standards.js'
 import { runForDay, runsThisWeek, runById, runMinutes } from './runs.js'
 import { dayTotals, bodyProgress } from './meals.js'
@@ -26,11 +26,11 @@ export function policeBrief(S, today) {
   const P = S?.police
   if (!P?.level && !(P?.results || []).length) return null
   const week = weekNumber(P.start, today)
-  const plan = P.level && week ? weekPlan(P.level, week, P.age, { beepFocus: P.beepFocus }) : null
+  const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayDay = plan?.days.find(d => d.day === dow(today)) || null
   const tomorrowISO = new Date(Date.parse(today + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10)
   const tomorrowWeek = weekNumber(P.start, tomorrowISO)
-  const tomorrowDay = P.level && tomorrowWeek ? weekPlan(P.level, tomorrowWeek, P.age, { beepFocus: P.beepFocus }).days.find(d => d.day === dow(tomorrowISO)) : null
+  const tomorrowDay = P.level && tomorrowWeek ? weekPlan(P.level, tomorrowWeek, P.age, planOptsOf(P)).days.find(d => d.day === dow(tomorrowISO)) : null
   const run = runForDay(todayDay)
   const ready = readiness(P.results, P.beepTarget || DEFAULT_BEEP_TARGET)
   // Furthest from passing first: untested standards are a gap too (test them).

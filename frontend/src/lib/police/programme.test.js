@@ -105,10 +105,12 @@ describe('weekNumber', () => {
 import { startForTest, daysUntil, TAPER } from './programme.js'
 describe('test countdown', () => {
   it('puts the test in week 12, so 4 weeks out is week 9', () => {
-    const start = startForTest('2026-12-05')
+    const start = startForTest('2026-12-05') // a Saturday
+    expect(start).toBe('2026-09-14') // a Monday
     expect(weekNumber(start, '2026-12-05')).toBe(12)
-    expect(weekNumber(start, '2026-11-07')).toBe(8) // 28 days out: the last day of week 8
-    expect(weekNumber(start, '2026-11-08')).toBe(9)
+    expect(weekNumber(start, '2026-11-30')).toBe(12) // the Monday of test week
+    expect(weekNumber(start, '2026-11-29')).toBe(11)
+    expect(weekNumber(start, '2026-11-09')).toBe(9)
     expect(daysUntil('2026-12-05', '2026-11-07')).toBe(28)
     expect(startForTest('nope')).toBeNull()
   })
@@ -116,5 +118,24 @@ describe('test countdown', () => {
     expect(weekPlan('beginner', 12).days[0].details.join(' ')).toMatch(/Taper/)
     expect(weekPlan('beginner', 11).days[0].details.join(' ')).not.toMatch(/Taper/)
     expect(TAPER.length).toBe(4)
+  })
+})
+
+import { planOptsOf } from './programme.js'
+describe('the test on its real day', () => {
+  it('a Wednesday PCT lands on Wednesday of week 12, the Tuesday is easy, no Saturday re-test', () => {
+    const o = planOptsOf({ testDate: '2026-12-02', testName: 'PCT' })
+    expect(o.testDow).toBe(3)
+    const w = weekPlan('intermediate', 12, 28, o)
+    expect(w.days.find(d => d.day === 3)).toMatchObject({ kind: 'test', title: 'PCT day' })
+    expect(w.days.find(d => d.day === 2)).toMatchObject({ kind: 'rest' })
+    expect(w.days.filter(d => d.kind === 'test')).toHaveLength(1)
+    expect(weekNumber(startForTest('2026-12-02'), '2026-12-02')).toBe(12)
+  })
+  it('a named event, and nothing changes before week 12', () => {
+    const o = planOptsOf({ testDate: '2026-12-06', testName: 'Hyrox' })
+    expect(weekPlan('beginner', 12, null, o).days.find(d => d.day === 0).title).toBe('Hyrox day')
+    expect(weekPlan('beginner', 11, null, o).days.some(d => d.kind === 'test')).toBe(false)
+    expect(planOptsOf({}).testDow).toBeNull()
   })
 })

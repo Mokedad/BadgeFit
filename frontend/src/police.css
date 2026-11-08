@@ -340,3 +340,15 @@
 .rrc.down{background:var(--surface-2);background:color-mix(in srgb,var(--orange) 20%,transparent)}
 .rrc.stay,.rrc.first{background:var(--surface-2);background:color-mix(in srgb,var(--acc) 18%,transparent)}
 .wk-paused{display:block;width:100%;margin:8px 0;border:0;border-radius:12px;padding:12px;font-weight:700;background:var(--acc);color:var(--on-acc)}
+/* collapsible sections (Fold in views/PoliceFit.jsx) */
+.pf-fold{padding-top:12px;padding-bottom:12px}
+.pf-fold summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;font-size:var(--fs-headline,17px)}
+.pf-fold summary::-webkit-details-marker{display:none}
+.pf-fold-c{transition:transform .2s;color:var(--label-2);font-size:20px;line-height:1}
+.pf-fold[open] .pf-fold-c{transform:rotate(180deg)}
+.pf-fold-b{margin-top:10px}
+.pf-fold-b>.card{background:none!important;border:0!important;box-shadow:none!important;padding:0;margin:0}
+.pf-fold-b>.card>h3:first-child,.pf-fold-b>.card>.row:first-child>h3{display:none}
+.pf-fold-b>.card>.row:first-child{justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){.pf-fold-c{transition:none}}
+.pf-count .pf-2{grid-template-columns:1fr;margin:0 0 6px}

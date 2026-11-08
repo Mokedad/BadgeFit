@@ -21,7 +21,7 @@ import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, planOptsOf, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
@@ -84,7 +84,7 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const ready = readiness(P.results, P.beepTarget)
   const week = weekNumber(P.start, todayISO())
   const dow = new Date().getDay()
-  const plan = P.level && week ? weekPlan(P.level, week, P.age, { beepFocus: P.beepFocus }) : null
+  const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const day = plan?.days.find(d => d.day === dow)
   const lines = useMemo(() => briefing({ name: P.name || user?.name, hour: new Date().getHours(), week, day, ready, seed: Number(todayISO().replace(/-/g, '')) }),
     [P.name, user?.name, week, day, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,7 +125,7 @@ function StatusStrip({ S, P, ready, setTab }) {
   const b = bodyProgress(S.bodyweight, { startISO: P.start, startWeight: P.startWeight, goal: S.targetW })
   const runs = runsThisWeek(P.runLog, todayISO()).length
   return <div className="pf-strip">
-    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to test</span></button>
+    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
     <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
     <button onClick={() => setTab('run')}><b>{runs}</b><span>🏃 runs this week</span></button>
     <button onClick={() => setTab('food')}><b>{b ? (b.change > 0 ? '+' : '') + b.change : '–'}</b><span>⚖️ kg change</span></button>
@@ -136,21 +136,26 @@ function StatusStrip({ S, P, ready, setTab }) {
 function TestCountdown({ P }) {
   const update = useStore(s => s.update)
   const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
+  const name = (P.testName || '').trim() || 'PCT'
+  const weekNow = P.testDate ? weekNumber(startForTest(P.testDate), todayISO()) : null
   const setDate = d => update(s => {
     const prev = s.police || {}
-    const next = { ...prev, testDate: d || undefined }
+    const next = { ...prev, testDate: d || undefined, phase: undefined }
     // Re-anchor the plan on the test, keeping the phase the lifts are already set to.
     if (d && startForTest(d) && prev.level) next.start = startForTest(d)
     s.police = next
   })
   return <div className="card pf-count">
     {left != null && left >= 0
-      ? <div className="pf-count-n"><b>{left}</b><span>⏳ {left === 1 ? 'day' : 'days'} to go</span></div>
-      : <div className="pf-count-n"><b>PCT</b><span>⏳ set the date</span></div>}
+      ? <div className="pf-count-n"><b>{left}</b><span>⏳ {left === 1 ? 'day' : 'days'} to your {name}</span></div>
+      : <div className="pf-count-n"><b>{name}</b><span>⏳ set the date</span></div>}
     <div className="pf-count-m">
-      <label>Test date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
+      <div className="pf-2">
+        <label>Event<TextField value={P.testName ?? ''} placeholder="PCT" maxLength={24} onChange={e => update(s => { s.police = { ...(s.police || {}), testName: e.target.value } })} /></label>
+        <label>Date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
+      </div>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
-      {P.testDate && <p className="pf-sub">The plan counts down so test week is week 12{left != null && left < 84 ? `: you start at week ${Math.max(1, 12 - Math.floor(left / 7))}` : ''}.</p>}
+      {P.testDate && <p className="pf-sub">Plan weeks run Monday to Sunday. Week 12 is your {name} week, with the {name} on its own day and an easy day before it{weekNow ? `. This is week ${weekNow}` : ''}.</p>}
     </div>
   </div>
 }
@@ -239,7 +244,7 @@ function DayCard({ d, today }) {
 function RunTab({ S, P, startRun }) {
   const [cat, setCat] = useState('all')
   const week = weekNumber(P.start, todayISO())
-  const plan = P.level && week ? weekPlan(P.level, week, P.age, { beepFocus: P.beepFocus }) : null
+  const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayRun = runForDay(plan?.days.find(d => d.day === new Date().getDay()))
   const done = runsThisWeek(P.runLog, todayISO())
   const list = cat === 'all' ? RUNS : RUNS.filter(r => r.cat === cat)
@@ -348,7 +353,7 @@ function Plan({ S, P }) {
   const level = P.level || 'beginner'
   const current = weekNumber(P.start, todayISO()) || 1
   const [week, setWeek] = useState(current)
-  const plan = weekPlan(level, week, P.age, { beepFocus: P.beepFocus })
+  const plan = weekPlan(level, week, P.age, planOptsOf(P))
   const z2 = zone2(P.age)
   return <>
     <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => setP({ level: l })} />
@@ -574,6 +579,19 @@ function Care() {
   </>
 }
 
+/**
+ * A collapsible section (Food tab), like the Care tab's. Open or closed is remembered on this
+ * device. The card inside loses its own frame and first heading: the fold's title stands for it.
+ */
+function Fold({ id, title, open = false, children }) {
+  const key = 'badgefit_fold_' + id
+  const [isOpen, setOpen] = useState(() => { try { const v = localStorage.getItem(key); return v == null ? open : v === '1' } catch { return open } })
+  return <details className="card pf-fold" open={isOpen} onToggle={e => { const o = e.currentTarget.open; setOpen(o); try { localStorage.setItem(key, o ? '1' : '0') } catch { /* private mode */ } }}>
+    <summary><span>{title}</span><span className="pf-fold-c" aria-hidden="true">⌄</span></summary>
+    <div className="pf-fold-b">{children}</div>
+  </details>
+}
+
 // --- Food --------------------------------------------------------------------------------
 function Food({ S, P }) {
   const setP = usePolice()
@@ -583,9 +601,8 @@ function Food({ S, P }) {
   const [goal, setGoal] = useState(P.goal || 'lose')
   const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
-    <BodyCard S={S} P={P} />
-    <div className="card">
-      <h3>🎯 Your daily targets</h3>
+    <Fold id="body" title="⚖️ Body" open><BodyCard S={S} P={P} /></Fold>
+    <Fold id="targets" title="🎯 Daily targets"><div className="card">
       <div className="pf-2">
         <label>Body weight (kg)<NumberField value={weight} onChange={x => { setWeight(x); setP({ weightKg: x }) }} /></label>
         <label>Height (cm)<NumberField value={P.heightCm ?? null} nullable decimal={false} onChange={x => setP({ heightCm: x })} /></label>
@@ -601,11 +618,11 @@ function Food({ S, P }) {
         <div><i aria-hidden="true">💧</i><b>{m.water} L</b><span>water</span></div>
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
-    </div>
-    <MealReminders S={S} P={P} />
-    <MealLog P={P} targets={m} />
-    <ProteinCard weight={weight} />
-    <CreatineCard weight={weight} />
+    </div></Fold>
+    <Fold id="log" title="🍽️ Today's food" open><MealLog P={P} targets={m} /></Fold>
+    <Fold id="remind" title="🔔 Meal reminders"><MealReminders S={S} P={P} /></Fold>
+    <Fold id="protein" title="🥩 Protein for your weight"><ProteinCard weight={weight} /></Fold>
+    <Fold id="creatine" title="⚡ Creatine"><CreatineCard weight={weight} /></Fold>
     <details className="card pf-diet">
       <summary><b>Supplements</b> <span className="pf-chip">What actually works</span></summary>
       <p className="pf-sub">Food first: supplements fill gaps. Police applicants are drug tested, so only buy batch-tested products (look for Informed Sport).</p>
@@ -623,8 +640,8 @@ function Food({ S, P }) {
       {d.variants && <><h4>Other options</h4><ul>{d.variants.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
       <Button size="sm" variant={P.diet === d.id ? 'primary' : 'plain'} onClick={() => setP({ diet: d.id })}>{P.diet === d.id ? 'My plan' : 'Follow this plan'}</Button>
     </details>)}
-    <div className="card"><h3>The rules every plan follows</h3><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
-    <div className="card"><h3>🧖 Recovery</h3>{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div>
+    <Fold id="rules" title="📏 The rules every plan follows"><div className="card"><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div></Fold>
+    <Fold id="recovery" title="🧖 Recovery"><div className="card">{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div></Fold>
     <p className="pf-sub pf-pad">{DISCLAIMER}</p>
   </>
 }
