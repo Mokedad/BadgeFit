@@ -21,7 +21,7 @@ import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
 import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, planOptsOf, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, PHASE_WORDS, weekPlan, weekNumber, phaseOf, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
@@ -30,7 +30,6 @@ import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
 import JarvisLive from '../components/JarvisLive.jsx'
-import { say } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
@@ -70,19 +69,14 @@ const usePolice = () => {
 }
 
 /** Reads text aloud with the browser's own voice, where there is one. */
-/** Reads lines aloud in Jarvis's Australian voice (lib/police/voice.js). */
-function speak(lines) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return false
-  say(lines.join(' '))
-  return true
-}
 
 // --- Today -------------------------------------------------------------------------------
 function Today({ S, user, P, setTab, startRun, openJarvis }) {
   const nav = useNavigate()
   const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
-  const week = weekNumber(P.start, todayISO())
+  const pw = planWeekOf(P, todayISO())
+  const week = pw.week
   const dow = new Date().getDay()
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const day = plan?.days.find(d => d.day === dow)
@@ -97,7 +91,6 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
       {(more ? lines : lines.slice(0, 3)).map((l, i) => <p key={i}>{l}</p>)}
       {lines.length > 3 && <button className="pf-more-btn" onClick={() => setMore(!more)}>{more ? 'Less' : 'More'}</button>}
       <div className="pf-syms">
-        <SymButton sym="🔊" label="Hear it" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }} />
         {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => openJarvis(lines[0])} />}
         <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
         <SymButton sym="🏃" label="Runs" onClick={() => setTab('run')} />
@@ -105,7 +98,10 @@ function Today({ S, user, P, setTab, startRun, openJarvis }) {
     </div>
 
     {fresh ? null : <div className="card pf-todaycard">
-      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}</span></div>
+      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
+      <p className="pf-sub pf-explain">{pw.before
+        ? `Your 12-week plan starts in ${pw.startsIn} days, so it ends on your test day. Until then, repeat week 1 to build your base.`
+        : `Your plan has 12 weeks in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {day && <DayCard d={day} today />}
       {(() => {
         const run = runForDay(day)
@@ -260,7 +256,8 @@ function DayCard({ d, today }) {
 // --- Run ---------------------------------------------------------------------------------
 function RunTab({ S, P, startRun }) {
   const [cat, setCat] = useState('all')
-  const week = weekNumber(P.start, todayISO())
+  const pw = planWeekOf(P, todayISO())
+  const week = pw.week
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayRun = runForDay(plan?.days.find(d => d.day === new Date().getDay()))
   const done = runsThisWeek(P.runLog, todayISO())
@@ -368,7 +365,7 @@ function LogForm({ std, P, onDone }) {
 function Plan({ S, P }) {
   const setP = usePolice()
   const level = P.level || 'beginner'
-  const current = weekNumber(P.start, todayISO()) || 1
+  const current = planWeekOf(P, todayISO()).week || 1
   const [week, setWeek] = useState(current)
   const plan = weekPlan(level, week, P.age, planOptsOf(P))
   const z2 = zone2(P.age)
@@ -382,9 +379,13 @@ function Plan({ S, P }) {
     </div>
     <label className="pf-toggle"><input type="checkbox" checked={!!P.beepFocus} onChange={e => setP({ beepFocus: e.target.checked })} />
       <span><b>Beep focus</b><br />The beep test is my weak point: make Saturday a second interval session.</span></label>
-    <div className="pf-weeks" role="tablist" aria-label="Week">
-      {Array.from({ length: WEEKS }, (_, i) => i + 1).map(n =>
-        <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>{n}</button>)}
+    <div className="pf-weekgrid" role="tablist" aria-label="Weeks of the plan">
+      {[1, 2, 3].map(ph => <div key={ph} className="pf-phase-row">
+        <div className="pf-phase-l"><b>Phase {ph}</b><span>{PHASE_WORDS[ph].split(':')[0]} · weeks {ph * 4 - 3}-{ph * 4}</span></div>
+        <div className="pf-weeks">{[0, 1, 2, 3].map(k => ph * 4 - 3 + k).map(n =>
+          <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start ? 'now' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>
+            <small>Week</small>{n}{n === WEEKS && P.testDate ? <i>🎯</i> : null}</button>)}</div>
+      </div>)}
     </div>
     <div className="card">
       <div className="row between"><h3>Week {week}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
@@ -674,7 +675,7 @@ export default function PoliceFit() {
   const tab = TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
-  const [running, setRunning] = useState(null)
+  const [running, setRunning] = useState(() => runById(params.get('run')))
   const [jarvis, setJarvis] = useState(null)
   const logRun = entry => {
     setP(p => ({ runLog: [...(p.runLog || []), { id: Date.now().toString(36), at: todayISO(), ...entry }].slice(-200) }))

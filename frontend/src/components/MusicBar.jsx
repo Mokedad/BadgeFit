@@ -56,7 +56,7 @@ export default function MusicBar({ compact = false, sessionKey = null }) {
   const savePrefs = patch => { setMusicPrefs(patch); setPrefs(musicPrefs()) }
 
   useEffect(() => {
-    if (!compact || !sessionKey || !prefs.autoPlay || !connected || !link) return
+    if (!compact || !sessionKey || prefs.autoPlay === false || !connected || !link) return
     const k = 'badgefit_autoplay_' + sessionKey
     try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1') } catch { /* private mode */ }
     play(link.uri).then(r => {
@@ -67,8 +67,8 @@ export default function MusicBar({ compact = false, sessionKey = null }) {
 
   if (compact) {
     if (!link && !connected) return null
-    return <div className={'mb mb-compact' + (prefs.autoPlay && !connected && sessionKey ? ' mb-nudge' : '')}>
-      {prefs.autoPlay && !connected && sessionKey && <div className="mb-nudge-t">🎵 Tap ▶ to start your playlist</div>}
+    return <div className={'mb mb-compact' + (prefs.autoPlay !== false && !connected && sessionKey ? ' mb-nudge' : '')}>
+      {prefs.autoPlay !== false && !connected && sessionKey && <div className="mb-nudge-t">🎵 Tap ▶ to start your playlist</div>}
       {connected ? <Remote link={link} /> : <iframe title="Spotify" src={link.embed} height="80" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />}
     </div>
   }
@@ -87,7 +87,7 @@ export default function MusicBar({ compact = false, sessionKey = null }) {
         }}>Save</Button>
       </div>
     </label>
-    <label className="pf-toggle"><input type="checkbox" checked={!!prefs.autoPlay} disabled={!link} onChange={e => savePrefs({ autoPlay: e.target.checked })} />
+    <label className="pf-toggle"><input type="checkbox" checked={prefs.autoPlay !== false} disabled={!link} onChange={e => savePrefs({ autoPlay: e.target.checked })} />
       <span><b>▶ Start my playlist when a workout starts</b><br />{connected ? 'Plays on your Spotify straight away.' : 'Shows the player ready on your workout screen, one tap to start. Connect Spotify below and it starts by itself.'}</span></label>
     <p className="pf-sub">In Spotify: ⋯ on a playlist → Share → Copy link. It plays right here and on the workout screen, so you never have to leave mid-set.</p>
     {connected

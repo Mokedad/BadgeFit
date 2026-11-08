@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import BadgeLogo from '../components/BadgeLogo.jsx'
+import { todayChoiceSheet } from '../workout-controls.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW, setsDoneActive } from '../lib/history.js'
@@ -118,7 +120,10 @@ export default function Home() {
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: weighInAt(b), y: b.w, d: b.d }))
 
   // today's session shown right under the week strip
-  const onToday = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
+  const onTodayNow = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
+  // BadgeFit: today's workout asks first (Start / something else / rest today / not now), so a
+  // tap never drops anyone into a session by accident. A running one opens straight away.
+  const onToday = () => (S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
   const progChip = programmeChip(S)
@@ -141,8 +146,8 @@ export default function Home() {
 
     {/* Police Prep (views/PoliceFit.jsx): the applicant hub, one tap from Home. English only, like that screen. */}
     <button type="button" className="card tap-host police-home" onClick={() => nav('/police')}>
-      <span className="police-home-i" aria-hidden="true">🛡️</span>
-      <span className="police-home-m"><b>{BRAND.name} Police Prep</b><span>{S.police?.start ? 'Jarvis has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
+      <BadgeLogo size={46} />
+      <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Jarvis has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
       <Icon name="chevronRight" />
     </button>
 

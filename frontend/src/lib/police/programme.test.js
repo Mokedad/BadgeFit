@@ -139,3 +139,14 @@ describe('the test on its real day', () => {
     expect(planOptsOf({}).testDow).toBeNull()
   })
 })
+
+import { planWeekOf } from './programme.js'
+describe('planWeekOf', () => {
+  it('a test 20 weeks away: week 1 on repeat until the 12 weeks start', () => {
+    const P = { start: startForTest('2027-03-27') }
+    expect(planWeekOf(P, '2026-11-08')).toMatchObject({ week: 1, before: true })
+    expect(planWeekOf(P, '2026-11-08').startsIn).toBeGreaterThan(50)
+    expect(planWeekOf(P, '2027-03-27')).toMatchObject({ week: 12, before: false })
+    expect(planWeekOf({}, '2026-11-08').week).toBeNull()
+  })
+})

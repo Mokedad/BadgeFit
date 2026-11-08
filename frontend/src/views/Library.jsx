@@ -1,4 +1,8 @@
 import { useDeferredValue, useMemo, useRef, useState } from 'react'
+import { todayISO } from '../lib/format.js'
+import { dailyShuffle } from '../lib/police/shuffle.js'
+import { RUNS, CATEGORIES, runMinutes } from '../lib/police/runs.js'
+import '../police.css'
 import { useUI } from '../store/useUI.js'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -44,7 +48,13 @@ export default function Library() {
   // while searching, the exercises you have logged or planned follow right after them.
   const narrowedList = eqOn ? eqFiltered.filter(e => e.eq === eqOn) : eqFiltered
   const usage = useMemo(() => (q.trim() ? usageOf(S) : null), [q, S.routines, S.workouts])
-  const f = usage ? sortYoursFirst(narrowedList, S, usage) : sortFavouritesFirst(narrowedList, S)
+  // Mixed for today (BadgeFit) while nothing is searched: a fresh order each day instead of A-Z,
+  // favourites still first. A-Z is one tap away and remembered on this device.
+  const [order, setOrder] = useState(() => { try { return localStorage.getItem('badgefit_lib_order') || 'mixed' } catch { return 'mixed' } })
+  const setOrderKept = v => { setOrder(v); try { localStorage.setItem('badgefit_lib_order', v) } catch { /* private mode */ } }
+  const mixed = order === 'mixed' && !q.trim()
+  const ordered = useMemo(() => (mixed ? dailyShuffle(narrowedList, todayISO()) : narrowedList), [mixed, narrowedList.length, bp, eqOn, catOn]) // eslint-disable-line react-hooks/exhaustive-deps
+  const f = usage ? sortYoursFirst(narrowedList, S, usage) : sortFavouritesFirst(ordered, S)
   useRevealActiveChip(bpStrip, bp)
   // Type and equipment live in the Filters sheet (P7). It works out its own options from the same
   // search and body part, so a choice it offers is never a dead end either.
@@ -88,6 +98,12 @@ export default function Library() {
         ? tn('{1} animated exercises + 1 of your own', '{1} animated exercises + {0} of your own', ownCount, EXDB.length)
         : t('{0} exercises with animations', EXDB.length)}</div>
     </div>
+    {/* BadgeFit: running sits with the exercises. A tap starts that guided run. */}
+    {!q.trim() && !bp && <div className="lib-runs">
+      <div className="lib-runs-h"><b>🏃 Runs &amp; VO2</b><button type="button" className="lib-order" onClick={() => setOrderKept(order === 'mixed' ? 'az' : 'mixed')}>{order === 'mixed' ? '🔀 Mixed' : 'A-Z'}</button></div>
+      <div className="lib-runs-row">{dailyShuffle(RUNS, todayISO() + 'runs').slice(0, 8).map(r => <button key={r.id} type="button" className={'lib-run c-' + r.cat} onClick={() => nav('/police?tab=run&run=' + r.id)}>
+        <span>{CATEGORIES.find(c => c.id === r.cat)?.emoji}</span><b>{r.name}</b><small>~{runMinutes(r)} min</small></button>)}</div>
+    </div>}
     <div className="search-row" data-tour="lib-search" style={{ marginBottom: 10 }}><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search…')} value={q} onChange={e => { setQ(e.target.value); setShown(40) }} />
       {narrowed && <span className="search-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}

@@ -357,3 +357,18 @@ export const TAPER = [
   'Day before: sleep 8+ hours, carbs at dinner, no new foods, lay out your gear',
   'Test morning: a normal breakfast 3 hours before, caffeine if you trained with it, full warm-up',
 ]
+
+/**
+ * Where the member is in the plan today: { week, before, startsIn }. With a test more than 12
+ * weeks away the plan's start is still ahead: until then it is week 1 on repeat (`before`), so
+ * the base is built and the real 12 weeks still end on test day. null week without a plan.
+ */
+export function planWeekOf(P, today) {
+  const w = weekNumber(P?.start, today)
+  if (w) return { week: w, before: false, startsIn: 0 }
+  if (P?.start && today < P.start) return { week: 1, before: true, startsIn: daysUntil(P.start, today) }
+  return { week: null, before: false, startsIn: 0 }
+}
+
+/** Plain words for a phase, for people new to training plans. */
+export const PHASE_WORDS = { 1: 'Build: learn the moves, build your base', 2: 'Strength: heavier, harder intervals', 3: 'Peak: sharpen up for test day' }

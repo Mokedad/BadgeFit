@@ -61,3 +61,47 @@ export function workoutControlsSheet({ discardNow }) {
     ],
   })
 }
+
+/**
+ * Before today's planned workout starts (Home, BadgeFit): start it, do something else, make
+ * today a rest day, or leave it. `start` runs the usual start (the weigh-in may follow).
+ */
+export function todayChoiceSheet(name, start) {
+  menuSheet({
+    title: name ? `Start ${name}?` : 'Start today\'s workout?',
+    subtitle: 'Hold Finish during the workout to pause or stop it.',
+    sections: [
+      { items: [{ icon: 'play', accent: true, label: 'Yes, start', onClick: start }] },
+      { items: [
+        { icon: 'swap', label: 'Do something else today', onClick: () => dayOverrideSheet(todayISO()) },
+        { icon: 'moon', label: 'Rest today', onClick: () => {
+          useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } })
+          toast('🧹 Today is a rest day. Recover well.')
+        } },
+      ] },
+      { items: [{ icon: 'xmark', label: 'Not now', onClick: () => {} }] },
+    ],
+  })
+}
+
+/**
+ * Leaving the workout screen (the ⌄ in the header, BadgeFit): pause it, keep it running in the
+ * background, finish it, or cancel it, instead of a clock that quietly keeps going.
+ */
+export function leaveWorkoutSheet({ go, discardNow }) {
+  const A = S().active
+  if (!A) { go(); return }
+  const ask = (title, message, confirmText, then) => confirmSheet({ title, message, confirmText, danger: true, onConfirm: then })
+  menuSheet({
+    title: 'Leave the workout?',
+    subtitle: isPaused(A) ? 'It is paused. Resume any time from the Start button.' : 'The clock is still running.',
+    sections: [
+      { items: [
+        ...(isPaused(A) ? [] : [{ icon: 'pause', accent: true, label: 'Pause and leave', onClick: () => { pauseWorkout(); go() } }]),
+        { icon: 'play', label: isPaused(A) ? 'Leave it paused' : 'Keep it running', onClick: go },
+        { icon: 'flag', label: 'Finish and save', onClick: () => finishWorkoutSheet({ onDiscard: () => ask('Discard workout?', 'The sets you logged in this session will be lost.', 'Discard', discardNow) }) },
+      ] },
+      { items: [{ icon: 'trash', danger: true, label: 'Cancel workout', onClick: () => ask('Cancel this workout?', 'Nothing from this session is saved.', 'Cancel workout', discardNow) }] },
+    ],
+  })
+}

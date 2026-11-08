@@ -48,7 +48,7 @@ export function briefing({ name, hour = 9, week, day, ready, seed = Date.now() }
   const out = [`${greeting(hour)}${who}.`]
   out.push(pick(LINES.open, seed))
   if (week && day) {
-    out.push(`This is week ${week}. Today is ${day.title}.`)
+    out.push(`You are in week ${week} of your 12-week plan. Today is ${day.title}.`)
     if (day.details?.[0]) out.push(day.details[0] + '.')
     const kind = day.kind === 'gym' ? 'gym' : day.kind === 'run' || day.kind === 'test' ? 'run' : 'rest'
     out.push(pick(LINES[kind], seed + 1))

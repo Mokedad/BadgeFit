@@ -4,9 +4,11 @@ import { BODYPARTS, allExercises, equipmentOf, searchExercises } from '../lib/ex
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { bestWeightFor } from '../lib/history.js'
 import { fmtNum, exCount } from '../lib/format.js'
-import { MUSCLES, MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
+import { MUSCLES, MUSCLE_NAME, musclesOf, loadOfWorkouts, muscleBalanceWindow } from '../lib/muscles.js'
+import { weekStartOf } from '../lib/format.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import BodyMap from './BodyMap.jsx'
+import '../police.css'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 import ExerciseViewToggle from './ExerciseViewToggle.jsx'
@@ -18,8 +20,13 @@ const FAV = '☆'
 
 // One explorer for the Library and every catalogue picker. Supplying `onPick` turns
 // a result into a selection; without it the explorer behaves like the normal Library.
+const TRAINED_STEPS = [{ at: 1, level: 1 }, { at: 4, level: 2 }, { at: 8, level: 3 }, { at: 12, level: 4 }]
+
 export default function MuscleExplorer({ onPick, onDetail, onPlan, pickIcon = 'plus', initial = null }) {
   const S = useStore(s => s.S)
+  // Effective work sets per muscle this week (lib/muscles.js), from finished workouts.
+  const weekLoad = useMemo(() => loadOfWorkouts(muscleBalanceWindow(S.workouts, 7, Date.now(), undefined, weekStartOf(S))), [S.workouts]) // eslint-disable-line react-hooks/exhaustive-deps
+  const trainedCount = MUSCLES.filter(m => (weekLoad[m] || 0) >= 1).length
   const [selected, setSelected] = useState(initial)
   const [q, setQ] = useState('')
   const [bp, setBp] = useState('')
@@ -61,7 +68,11 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan, pickIcon = 'p
       </button>
     </div>}
     <div className="card">
-      <BodyMap className="tappable" body={S.body} selected={selected} onMuscle={pick} />
+      {/* Your own body this week (BadgeFit): green where you trained, brighter for more work sets,
+          empty where nothing was done yet. Fixed steps, so a light week reads as light. */}
+      <div className="bm-trained-h"><b>Your muscles this week</b><span>{trainedCount} of {MUSCLES.length} trained</span></div>
+      <BodyMap className="tappable bm-trained" body={S.body} selected={selected} onMuscle={pick} load={weekLoad} thresholds={TRAINED_STEPS} />
+      <div className="bm-trained-legend"><span><i className="l0" />Not yet</span><span><i className="l1" />1-3 sets</span><span><i className="l2" />4-7</span><span><i className="l3" />8-11</span><span><i className="l4" />12+ strong</span></div>
       <div className="chips" style={{ marginTop: 10 }}>
         {MUSCLES.map(m => <button key={m} className={'chip' + (selected === m ? ' on' : '')}
           aria-pressed={selected === m} onClick={() => pick(m)}>
