@@ -28,13 +28,15 @@ import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } fr
 import { bwSheet } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
+import RunPlayer from '../components/RunPlayer.jsx'
+import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
 const TABS = [
   { value: 'today', label: 'Today', sym: '⭐' },
-  { value: 'tests', label: 'Tests', sym: '🎯' },
+  { value: 'run', label: 'Run', sym: '🏃' },
   { value: 'plan', label: 'Plan', sym: '📅' },
-  { value: 'reps', label: 'Reps', sym: '🏋️' },
+  { value: 'tests', label: 'Tests', sym: '🎯' },
   { value: 'food', label: 'Food', sym: '🍽️' },
   { value: 'care', label: 'Care', sym: '🩹' },
 ]
@@ -81,7 +83,7 @@ function speak(lines) {
 }
 
 // --- Today -------------------------------------------------------------------------------
-function Today({ S, user, P, setTab }) {
+function Today({ S, user, P, setTab, startRun }) {
   const nav = useNavigate()
   const [more, setMore] = useState(false)
   const ready = readiness(P.results, P.beepTarget)
@@ -101,35 +103,38 @@ function Today({ S, user, P, setTab }) {
         <SymButton sym="🔊" label="Hear it" onClick={() => { if (!speak(lines)) useUI.getState().toast('This device has no voice to read aloud') }} />
         {isOn(S, 'coach') && <SymButton sym="🎤" label={'Ask ' + BRAND.coach} primary onClick={() => nav('/coach')} />}
         <SymButton sym="👥" label="Community" onClick={() => nav('/community')} />
-        <SymButton sym="🎯" label="Log test" onClick={() => setTab('tests')} />
+        <SymButton sym="🏃" label="Runs" onClick={() => setTab('run')} />
       </div>
     </div>
 
-    <TestCountdown P={P} />
-    <BodyCard S={S} P={P} />
-
-    <MusicBar />
-
-    <div className="card pf-ready">
-      <div className="pf-ring" style={{ '--p': ready.pct }}><span>{ready.pct}%</span></div>
-      <div>
-        <h3>🎯 Test readiness</h3>
-        <p className="pf-sub">Passing {ready.passed} of {ready.total} standards</p>
-        <div className="pf-dots" aria-hidden="true">{ready.rows.map(r => <span key={r.std.id} title={r.std.name} className={r.ev?.pass ? 'ok' : r.ev ? 'part' : ''}>{r.std.icon}</span>)}</div>
-      </div>
-    </div>
-
-    {!P.level || !P.start ? <Setup S={S} P={P} /> : <div className="card">
-      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
-      <p className="pf-sub">{plan.phase.focus}</p>
+    {!P.level || !P.start ? <Setup S={S} P={P} /> : <div className="card pf-todaycard">
+      <div className="row between"><h3>📅 Week {week} of {WEEKS}</h3><span className="pf-chip">Phase {plan.phase.n}</span></div>
       {day && <DayCard d={day} today />}
-      <div className="pf-actions">
-        {day?.key && <Button variant="primary" icon="play" onClick={() => nav('/home')}>Start</Button>}
-        <Button onClick={() => setTab('plan')}>📅 Week</Button>
-      </div>
+      {(() => {
+        const run = runForDay(day)
+        if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
+        if (day?.kind === 'gym') return <button className="pf-go" onClick={() => nav('/home')}>🏋️ Start workout</button>
+        if (day?.kind === 'test') return <button className="pf-go" onClick={() => setTab('tests')}>🎯 Log your tests</button>
+        return null
+      })()}
       <PhaseSync S={S} P={P} week={week} />
     </div>}
+
+    <StatusStrip S={S} P={P} ready={ready} setTab={setTab} />
   </>
+}
+
+/** Three numbers at a glance: days to the test, readiness, weight change. Each opens its tab. */
+function StatusStrip({ S, P, ready, setTab }) {
+  const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
+  const b = bodyProgress(S.bodyweight, { startISO: P.start, startWeight: P.startWeight, goal: S.targetW })
+  const runs = runsThisWeek(P.runLog, todayISO()).length
+  return <div className="pf-strip">
+    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to test</span></button>
+    <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
+    <button onClick={() => setTab('run')}><b>{runs}</b><span>🏃 runs this week</span></button>
+    <button onClick={() => setTab('food')}><b>{b ? (b.change > 0 ? '+' : '') + b.change : '–'}</b><span>⚖️ kg change</span></button>
+  </div>
 }
 
 /** Days to the test, and setting its date: the programme then counts down so week 12 is test week. */
@@ -235,12 +240,55 @@ function DayCard({ d, today }) {
   </div>
 }
 
+// --- Run ---------------------------------------------------------------------------------
+function RunTab({ S, P, startRun }) {
+  const [cat, setCat] = useState('all')
+  const week = weekNumber(P.start, todayISO())
+  const plan = P.level && week ? weekPlan(P.level, week, P.age, { beepFocus: P.beepFocus }) : null
+  const todayRun = runForDay(plan?.days.find(d => d.day === new Date().getDay()))
+  const done = runsThisWeek(P.runLog, todayISO())
+  const list = cat === 'all' ? RUNS : RUNS.filter(r => r.cat === cat)
+  const catOf = id => CATEGORIES.find(c => c.id === id)
+  return <>
+    {todayRun && <div className="card pf-todayrun">
+      <span className="pf-sub">Today's run</span>
+      <h3>{catOf(todayRun.cat).emoji} {todayRun.name}</h3>
+      <p className="pf-sub">{todayRun.why} · ~{runMinutes(todayRun)} min</p>
+      <button className="pf-go" onClick={() => startRun(todayRun)}>▶ Start guided run</button>
+    </div>}
+    <div className="pf-strip pf-strip3">
+      <div><b>{done.length}</b><span>runs this week</span></div>
+      <div><b>{done.reduce((a, r) => a + (r.min || 0), 0)}</b><span>minutes</span></div>
+      <div><b>{Math.round(done.reduce((a, r) => a + (Number(r.km) || 0), 0) * 10) / 10}</b><span>km</span></div>
+    </div>
+    <div className="pf-cats" role="tablist" aria-label="Run type">
+      <button className={cat === 'all' ? 'on' : ''} onClick={() => setCat('all')}>All</button>
+      {CATEGORIES.map(c => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.emoji} {c.name}</button>)}
+    </div>
+    {cat !== 'all' && <p className="pf-sub pf-pad">{catOf(cat).about}</p>}
+    <div className="card pf-runs">{list.map(r => <button key={r.id} className="pf-run" onClick={() => startRun(r)}>
+      <span className="pf-run-e" aria-hidden="true">{catOf(r.cat).emoji}</span>
+      <span className="pf-run-m"><b>{r.name}</b><small>{catOf(r.cat).name} · ~{runMinutes(r)} min · {r.km}</small></span>
+      <span className="pf-run-go" aria-hidden="true">▶</span>
+    </button>)}</div>
+    <p className="pf-sub pf-pad">A week that works: 1 VO2 or interval session, 1 tempo or beep session, and everything else easy. About 80% of your running should feel easy.</p>
+    <MusicBar />
+    {(P.runLog || []).length > 0 && <div className="card">
+      <h3>🗒️ Recent runs</h3>
+      {(P.runLog || []).slice(-6).reverse().map(r => <div key={r.id} className="pf-logrow">
+        <span>{runById(r.run)?.name || 'Run'}</span><small>{r.at} · {r.min} min{r.km ? ` · ${r.km} km` : ''}{r.rpe ? ` · effort ${r.rpe}/10` : ''}</small>
+      </div>)}
+    </div>}
+  </>
+}
+
 // --- Tests -------------------------------------------------------------------------------
 function Tests({ P }) {
   const setP = usePolice()
   const ready = readiness(P.results, P.beepTarget)
   const [open, setOpen] = useState(null)
   return <>
+    <TestCountdown P={P} />
     <p className="pf-sub pf-pad">Test yourself at the start, then at the end of every 4-week phase. Log every attempt: the latest one counts.</p>
     {ready.rows.map(({ std, latest, ev }) => <div key={std.id} className="card pf-std">
       <button className="pf-std-h" onClick={() => setOpen(open === std.id ? null : std.id)}>
@@ -300,7 +348,7 @@ function LogForm({ std, P, onDone }) {
 }
 
 // --- Plan --------------------------------------------------------------------------------
-function Plan({ P }) {
+function Plan({ S, P }) {
   const setP = usePolice()
   const level = P.level || 'beginner'
   const current = weekNumber(P.start, todayISO()) || 1
@@ -336,6 +384,7 @@ function Plan({ P }) {
       <h3>The three phases</h3>
       {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
     </div>
+    <Reps S={S} />
   </>
 }
 
@@ -539,6 +588,7 @@ function Food({ S, P }) {
   const [goal, setGoal] = useState(P.goal || 'lose')
   const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
+    <BodyCard S={S} P={P} />
     <div className="card">
       <h3>🎯 Your daily targets</h3>
       <div className="pf-2">
@@ -594,17 +644,25 @@ export default function PoliceFit() {
   const [params, setParams] = useSearchParams()
   const tab = TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
+  const setP = usePolice()
+  const [running, setRunning] = useState(null)
+  const logRun = entry => {
+    setP(p => ({ runLog: [...(p.runLog || []), { id: Date.now().toString(36), at: todayISO(), ...entry }].slice(-200) }))
+    setRunning(null)
+    useUI.getState().toast('Run saved. That is another level banked. 🏁')
+  }
   return <div className="narrow pf">
+    {running && <RunPlayer run={running} age={P.age} onClose={() => setRunning(null)} onLog={logRun} />}
     <div className="hdr">
       <button className="iconbtn" data-back="/home" onClick={() => nav('/home')} aria-label="Home"><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, margin: '0 12px', minWidth: 0 }}><h1>{BRAND.name}</h1>
         <div className="sub">{BRAND.tagline}</div></div>
     </div>
     <PfTabs value={tab} onChange={setTab} />
-    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} />}
+    {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} />}
+    {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests P={P} />}
-    {tab === 'plan' && <Plan P={P} />}
-    {tab === 'reps' && <Reps S={S} />}
+    {tab === 'plan' && <Plan S={S} P={P} />}
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}
     <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>
