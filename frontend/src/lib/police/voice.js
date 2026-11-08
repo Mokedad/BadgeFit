@@ -68,7 +68,9 @@ export async function say(text, { onStart } = {}) {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
   if (!synth || !text) return false
   const voice = pickVoice(await loadVoices(), savedVoice())
-  synth.cancel()
+  // iPhone Safari drops an utterance queued straight after cancel(), and can sit paused.
+  if (synth.speaking || synth.pending) { synth.cancel(); await new Promise(r => setTimeout(r, 150)) }
+  try { synth.resume() } catch { /* not paused */ }
   // Sentence by sentence: long utterances get cut off on some phones, and the gaps sound natural.
   const parts = String(text).replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*/g) || [text]
   return new Promise(resolve => {
@@ -87,6 +89,7 @@ export async function say(text, { onStart } = {}) {
       u.rate = DELIVERY.rate; u.pitch = DELIVERY.pitch
       u.onend = next; u.onerror = () => end(false)
       if (i === 1) onStart?.()
+      held.push(u); if (held.length > 20) held.shift() // a collected utterance never fires `end`
       synth.speak(u)
       // Some phones never fire `end`: move on after the time the sentence should take.
       timer = setTimeout(next, speakMs(part))
@@ -99,4 +102,22 @@ export async function say(text, { onStart } = {}) {
 export const speakMs = text => 2500 + String(text).split(/\s+/).length * 480
 
 let stopCurrent = null
+const held = []
+
+/**
+ * Call inside a tap. iPhone Safari only lets a page speak once speech has started from a tap, and
+ * Jarvis answers seconds later, after the server: a silent utterance now unlocks the voice for
+ * the answer.
+ */
+export function primeSpeech() {
+  const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
+  if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return
+  try {
+    synth.resume()
+    const u = new SpeechSynthesisUtterance(' ')
+    u.volume = 0
+    held.push(u)
+    synth.speak(u)
+  } catch { /* nothing to unlock */ }
+}
 export const stopSpeaking = () => { try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }

@@ -12,10 +12,3 @@ export default function JarvisOrb() {
     {live ? <span className="jo-waves"><i /><i /><i /><i /></span> : <span className="jarvis-fab-orb" />}
   </span>
 }
-
-/** A small ✕ beside the button while a call runs. */
-export function JarvisEnd({ className = '' }) {
-  const active = useJarvis(s => s.active)
-  if (!active) return null
-  return <button type="button" className={'jo-end ' + className} onClick={() => useJarvis.getState().end()} aria-label="End the call with Jarvis" title="End">✕</button>
-}

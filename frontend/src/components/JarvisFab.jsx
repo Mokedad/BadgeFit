@@ -11,7 +11,7 @@ import { useStore } from '../store/useStore.js'
 import { isOn } from '../lib/modules.js'
 import { snapOrb, ORB } from '../lib/police/orb.js'
 import { useJarvis, tapJarvis } from '../store/useJarvis.js'
-import JarvisOrb, { JarvisEnd, PHASE_LABEL } from './JarvisOrb.jsx'
+import JarvisOrb, { PHASE_LABEL } from './JarvisOrb.jsx'
 
 const JarvisLive = lazy(() => import('./JarvisLive.jsx'))
 const KEY = 'badgefit_jarvis_orb'
@@ -74,7 +74,6 @@ export default function JarvisFab() {
         aria-label={active ? PHASE_LABEL[phase] : 'Talk to Jarvis'} title="Jarvis: tap to talk, drag to move">
         <JarvisOrb />
       </button>
-      <JarvisEnd />
     </div>}
     {active && <Suspense fallback={null}><div className="pf"><JarvisLive /></div></Suspense>}
   </>

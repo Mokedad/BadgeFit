@@ -69,7 +69,7 @@ export default function JarvisLive() {
   const setPhase = p => useJarvis.setState({ phase: p })
   const [note, setNote] = useState('')
   const [typed, setTyped] = useState('')
-  const rec = useRef(null), closed = useRef(false), phaseRef = useRef('idle')
+  const rec = useRef(null), closed = useRef(false), phaseRef = useRef('idle'), stopRef = useRef(() => {})
   phaseRef.current = phase
 
   useEffect(() => {
@@ -112,8 +112,11 @@ export default function JarvisLive() {
       if (r.error) { problem(r.error); return }
       resolvePending({ accepted: ['ask'] }).catch(() => {})
       setPhase('speaking')
-      await say(r.answer)
+      let stopped = false
+      stopRef.current = () => { stopped = true }
+      const spoke = await say(r.answer)
       if (closed.current) return
+      if (!spoke && !stopped) useUI.getState().toast('🔇 Jarvis answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
       if (Recognition && !useJarvis.getState().panel) listen(); else setPhase('idle')
     } catch (e) {
       if (isDeclined(e)) { setPhase('idle'); return }
@@ -126,7 +129,7 @@ export default function JarvisLive() {
     useJarvis.setState({ tap: () => {
       const p = phaseRef.current
       if (p === 'listening') rec.current?.finish()
-      else if (p === 'speaking') { stopSpeaking(); setPhase('idle') }
+      else if (p === 'speaking') { stopRef.current(); stopSpeaking(); setPhase('idle') }
       else if (p === 'idle') listen()
     } })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -137,7 +140,7 @@ export default function JarvisLive() {
     <div className="jl-top">
       <b>Jarvis</b>
       {Recognition && <button className="jl-ic" onClick={() => useJarvis.setState({ panel: false })} aria-label="Back to voice" title="Back to voice">🎤</button>}
-      <button className="jl-ic" onClick={() => useJarvis.getState().end()} aria-label="End" title="End">✕</button>
+      <button className="jl-ic" onClick={() => useJarvis.setState({ panel: false })} aria-label="Hide" title="Hide">–</button>
     </div>
     <div className="jl-state" aria-live="polite">{note || label}</div>
     <form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase !== 'thinking') { stopSpeaking(); rec.current?.cancel(); ask(typed.trim()); setTyped('') } }}>
