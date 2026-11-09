@@ -3,6 +3,7 @@ import { workoutControlsSheet, leaveWorkoutSheet, isPaused, resumeWorkout } from
 import RepRangeCoach from '../components/RepRangeCoach.jsx'
 import JarvisOrb from '../components/JarvisOrb.jsx'
 import { tapJarvis, useJarvis } from '../store/useJarvis.js'
+import { startHandsFree, stopHandsFree, handsFreeAvailable } from '../components/JarvisHandsFree.jsx'
 import { upNext } from '../lib/police/workout-voice.js'
 import { matchExercise } from '../lib/police/exercise-match.js'
 import MusicBar from '../components/MusicBar.jsx'
@@ -1074,6 +1075,17 @@ const coveredTop = () => {
   const inset = probe.offsetHeight || 0
   probe.remove()
   return inset
+}
+
+// BadgeFit: the one Jarvis button in a workout. One tap and he listens for his name for the rest
+// of the session ("Jarvis, that's 20 kg, 4 reps"); tap again and he stops. Where the browser
+// cannot listen it opens the typing card instead (with the Coach on).
+function JarvisMic({ coach }) {
+  const hf = useJarvis(s => s.handsFree)
+  if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Jarvis" title="Ask Jarvis"><JarvisOrb /></button> : null
+  return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Jarvis stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Jarvis is listening. Say "Jarvis, 20 kg, 4 reps"') } }}
+    aria-label={hf ? 'Jarvis is listening. Tap to stop' : 'Let Jarvis listen'} title={hf ? 'Jarvis is listening' : 'Let Jarvis listen'}><JarvisOrb /></button>
 }
 
 function ActiveWorkout() {
@@ -2464,7 +2476,7 @@ function ActiveWorkout() {
         ? <button type="button" className="whdr-gym" onClick={openGymMenu} aria-label={t('Gym: {0}', gymShown)}><Icon name="house" />{gymShown}</button>
         : <span className="whdr-gym"><Icon name="house" />{gymShown}</span>)}</div>
       {!chipRow && sessionMap}
-      {S.police?.level && isOn(S, 'coach') && !editing && <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Jarvis" title="Ask Jarvis"><JarvisOrb /></button>}
+      {S.police?.level && !editing && <JarvisMic coach={isOn(S, 'coach')} />}
       <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
         title={editing ? undefined : 'Tap to finish · hold for pause, change or cancel'}

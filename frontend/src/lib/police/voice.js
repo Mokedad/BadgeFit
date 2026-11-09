@@ -68,6 +68,19 @@ export const DELIVERY = { rate: 0.97, pitch: 0.92 }
  */
 export async function say(text, opts = {}) {
   if (!text) return false
+  talking(+1)
+  try { return await sayNow(text, opts) } finally { talking(-1) }
+}
+
+// Whether Jarvis is talking right now, for hands-free listening (it must not hear itself).
+let speakingCount = 0
+const speakingFns = new Set()
+const talking = d => { speakingCount = Math.max(0, speakingCount + d); speakingFns.forEach(f => { try { f(speakingCount > 0) } catch { /* a listener */ } }) }
+export const isSpeaking = () => speakingCount > 0
+/** Calls fn(true|false) whenever Jarvis starts or stops talking; returns the unsubscribe. */
+export function onSpeaking(fn) { speakingFns.add(fn); return () => speakingFns.delete(fn) }
+
+async function sayNow(text, opts = {}) {
   // The phone app: the native voice (RestAlertPlugin.speak), which lowers Spotify or YouTube while
   // Jarvis talks and brings it back up after, and plays with the silent switch on. A web page
   // cannot do that. It answers when the line starts, so the wait covers the time it takes.

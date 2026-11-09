@@ -12,6 +12,8 @@ export const useJarvis = create(set => ({
   phase: 'idle', // idle | listening | thinking | speaking
   panel: false,
   tap: null, // set by the running call: finish listening, stop talking, or listen again
+  handsFree: false, // listening for "Jarvis, ..." through the workout (components/JarvisHandsFree.jsx)
+  question: null, // a question heard hands-free, for the call to ask
   start: () => set(s => (s.active ? s : { active: true, phase: 'idle', panel: false })),
   end: () => set({ active: false, phase: 'idle', panel: false, tap: null }),
 }))

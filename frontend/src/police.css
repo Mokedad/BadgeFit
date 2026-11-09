@@ -517,3 +517,6 @@
 .pf-jsw-row>span{flex:1;display:flex;flex-direction:column;gap:2px;font-size:14px}
 .pf-jsw-row small{opacity:.75;font-size:12px;line-height:1.35}
 .pf-jsw-row input[type=time]{width:auto;border-radius:10px;padding:4px 6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff}
+.jarvis-ask.hf{box-shadow:0 0 0 3px #22c55e,0 0 14px rgba(34,197,94,.6);animation:jhf 2s ease-in-out infinite}
+@keyframes jhf{50%{box-shadow:0 0 0 5px rgba(34,197,94,.5),0 0 20px rgba(34,197,94,.7)}}
+@media (prefers-reduced-motion:reduce){.jarvis-ask.hf{animation:none}}

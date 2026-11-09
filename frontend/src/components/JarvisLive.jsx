@@ -14,9 +14,7 @@ import { say, stopSpeaking } from '../lib/police/voice.js'
 import { useJarvis } from '../store/useJarvis.js'
 import { useUI } from '../store/useUI.js'
 import { listenOnce } from '../lib/police/listen.js'
-import { parseCommand } from '../lib/police/voice-commands.js'
-import { nextSetLine } from '../lib/police/workout-voice.js'
-import { exerciseNameText } from '../lib/format.js'
+import { runCommand } from './jarvis-actions.js'
 import '../police.css'
 
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
@@ -72,17 +70,20 @@ export default function JarvisLive() {
   const setPhase = p => useJarvis.setState({ phase: p })
   const [note, setNote] = useState('')
   const [typed, setTyped] = useState('')
-  const rec = useRef(null), closed = useRef(false), phaseRef = useRef('idle'), stopRef = useRef(() => {})
+  const oneShot = useRef(false), rec = useRef(null), closed = useRef(false), phaseRef = useRef('idle'), stopRef = useRef(() => {})
   phaseRef.current = phase
 
   useEffect(() => {
+    // A question heard hands-free (JarvisHandsFree) goes straight to the coach.
+    const q = useJarvis.getState().question
+    if (q) { useJarvis.setState({ question: null }); oneShot.current = true; ask(q) } else
     if (Recognition) listen() // opened with a tap: start listening straight away
     else useJarvis.setState({ panel: true })
     return () => { closed.current = true; rec.current?.cancel(); stopSpeaking() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A problem is said out loud and shown for a moment; the call waits for a tap.
-  const problem = text => { setNote(text); setPhase('idle'); useUI.getState().toast(text); say(text) }
+  const problem = text => { setNote(text); setPhase('idle'); useUI.getState().toast(text); say(text).then(() => { if (oneShot.current) useJarvis.getState().end() }) }
 
   const listen = async () => {
     if (!Recognition) return
@@ -104,31 +105,12 @@ export default function JarvisLive() {
     if (out.error) { setNote('Voice did not work just now. Type instead.'); useJarvis.setState({ panel: true }) }
   }
 
-  // Mid-workout, the things you would otherwise tap are done here, at once, with no AI: log a
-  // set, swap an exercise, skip or stretch the rest, what's next, wrap up (voice-commands.js).
-  // Anything else is a question for the coach.
+  // Mid-workout, the things you would otherwise tap are done at once, with no AI (jarvis-actions.js).
   const command = async text => {
-    const w = useJarvis.getState().workout
-    const cmd = useStore.getState().S.active ? parseCommand(text) : null
-    if (!cmd || !w) return false
-    const ui = useUI.getState()
-    const names = async () => { const { EXIDX } = await import('../lib/exercises.js'); return id => (EXIDX[id] ? exerciseNameText(EXIDX[id]) : 'that one') }
-    const unit = useStore.getState().S.unit === 'lb' ? 'lb' : 'kg'
-    const done = text => { setPhase('idle'); if (text) { setPhase('speaking'); say(text).then(() => { if (!closed.current) setPhase('idle') }) } }
-    if (cmd.type === 'set' || cmd.type === 'same') {
-      const n = cmd.type === 'same' ? w.sameAgain() : w.logSet(cmd)
-      if (!n) { done('Nothing to log right now.'); return true }
-      ui.toast(`✅ Set ${n.setNo} logged${cmd.reps ? `: ${cmd.reps} reps` : ''}${cmd.weight ? ` at ${cmd.weight} ${unit}` : ''}`)
-      done('') // Jarvis's set call follows from the workout itself (JarvisWorkout)
-    } else if (cmd.type === 'swap') {
-      const hit = w.swap(cmd.query)
-      if (!hit) { done(`I could not find ${cmd.query}. Try the full name, like dumbbell incline bench press.`); return true }
-      const nameOf = await names()
-      done(`Swapped to ${nameOf(hit.id)}. ${nextSetLine(useStore.getState().S.active, { nameOf, unit }).replace(/^20 seconds\. /, '')}`)
-    } else if (cmd.type === 'skipRest') { ui.skipRest?.(); done('Let us go.') }
-    else if (cmd.type === 'addRest') { ui.addRest?.(cmd.sec); done(`${cmd.sec >= 60 ? 'Another minute' : `${cmd.sec} more seconds`}.`) }
-    else if (cmd.type === 'next') done(nextSetLine(useStore.getState().S.active, { nameOf: await names(), unit }).replace(/^20 seconds\. /, 'Next: ') || 'That is everything. Say wrap up when you are ready.')
-    else if (cmd.type === 'finish') { done(''); w.finish() }
+    const line = await runCommand(text)
+    if (line == null) return false
+    setPhase('idle')
+    if (line) { setPhase('speaking'); say(line).then(() => { if (!closed.current) setPhase('idle') }) }
     return true
   }
 
@@ -149,6 +131,8 @@ export default function JarvisLive() {
       const spoke = await say(r.answer)
       if (closed.current) return
       if (!spoke && !stopped) useUI.getState().toast('🔇 Jarvis answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
+      // A question heard hands-free is one question: the call ends and hands-free listens again.
+      if (oneShot.current) { useJarvis.getState().end(); return }
       if (Recognition && !useJarvis.getState().panel) listen(); else setPhase('idle')
     } catch (e) {
       if (isDeclined(e)) { setPhase('idle'); return }
