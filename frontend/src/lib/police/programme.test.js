@@ -194,3 +194,15 @@ describe('the plan is as long as it takes to reach the test', () => {
     expect([13, 14, 15, 16].map(n => templateWeek(n, 12))).toEqual([9, 10, 11, 9])
   })
 })
+
+describe('running focus', () => {
+  it('two interval days and, for the intermediate, an easy run on Sunday', () => {
+    const w = weekPlan('intermediate', 2, null, { runFocus: true })
+    expect(w.days.filter(d => d.kind === 'run').length).toBe(4)
+    expect(w.days.find(d => d.day === 0)).toMatchObject({ kind: 'run', key: 'easy' })
+    expect(w.days.find(d => d.day === 6).key).toBe('vo2b')
+    expect(planOptsOf({ planChoice: 'run' }).runFocus).toBe(true)
+    const { routines } = buildPoliceProgramme('intermediate', 1, { runFocus: true })
+    expect(routines.map(r => r.police)).toEqual(expect.arrayContaining(['vo2', 'vo2b', 'easy']))
+  })
+})

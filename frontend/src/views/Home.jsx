@@ -34,6 +34,7 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
+import { todayBadgeFitRun } from '../lib/police/today-run.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -124,7 +125,12 @@ export default function Home() {
   const onTodayNow = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
   // BadgeFit: today's workout asks first (Start / something else / rest today / not now), so a
   // tap never drops anyone into a session by accident. A running one opens straight away.
-  const onToday = () => (S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
+  // BadgeFit: on a run day the plan's run routine opens the guided run (with Jarvis), not a gym
+  // session with a cardio row in it.
+  const bfToday = S.active ? null : todayBadgeFitRun(S.police, todayISO())
+  const bfRun = bfToday && todayRoutines.some(r => r.id === bfToday.routineId) ? bfToday.run : null
+  const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
+    : S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
   // A BadgeFit member's programme runs as long as their plan (lib/police/programme.js), not 12 weeks.
@@ -195,6 +201,7 @@ export default function Home() {
             <div className="ttl">{S.active ? (editingSaved ? S.active.name : t('{0} (in progress)', S.active.name))
               : doneToday ? (doneToday.name ? t('{0} (done)', doneToday.name) : t('Workout done'))
               : routine ? todayName : t('Rest day')}{todayOvr && routine && !doneToday ? ' · ' + t('rescheduled') : ''}</div>
+            {bfRun && !doneToday && <div className="ss">🏃 Guided run with Jarvis · {bfRun.name}</div>}
             {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.routine.name)}</div>}
           </div>
         </div>

@@ -95,7 +95,9 @@ async function sayNow(text, opts = {}) {
   }
   // First choice: the server's voice (api/coach/tts.js), played as an audio file. Safari plays a
   // file it has been allowed to play (primeSpeech, on a tap) far more reliably than it speaks.
-  if (Date.now() > serverOffUntil) {
+  // `music`: music is playing (a run): the phone's own voice, which talks over it, rather than an
+  // audio file, which a web page plays by stopping the music.
+  if (!opts.music && Date.now() > serverOffUntil) {
     const blob = preloaded.get(String(text)) || await apiPostBlob('/api/coach/speak', { text: String(text) })
     if (blob && blob.size > 100) {
       const played = await playClip(blob, opts.onStart)

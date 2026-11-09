@@ -25,7 +25,8 @@ import { LEVELS, PHASES, WEEKS, WARMUP, zone2, startForTest, daysUntil, planOpts
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
-import { bwSheet, startFlow } from '../sheets.jsx'
+import { bwSheet, startFlow, confirmSheet } from '../sheets.jsx'
+import { deleteRoutine } from '../lib/routines.js'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
@@ -282,6 +283,64 @@ function BodyCard({ S, P }) {
  * The welcome: three questions a beginner can answer in ten seconds, then one button. With a
  * test date the plan opens on the week that leads to it, already on that week's rep range.
  */
+/**
+ * Puts a BadgeFit plan on Home: its routines (gym days and runs), its weekly schedule as the
+ * running programme, the lifts in the current phase's rep range. `choice`: 'badgefit' (gym and
+ * runs) or 'run' (running focus). A plan already running keeps its start, so switching does not
+ * restart the weeks; the routines of the plan it replaces are removed, your own are kept.
+ */
+function installPlan(update, P, { level, choice = 'badgefit', date = P.testDate, kg = null }) {
+  const built = buildPoliceProgramme(level, Date.now(), { beepFocus: !!P.beepFocus || choice === 'run', runFocus: choice === 'run' })
+  const start = P.start && P.planV === 3 ? P.start : planStart(date || null, todayISO())
+  const weekAt = planWeekOf({ start, testDate: date || undefined }, todayISO()).tw || 1
+  update(s => {
+    const old = Object.values(s.police?.keys || {})
+    const routines = applyPhaseRange(built.routines, level, weekAt, built.keys).map(({ police, ...r }) => r)
+    s.routines = [...(s.routines || []), ...routines]
+    saveProgramme(s, built.programme)
+    startProgramme(s, built.programme.id)
+    for (const id of old) if (!routines.some(r => r.id === id)) deleteRoutine(s, id)
+    s.police = { ...(s.police || {}), level, start, planV: 3, planChoice: choice, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
+      ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}) }
+  })
+}
+
+const PLAN_CHOICES = [
+  { id: 'badgefit', title: '🛡️ BadgeFit plan', sub: 'Gym days and runs on your level, ending on your test' },
+  { id: 'run', title: '🏃 Running focus', sub: 'Same base, more running: a second interval day and, for intermediate, an easy Sunday run' },
+  { id: 'own', title: '🤖 My own plan', sub: 'Jarvis builds one around what you like, on your BadgeFit level and test date' },
+]
+
+/** Which plan Home follows: BadgeFit, running focus, or one Jarvis builds (the Coach). */
+function PlanChoice({ S, P }) {
+  const update = useStore(s => s.update)
+  const nav = useNavigate()
+  const onHome = !!S.programme?.id && S.programme.id === P.programmeId
+  const current = onHome ? (P.planChoice || 'badgefit') : null
+  const level = P.level || 'beginner'
+  const pick = id => {
+    if (id === 'own') {
+      if (!isOn(S, 'coach')) { useUI.getState().toast('Jarvis builds plans once the AI coach is switched on in Settings'); return }
+      update(s => { s.police = { ...(s.police || {}), planChoice: 'own' } })
+      nav('/coach/intake')
+      return
+    }
+    if (id === current) return
+    confirmSheet({
+      title: id === 'run' ? 'Switch to running focus?' : 'Use the BadgeFit plan?',
+      message: `Home then follows this plan, from the week you are in. Your own routines stay under Plan, nothing is deleted.`,
+      confirmText: 'Use this plan',
+      onConfirm: () => { installPlan(update, P, { level, choice: id }); useUI.getState().toast('✅ Done. Home shows this plan now.') },
+    })
+  }
+  return <div className="card pf-planpick">
+    <h3>📋 Your plan</h3>
+    {!onHome && P.planChoice !== 'own' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
+    {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Jarvis built you. Pick another below any time.</p>}
+    <div className="pf-choice">{PLAN_CHOICES.map(c => <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : ''} onClick={() => pick(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
+  </div>
+}
+
 function Setup({ S, P }) {
   const update = useStore(s => s.update)
   const setP = usePolice()
@@ -289,17 +348,7 @@ function Setup({ S, P }) {
   const [date, setDate] = useState(P.testDate || '')
   const [kg, setKg] = useState(P.weightKg ?? null)
   const build = () => {
-    const built = buildPoliceProgramme(level, Date.now(), { beepFocus: P.beepFocus })
-    const start = planStart(date || null, todayISO())
-    const weekAt = planWeekOf({ start, testDate: date || undefined }, todayISO()).tw || 1
-    update(s => {
-      const routines = applyPhaseRange(built.routines, level, weekAt, built.keys).map(({ police, ...r }) => r)
-      s.routines = [...(s.routines || []), ...routines]
-      saveProgramme(s, built.programme)
-      startProgramme(s, built.programme.id)
-      s.police = { ...(s.police || {}), level, start, planV: 3, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
-        ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}) }
-    })
+    installPlan(update, P, { level, choice: 'badgefit', date, kg })
     useUI.getState().toast(date ? 'Week 1 starts now. Your plan ends on your test week.' : 'Your 12 weeks start today. Let us get to work.')
   }
   return <div className="card pf-welcome">
@@ -479,6 +528,7 @@ function Plan({ S, P }) {
   const plan = weekPlan(level, week, P.age, planOptsOf(P))
   const z2 = zone2(P.age)
   return <>
+    <PlanChoice S={S} P={P} />
     <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => setP({ level: l })} />
     <div className="card">
       <div className="pf-2">
@@ -818,7 +868,7 @@ export default function PoliceFit() {
     useUI.getState().toast('Run saved. That is another level banked. 🏁')
   }
   return <div className="narrow pf">
-    {running && <RunPlayer run={running} age={P.age} onClose={() => setRunning(null)} onLog={logRun} />}
+    {running && <RunPlayer run={running} age={P.age} runLog={P.runLog || []} onClose={() => setRunning(null)} onLog={logRun} />}
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
       setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
       setOverlay(null); useUI.getState().toast(`📣 Beep test ${v} saved`)

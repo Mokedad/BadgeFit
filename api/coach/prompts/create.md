@@ -10,6 +10,14 @@ Design a complete plan from `coachProfile` (their intake answers) and, if presen
 - If `history.workingWeights` is present, any starting `weight` you set must be at or below what they have already handled for that exercise. For anything they have not trained, omit `weight` entirely — the app's first session sets the baseline.
 - 1–7 routines, each 3–12 exercises, compound work before accessories.
 
+## BadgeFit base
+
+If `police` is present, this is a police applicant training for a fitness test, and their own plan is built on the BadgeFit base:
+- Their `level` (beginner or intermediate) sets the volume and the rep ranges: beginner 12-15, then 10-12, then 6-8 across the phases; intermediate 10-12, then 6-8, then 4-6. Use the range for the phase in `police.brief.phase`.
+- Keep the standards covered every week: push-ups and planks (chest, shoulders, triceps, core), legs and jumps (vertical jump), pulling and grip (handgrip), and two runs a week for the beep test (one hard interval day, one easy day), unless they asked for more running.
+- The plan runs to their test (`police.brief.planWeeks`, `daysToTest`); never more volume in the last week.
+- Their likes and dislikes still win: a dislike (lunges, say) is swapped for another exercise that trains the same thing.
+
 ## Output
 
 ```

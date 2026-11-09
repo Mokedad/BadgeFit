@@ -5,7 +5,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ZONES, hrFor, runMinutes } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
-import { say } from '../lib/police/voice.js'
+import { say, say as sayAloud } from '../lib/police/voice.js'
+import { checkInMinutes, checkInLine, statLines, intenseLine } from '../lib/police/run-coach.js'
+import { todayISO } from '../lib/format.js'
 import '../police.css'
 
 const fmt = sec => { const s = Math.max(0, Math.round(sec)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
@@ -27,10 +29,10 @@ function cue(audio, text, kind) {
     }
   } catch { /* no audio */ }
   try { navigator.vibrate?.(kind === 'work' ? [200, 100, 200] : [300]) } catch { /* no vibration */ }
-  if (text) say(text).catch(() => {}) // Jarvis's Australian voice (lib/police/voice.js)
+  if (text) say(text, { music: true }).catch(() => {}) // Jarvis's voice, over your music (lib/police/voice.js)
 }
 
-export default function RunPlayer({ run, age, onClose, onLog }) {
+export default function RunPlayer({ run, age, onClose, onLog, runLog = [] }) {
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
@@ -40,6 +42,19 @@ export default function RunPlayer({ run, age, onClose, onLog }) {
   const [rpe, setRpe] = useState(null)
   const [km, setKm] = useState(null)
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
+  // Jarvis the coach (lib/police/run-coach.js): check-ins at 2, 5, 7, 10 min then every 5, a lift
+  // when a hard part starts, each shown for a moment on screen too. Nothing said twice.
+  const [bubble, setBubble] = useState(null)
+  const said = useRef(new Set()), checked = useRef(new Set()), seed = useRef(Date.now())
+  const planned = runMinutes(run)
+  const stats = useRef(null)
+  const coach = (text, kind = 'work') => {
+    if (!text) return
+    said.current.add(text)
+    setBubble({ text, at: Date.now() })
+    sayAloud(text, { music: true }).catch(() => {}) // the voice, not the step-text `say` below
+    try { navigator.vibrate?.(kind === 'work' ? [80, 60, 80] : 60) } catch { /* none */ }
+  }
   const seg = segs[idx]
   const elapsed = started ? ((paused ? pausedAt.current : now) - segStart.current) / 1000 : 0
   const left = seg?.sec != null ? seg.sec - elapsed : null
@@ -49,7 +64,10 @@ export default function RunPlayer({ run, age, onClose, onLog }) {
   const go = i => {
     if (i >= segs.length) { setDone(true); cue(audio, 'Session complete. Great work.', 'cool'); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
-    cue(audio, say(segs[i]), segs[i].kind)
+    // A hard part starting gets Jarvis's lift on top of the step itself.
+    const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
+    cue(audio, say(segs[i]) + lift, segs[i].kind)
+    if (lift) setBubble({ text: lift.trim(), at: Date.now() })
   }
   const start = () => {
     try { audio.current = new (window.AudioContext || window.webkitAudioContext)() } catch { audio.current = null }
@@ -66,9 +84,19 @@ export default function RunPlayer({ run, age, onClose, onLog }) {
     const t = setInterval(() => {
       const n = Date.now(); setNow(n)
       if (seg?.sec != null && (n - segStart.current) / 1000 >= seg.sec) go(idx + 1)
+      // The check-ins, by minutes run (a pause moves runStart, so it does not count).
+      const min = (n - runStart.current) / 60000
+      const due = checkInMinutes(planned).find(m => min >= m && !checked.current.has(m))
+      if (due != null) {
+        checked.current.add(due)
+        if (!stats.current) stats.current = statLines({ run, runLog, today: todayISO(), minutesSoFar: 0 })
+        // Not on top of a step change: a step that just started has said its piece.
+        if ((n - segStart.current) / 1000 > 4) coach(checkInLine({ cat: run.cat, minute: due, seed: seed.current, stats: stats.current, said: said.current, totalMin: planned }), 'check')
+      }
+      if (bubble && n - bubble.at > 6000) setBubble(null)
     }, 250)
     return () => clearInterval(t)
-  }, [started, paused, done, idx]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [started, paused, done, idx, bubble]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
 
   const totalMin = Math.max(1, Math.round((Date.now() - runStart.current) / 60000))
@@ -100,7 +128,7 @@ export default function RunPlayer({ run, age, onClose, onLog }) {
       <h2>{run.name}</h2>
       <p className="rp-sub">{run.why}</p>
       <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">Beeps, vibration and a voice tell you each change. Keep the screen on, music on top is fine.</p>
+      <p className="rp-hint">🎵 Start Spotify or YouTube first, then tap Start. Jarvis talks over your music: each change, and a check-in at 2, 5, 7 and 10 minutes.</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>
@@ -108,6 +136,7 @@ export default function RunPlayer({ run, age, onClose, onLog }) {
       <div className="rp-time" aria-live="off">{left != null ? fmt(left) : fmt(elapsed)}</div>
       {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>✓ Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
+      {bubble && <div className="rp-bubble" role="status"><span className="pf-orb" aria-hidden="true" />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
         <button onClick={() => idx > 0 && go(idx - 1)} aria-label="Previous step" disabled={idx === 0}>⏮</button>

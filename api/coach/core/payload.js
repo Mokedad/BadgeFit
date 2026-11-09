@@ -842,6 +842,13 @@ export function build(S, opts = {}) {
     const said = conversation(coach, [opts.note, opts.refine]);
     if (said.length) p.conversation = said;
   }
+  // A BadgeFit member's own plan (the create job) starts from the BadgeFit base: their level,
+  // plan length to the test and its runs (prompts/create.md, "BadgeFit base").
+  if (opts.kind === 'create') {
+    const police = cleanPolice(S.police, now);
+    const brief = cleanBrief(opts.police);
+    if (police || brief) p.police = { ...(police || {}), ...(brief && { brief }) };
+  }
   return p;
 }
 

@@ -224,11 +224,14 @@ export function weekPlan(level, week, age, opts = {}) {
     if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'Sauna after: 15-20 min, hydrate']
     d.dayName = DAY_NAMES[d.day]
   }
-  if (opts.beepFocus) {
+  if (opts.beepFocus || opts.runFocus) {
     const x = vo2For(w, true)
     days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['Sauna: 15-20 min'] }
     if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
   }
+  // Running focus (S.police.planChoice 'run'): the second interval day above, and for the
+  // intermediate a third run, easy, on Sunday instead of the incline walk.
+  if (opts.runFocus && lv === 'intermediate') days[6] = { day: 0, dayName: DAY_NAMES[0], kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace: the third run of your running week', zoneText], recovery: ['Compression boots: 20-30 min'] }
   // The final week (week 12, or the test's week when the test is closer than 12 weeks): light
   // training and recovery, so the member arrives fresh.
   const final = n === lengthOf(opts.planWeeks)
@@ -367,6 +370,7 @@ export function planOptsOf(P) {
   const t = P?.testDate ? Date.parse(P.testDate + 'T00:00:00Z') : NaN
   return {
     beepFocus: !!P?.beepFocus,
+    runFocus: P?.planChoice === 'run',
     testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
     testName: (P?.testName || 'PCT').slice(0, 24),
     planWeeks: planLengthOf(P),

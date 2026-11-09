@@ -83,6 +83,8 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
         const job = jobs.enqueue(user.id, {
           kind: 'create',
           intake: body.intake || null,
+          // BadgeFit's trainer brief: an own plan is still built on the BadgeFit base.
+          police: body.police && typeof body.police === 'object' && !Array.isArray(body.police) ? body.police : null,
           lang: body.lang,
           refine: body.refine ? String(body.refine).slice(0, cfgStore.MAX_MESSAGE_LEN_CEILING) : null
         });
