@@ -8,11 +8,6 @@ import { liveAdvice } from '../lib/police/set-advice.js'
 import { fmtNum } from '../lib/format.js'
 import { rangeOf } from '../lib/police/workout-voice.js'
 
-  if (t.repsMin > 0 && t.reps >= t.repsMin) return { min: t.repsMin, max: t.reps }
-  if (p.repsMin > 0 && p.reps >= p.repsMin) return { min: p.repsMin, max: p.reps }
-  return null
-}
-
 export default function RepRangeCoach({ entry, unit, onApply }) {
   const range = rangeOf(entry)
   const a = liveAdvice(entry?.sets, range, unit)
