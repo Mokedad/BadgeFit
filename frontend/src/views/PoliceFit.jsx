@@ -134,26 +134,6 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
   </>
 }
 
-// The last week: everything to sort before the test, ticked off here (S.police.testPrep).
-const TEST_PREP = [
-  ['id', '🪪 Photo ID and any letter or paperwork they asked for'],
-  ['gear', '👟 Running shoes with grip, comfortable training clothes'],
-  ['water', '💧 Water bottle and a snack for after'],
-  ['travel', '🚗 Know the venue, parking and travel time. Arrive 30 min early'],
-  ['food', '🍝 Carbs at dinner the night before, nothing new to eat'],
-  ['sleep', '😴 In bed early two nights running, 8 hours'],
-  ['easy', '🧘 Day before: rest or a 20 minute easy jog, nothing hard'],
-]
-function TestWeek({ P, name }) {
-  const setP = usePolice()
-  const done = P.testPrep || {}
-  const n = TEST_PREP.filter(([k]) => done[k]).length
-  return <div className="pf-prep">
-    <b>✅ {name} week checklist · {n}/{TEST_PREP.length}</b>
-    {TEST_PREP.map(([k, label]) => <label key={k} className="pf-prep-row"><input type="checkbox" checked={!!done[k]} onChange={e => setP(p => ({ testPrep: { ...(p.testPrep || {}), [k]: e.target.checked } }))} /><span>{label}</span></label>)}
-  </div>
-}
-
 /** Notifications allowed for BadgeFit: on the phone app its local ones, on the web the push from the server. */
 async function allowNotifications(user, S, nextPolice) {
   if (MOBILE) {
@@ -266,7 +246,6 @@ function TestCountdown({ S, P }) {
         <label>Date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       </div>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
-      {left != null && left >= 0 && left <= 7 && <TestWeek P={P} name={name} />}
       <label className="pf-goalw">⚖️ Goal weight on {name} day (kg)<NumberField value={S?.targetW ?? null} nullable onChange={v => update(s => { s.targetW = v })} /></label>
       {P.testDate && <p className="pf-sub">Plan weeks run Monday to Sunday. Your plan runs from week 1 to week {pw.last}, your final week: light training, the {name} on its own day and an easy day before it{pw.week && !pw.after && !pw.before ? `. This is week ${pw.week}` : ''}. Change the date and the plan fits itself to it.</p>}
     </div>
