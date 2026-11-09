@@ -1,13 +1,13 @@
 // BadgeFit's rep-range rule live in the workout (lib/police/set-advice.js liveAdvice), from the
 // very first session: after each work set it says move up, stay or move down, and puts that
 // weight on the next set still to do, once per finished set, so a weight typed over it stays.
-// Shown only for a BadgeFit member, on an exercise with a rep range. English only.
+// Shown for a BadgeFit member on every weighted exercise: its own rep range, or one built from
+// its planned reps (workout-voice.js rangeOf: 8 planned is 6-8). English only.
 import { useEffect, useRef } from 'react'
 import { liveAdvice } from '../lib/police/set-advice.js'
 import { fmtNum } from '../lib/format.js'
+import { rangeOf } from '../lib/police/workout-voice.js'
 
-const rangeOf = entry => {
-  const t = entry?.target || {}, p = entry?.planned || {}
   if (t.repsMin > 0 && t.reps >= t.repsMin) return { min: t.repsMin, max: t.reps }
   if (p.repsMin > 0 && p.reps >= p.repsMin) return { min: p.repsMin, max: p.reps }
   return null

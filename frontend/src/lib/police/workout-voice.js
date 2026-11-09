@@ -8,12 +8,17 @@
 import { liveAdvice } from './set-advice.js'
 import { setLine as adviceLine, pick } from './jarvis.js'
 
-/** The rep range an entry trains in (as RepRangeCoach reads it), or null. */
+/**
+ * The rep range an entry trains in, or null. Its own range when it has one; otherwise (a plain
+ * "4 x 8") the range ending at the planned reps, two below to the planned number: 8 planned is
+ * 6-8, so every weighted exercise moves by the rep-range rule, set to set.
+ */
 export function rangeOf(entry) {
   const t = entry?.target || {}, p = entry?.planned || {}
   if (t.repsMin > 0 && t.reps >= t.repsMin) return { min: t.repsMin, max: t.reps }
   if (p.repsMin > 0 && p.reps >= p.repsMin) return { min: p.repsMin, max: p.reps }
-  return null
+  const r = Number(t.reps) || Number(p.reps) || Number((entry?.sets || []).find(s => s && !s.warmup && Number(s.r) > 0)?.r) || 0
+  return r >= 4 && r <= 30 ? { min: r - 2, max: r } : null
 }
 
 const workSets = entry => (entry?.sets || []).filter(s => s && !s.warmup && s.kind !== 'warmup')

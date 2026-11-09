@@ -59,3 +59,17 @@ describe('rest coaching and the wrap-up', () => {
     expect(wrapUpLine(now, { workouts: [prev, now], goal: 'strength', nameOf: () => 'Bench press' })).toMatch(/Stronger on Bench press/)
   })
 })
+
+import { rangeOf } from './workout-voice.js'
+describe('rangeOf', () => {
+  it('a plain 4 x 8 still trains by the rep-range rule', () => {
+    expect(rangeOf({ target: { reps: 8 } })).toEqual({ min: 6, max: 8 })
+    expect(rangeOf({ target: { repsMin: 10, reps: 12 } })).toEqual({ min: 10, max: 12 })
+    expect(rangeOf({ sets: [{ r: 10, w: 40 }] })).toEqual({ min: 8, max: 10 })
+    expect(rangeOf({ target: { reps: 3 } })).toBeNull()
+  })
+  it('the next set moves after every set', () => {
+    const A = { start: 1, entries: [{ id: 'a', target: { reps: 8 }, sets: [{ w: 70, r: 8, done: true }, { w: 70, done: false }, { w: 70, done: false }] }] }
+    expect(setDoneLine(A, { e: 0, s: 0 }, { nameOf: () => 'Bench', seed: 0 })).toMatch(/72.5 kg/)
+  })
+})
