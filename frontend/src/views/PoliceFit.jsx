@@ -30,7 +30,6 @@ import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
 import BeepTrainer from '../components/BeepTrainer.jsx'
-import { weightTrack } from '../lib/police/weight-track.js'
 import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
@@ -209,11 +208,12 @@ function StatusStrip({ S, P, ready, setTab }) {
   const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
   const bw = (S.bodyweight || []).filter(b => b && Number(b.w) > 0).sort((a, b) => (a.d < b.d ? -1 : 1))
   const nowKg = bw.length ? Number(bw.at(-1).w) : Number(P.weightKg) || null
-  const track = weightTrack({ startKg: Number(P.weightKg) || (bw[0] ? Number(bw[0].w) : null), goalKg: Number(S.targetW) || null, startISO: P.start, testISO: P.testDate, nowKg, todayISO: todayISO() })
+  const startKg = Number(P.weightKg) || (bw[0] ? Number(bw[0].w) : null)
+  const change = nowKg && startKg ? Math.round((nowKg - startKg) * 10) / 10 : null
   return <div className="pf-strip pf-strip3">
     <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
     <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
-    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{track ? (track.onTrack ? `⚖️ on track (${track.expected})` : `⚖️ line: ${track.expected}`) : nowKg ? '⚖️ set a goal' : '⚖️ kg'}</span></button>
+    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{change ? `⚖️ ${change > 0 ? '+' : ''}${change} kg since start` : '⚖️ kg'}</span></button>
   </div>
 }
 
@@ -246,7 +246,6 @@ function TestCountdown({ S, P }) {
         <label>Date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       </div>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
-      <label className="pf-goalw">⚖️ Goal weight on {name} day (kg)<NumberField value={S?.targetW ?? null} nullable onChange={v => update(s => { s.targetW = v })} /></label>
       {P.testDate && <p className="pf-sub">Plan weeks run Monday to Sunday. Your plan runs from week 1 to week {pw.last}, your final week: light training, the {name} on its own day and an easy day before it{pw.week && !pw.after && !pw.before ? `. This is week ${pw.week}` : ''}. Change the date and the plan fits itself to it.</p>}
     </div>
   </div>
@@ -272,7 +271,6 @@ function BodyCard({ S, P }) {
       </div>
       {b.pct != null && <div className="pf-bar"><span style={{ width: b.pct + '%' }} /></div>}
       {spark && <svg className="pf-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points={spark} /></svg>}
-      {S.targetW == null && <p className="pf-sub">Set a goal weight in Settings to see how far along you are.</p>}
     </> : <p className="pf-sub">Log your weight a few mornings a week, same time, before breakfast. The weekly average is what counts.</p>}
     <div className="pf-actions">
       <Button size="sm" onClick={() => nav('/measurements')}>📏 Measure</Button>

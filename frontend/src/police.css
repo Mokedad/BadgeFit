@@ -508,7 +508,6 @@
 .pf-adjust.light{box-shadow:inset 3px 0 0 #ef4444}
 .pf-adjust.go{box-shadow:inset 3px 0 0 #22c55e}
 .pf-strip.pf-strip3{grid-template-columns:repeat(3,1fr)}
-.pf-goalw{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:13px}
 .pf-jsw{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}
 .pf .pf-jsw-row{display:flex;flex-direction:row;align-items:center;gap:10px;color:#fff}
 .pf-jsw-row>span{flex:1;display:flex;flex-direction:column;gap:2px;font-size:14px}
