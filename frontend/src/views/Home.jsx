@@ -35,6 +35,7 @@ import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
 import { todayBadgeFitRun } from '../lib/police/today-run.js'
+import EventCountdown from '../components/EventCountdown.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -161,10 +162,12 @@ export default function Home() {
       <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Jarvis has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
       <Icon name="chevronRight" />
     </button>
+    {S.police?.start && <EventCountdown P={S.police} />}
 
     <div className="card">
       {/* A running programme (lib/programmes.js) wrote this week's plan: where it stands, one tap from its screen. */}
-      {progChip && <button type="button" className="chip ichip prog-chip" onClick={() => nav(bfPlan?.week ? '/police?tab=plan' : '/plan/programmes')}><Icon name="calendar" /><span>{progChip}</span></button>}
+      {/* BadgeFit shows the week in its countdown card above (EventCountdown), not twice. */}
+      {progChip && !(bfPlan?.week && S.police?.start) && <button type="button" className="chip ichip prog-chip" onClick={() => nav(bfPlan?.week ? '/police?tab=plan' : '/plan/programmes')}><Icon name="calendar" /><span>{progChip}</span></button>}
       {/* A coach week runs by order, not by weekday, so its progress row stands in for the
           seven dots (components/QueueRow.jsx). The today row below stays as it is: the queue's
           next session reaches it through effectiveRoutineIds like any planned routine. */}
