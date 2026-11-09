@@ -1,5 +1,5 @@
-// BadgeFit's planned reminders: the morning nudge (today's session and the days left) and the two
-// for the test (the evening before, and the morning of). Built on the phone, where the plan
+// BadgeFit's planned reminders: the morning nudge, today's session and the days left. Built on
+// the phone, where the plan
 // lives, for the next days, and stored in S.police.pushPlan: the server sends each at its time
 // as a web push (api/badgefit-plan-push.js), the phone app schedules them locally (lib/mobile.js).
 // Pure.
@@ -33,19 +33,11 @@ export function nudgeBody(P, iso) {
 export function buildPushPlan(P, today, tz = 'UTC') {
   const cfg = nudgeSettings(P?.nudge)
   if (!cfg.on || !P?.level) return { on: false }
-  const name = (P.testName || '').trim() || 'PCT'
   const items = []
   for (let d = 0; d < PLAN_DAYS; d++) {
     const iso = addDays(today, d)
     if (P.testDate && iso > P.testDate) break
-    if (iso === P.testDate) {
-      items.push({ at: `${iso} 06:30`, title: `🎯 ${name} day`, body: 'Normal breakfast 3 hours before, water, a full warm-up. Trust your training. You are ready.', tag: 'bf-test-day', url: '#/police?tab=tests' })
-      continue
-    }
     items.push({ at: `${iso} ${cfg.time}`, title: '⭐ Today', body: nudgeBody(P, iso), tag: 'bf-nudge', url: '#/police' })
-    if (P.testDate && addDays(iso, 1) === P.testDate) {
-      items.push({ at: `${iso} 19:00`, title: `🎯 ${name} tomorrow`, body: 'Lay out your gear and ID tonight, carbs at dinner, nothing new, and 8 hours of sleep.', tag: 'bf-test-eve', url: '#/police?tab=tests' })
-    }
   }
   return { on: true, tz, built: today, items }
 }

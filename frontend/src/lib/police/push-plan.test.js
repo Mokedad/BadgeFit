@@ -17,11 +17,9 @@ describe('planned reminders', () => {
     expect(plan.items[0].body).toMatch(/27 days to your PCT\.$/)
     expect(nudgeBody(P, '2026-11-09')).toMatch(/^Chest/)
   })
-  it('the evening before and the morning of the test, nothing after it', () => {
+  it('a nudge up to the test day, nothing after it', () => {
     const plan = buildPushPlan(P, '2026-12-01')
-    const tags = plan.items.map(i => `${i.at} ${i.tag}`)
-    expect(tags).toContain('2026-12-05 19:00 bf-test-eve')
-    expect(tags).toContain('2026-12-06 06:30 bf-test-day')
-    expect(plan.items.at(-1).at.startsWith('2026-12-06')).toBe(true)
+    expect(plan.items.map(i => i.tag).every(t => t === 'bf-nudge')).toBe(true)
+    expect(plan.items.at(-1).at).toBe('2026-12-06 06:45')
   })
 })

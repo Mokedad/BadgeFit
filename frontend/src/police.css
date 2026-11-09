@@ -96,7 +96,6 @@
 .pf-count-n b{font-size:34px;line-height:1;color:var(--green)}
 .pf-count-n span{font-size:11px;color:var(--label-2);margin-top:4px;padding:0 4px}
 .pf-count-m{flex:1;min-width:0}
-.pf-taper{font-size:14px;margin-top:8px}
 /* protein, creatine, supplements */
 .pf-prot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
 .pf-prot div{background:var(--surface-2);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
