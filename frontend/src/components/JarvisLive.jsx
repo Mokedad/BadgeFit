@@ -6,7 +6,7 @@
 // app's AI Coach (lib/coach-api.js askCoach), which answers as Jarvis for a BadgeFit member
 // (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
-import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, JOB_ERRORS, disclosure, coachVia } from '../lib/coach-api.js'
+import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, disclosure, coachVia } from '../lib/coach-api.js'
 import { consentTarget, allowAi } from '../lib/coach-consent.js'
 import { hasConsent, emptyCoach, CONSENT_VERSION } from '../lib/coach.js'
 import { useStore } from '../store/useStore.js'
@@ -15,13 +15,16 @@ import { useJarvis } from '../store/useJarvis.js'
 import { useUI } from '../store/useUI.js'
 import { listenOnce } from '../lib/police/listen.js'
 import { runCommand } from './jarvis-actions.js'
+import { answerOffline } from '../lib/police/offline-jarvis.js'
+import { policeBrief } from '../lib/police/brief.js'
+import { todayISO } from '../lib/format.js'
 import '../police.css'
 
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 const POLL_MS = 1500
 // The server has no AI connected yet: say who can fix it and where.
 const OFF_TEXT = 'Jarvis is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'
-const MAX_WAIT_MS = 120000
+const MAX_WAIT_MS = 45000 // then Jarvis answers from the plan rather than keep you waiting
 
 /**
  * The Coach's go-ahead, asked once, the first time someone talks to Jarvis: the app's own sheet
@@ -118,27 +121,33 @@ export default function JarvisLive() {
     setNote('')
     if (await command(text)) return
     setPhase('thinking')
+    let answer = null
     try {
       if (!await ensureJarvisConsent()) { problem('Okay. Jarvis will wait until you say yes.'); return }
       await askCoach(text)
       const r = await waitForAnswer(() => closed.current)
       if (!r || closed.current) return
-      if (r.error) { problem(r.error); return }
-      resolvePending({ accepted: ['ask'] }).catch(() => {})
-      setPhase('speaking')
-      let stopped = false
-      stopRef.current = () => { stopped = true }
-      const spoke = await say(r.answer)
-      if (closed.current) return
-      if (!spoke && !stopped) useUI.getState().toast('🔇 Jarvis answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
-      // A question heard hands-free is one question: the call ends and hands-free listens again.
-      if (oneShot.current) { useJarvis.getState().end(); return }
-      if (Recognition && !useJarvis.getState().panel) listen(); else setPhase('idle')
+      if (!r.error) { answer = r.answer; resolvePending({ accepted: ['ask'] }).catch(() => {}) }
     } catch (e) {
       if (isDeclined(e)) { setPhase('idle'); return }
-      problem(e?.data?.code === 'off' ? OFF_TEXT : JOB_ERRORS[e?.data?.code] || e?.message || 'Jarvis could not be reached.')
+      // The coach switched off on this server is the admin's to fix: say so once, quietly.
+      if (e?.data?.code === 'off') useUI.getState().toast(OFF_TEXT)
     }
+    if (closed.current) return
+    // The AI could not answer (the day's allowance, the service down, no signal): Jarvis answers
+    // from the plan instead, so he is never silent (lib/police/offline-jarvis.js).
+    if (answer == null) answer = answerOffline(text, policeBrief(useStore.getState().S, todayISO()))
+    setPhase('speaking')
+    let stopped = false
+    stopRef.current = () => { stopped = true }
+    const spoke = await say(answer)
+    if (closed.current) return
+    if (!spoke && !stopped) useUI.getState().toast('🔇 Jarvis answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
+    // A question heard hands-free is one question: the call ends and hands-free listens again.
+    if (oneShot.current) { useJarvis.getState().end(); return }
+    if (Recognition && !useJarvis.getState().panel) listen(); else setPhase('idle')
   }
+
 
   // The button's tap while the call runs.
   useEffect(() => {

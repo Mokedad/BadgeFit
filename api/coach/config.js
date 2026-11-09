@@ -81,7 +81,7 @@ const DEFAULTS = {
   models: {},                                        // { [provider]: model id }
   providerOptions: {},                               // { [provider]: { baseUrl } }
   boundUid: {},                                      // instance mode: { [provider]: the profile its credential bound to }
-  caps: { perProfileDaily: 10, instanceDaily: 0 },   // 0 = unlimited
+  caps: { perProfileDaily: 10, instanceDaily: 0, askDaily: 100 },   // 0 = unlimited; askDaily: questions (the ask job), counted apart
   daily: null,                                       // { date, count }: jobs enqueued today across every profile
   // Anonymous medians across profiles that opt in ("compare with others"). Off by default: it
   // is the one feature where one person's numbers feed into what another person sees.

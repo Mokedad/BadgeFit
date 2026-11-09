@@ -313,7 +313,9 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
       if (body.caps) {
         patch.caps = {
           perProfileDaily: Math.max(0, Math.min(200, +body.caps.perProfileDaily || 0)),
-          instanceDaily: Math.max(0, Math.min(5000, +body.caps.instanceDaily || 0))
+          instanceDaily: Math.max(0, Math.min(5000, +body.caps.instanceDaily || 0)),
+          // Questions (BadgeFit's Jarvis) have their own allowance; kept as it is unless sent.
+          askDaily: body.caps.askDaily !== undefined ? Math.max(0, Math.min(1000, +body.caps.askDaily || 0)) : (current.caps?.askDaily ?? 100)
         };
       }
       if (body.maxMessageLen !== undefined) {

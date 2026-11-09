@@ -48,7 +48,7 @@ const HISTORY_MAX = 20;
 
 const safe = uid => String(uid).replace(/[^a-zA-Z0-9_-]/g, '');
 const userFile = uid => path.join(COACH_DIR, safe(uid) + '.json');
-const EMPTY = { daily: null, current: null, pending: null, history: [] };
+const EMPTY = { daily: null, askDaily: null, current: null, pending: null, history: [] };
 
 export function readUser(uid) {
   try { return { ...EMPTY, ...JSON.parse(fs.readFileSync(userFile(uid), 'utf8')) }; }
@@ -121,6 +121,18 @@ export function capState(uid) {
   const rec = readUser(uid);
   const used = rec.daily?.date === todayISO() ? rec.daily.count : 0;
   return { used, limit: caps.perProfileDaily || 0 };
+}
+/** The questions asked today against caps.askDaily (0 = no limit). */
+export function askCapState(uid) {
+  const caps = cfgStore.load().caps || {};
+  const rec = readUser(uid);
+  const used = rec.askDaily?.date === todayISO() ? rec.askDaily.count : 0;
+  return { used, limit: caps.askDaily ?? 100 };
+}
+function bumpAskDaily(uid) {
+  const rec = readUser(uid);
+  const d = todayISO();
+  patchUser(uid, { askDaily: rec.askDaily?.date === d ? { date: d, count: rec.askDaily.count + 1 } : { date: d, count: 1 } });
 }
 // The instance-wide count is kept the same way in coach.json, not read off the job log: the
 // log keeps its last hundred entries, and a count that stops at a hundred is not a cap.
@@ -222,7 +234,11 @@ export function enqueue(uid, opts) {
 
   // The caps, before the bind for the same reason: a job refused for the day spends nothing.
   const caps = cfgStore.load().caps || {};
-  const { used, limit } = capState(uid);
+  // A question to the coach (BadgeFit's Jarvis, the chat) is one short answer: it has its own,
+  // larger allowance (caps.askDaily), so asking all day never uses up the planning jobs, and
+  // the planning jobs never silence the questions.
+  const asking = opts && opts.kind === 'ask';
+  const { used, limit } = asking ? askCapState(uid) : capState(uid);
   if (limit > 0 && used >= limit) throw new CoachError('cap', 'daily limit reached');
   if (caps.instanceDaily > 0 && instanceUsedToday() >= caps.instanceDaily) throw new CoachError('cap', 'this instance has reached its daily limit');
 
@@ -233,7 +249,7 @@ export function enqueue(uid, opts) {
   // Counted at enqueue, not at completion: the cap exists to bound what one profile can spend
   // of the owner's provider account, and queueing twenty jobs spends it whether or not the
   // twentieth ever finishes.
-  bumpDaily(uid);
+  if (asking) bumpAskDaily(uid); else bumpDaily(uid);
   bumpInstanceDaily();
 
   const job = {

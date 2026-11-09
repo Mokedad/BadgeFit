@@ -65,6 +65,22 @@ test('the daily cap is enforced and reported as its own failure', async () => {
   cfg.save({ caps: { perProfileDaily: 10, instanceDaily: 0 } });
 });
 
+test('questions have their own allowance: a used-up day of planning still answers', async () => {
+  const uid = 'u-askcap';
+  const st = sampleState();
+  writeState(DIR, uid, st);
+  cfg.save({ caps: { perProfileDaily: 1, instanceDaily: 0, askDaily: 1 } });
+  jobs.enqueue(uid, { kind: 'review' });
+  await settle(uid);
+  assert.throws(() => jobs.enqueue(uid, { kind: 'review' }), e => e.code === 'cap');
+  jobs.enqueue(uid, { kind: 'ask', note: 'what should I do today?' }) // the planning cap does not stop it
+  await settle(uid);
+  assert.equal(jobs.askCapState(uid).used, 1);
+  assert.equal(jobs.capState(uid).used, 1);
+  assert.throws(() => jobs.enqueue(uid, { kind: 'ask', note: 'and tomorrow?' }), e => e.code === 'cap');
+  cfg.save({ caps: { perProfileDaily: 10, instanceDaily: 0, askDaily: 100 } });
+});
+
 
 test('an answer that stays unusable fails cleanly and applies nothing', async () => {
   const uid = 'u-unusable';
