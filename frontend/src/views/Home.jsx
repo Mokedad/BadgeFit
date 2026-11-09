@@ -34,7 +34,7 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
-import { todayBadgeFitRun } from '../lib/police/today-run.js'
+import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
@@ -128,8 +128,7 @@ export default function Home() {
   // tap never drops anyone into a session by accident. A running one opens straight away.
   // BadgeFit: on a run day the plan's run routine opens the guided run (with Jarvis), not a gym
   // session with a cardio row in it.
-  const bfToday = S.active ? null : todayBadgeFitRun(S.police, todayISO())
-  const bfRun = bfToday && todayRoutines.some(r => r.id === bfToday.routineId) ? bfToday.run : null
+  const bfRun = S.active || !S.police?.level ? null : todayRoutines.map(r => runForRoutine(S.police, r.id, todayISO())).find(Boolean) || null
   const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
     : S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // A chip on the coach week's progress row starts that one routine, in any order. A session

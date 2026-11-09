@@ -6,6 +6,7 @@ import { tapJarvis, useJarvis } from '../store/useJarvis.js'
 import { startHandsFree, stopHandsFree, handsFreeAvailable } from '../components/JarvisHandsFree.jsx'
 import { upNext } from '../lib/police/workout-voice.js'
 import { todayBadgeFitRun } from '../lib/police/today-run.js'
+import { runForRoutine, isRunRoutine } from '../lib/police/run-routines.js'
 import { matchExercise } from '../lib/police/exercise-match.js'
 import MusicBar from '../components/MusicBar.jsx'
 import SwipeCards from '../components/SwipeCards.jsx'
@@ -95,10 +96,12 @@ function StartChooser() {
   const todayName = todayRoutines.map(r => r.name).join(' + ')
   const todayOvr = S.dayPlan[todayISO()] !== undefined && pinState(S, S.dayPlan[todayISO()]) !== 'done' // a fulfilled pin is no override
   const idSet = new Set(todayIds)
-  const bfRun = todayBadgeFitRun(S.police, todayISO())
-  // The plan's run routines are started from the Runs list below, as guided runs.
-  const runIds = new Set(Object.entries(S.police?.keys || {}).filter(([k]) => ['vo2', 'vo2b', 'easy', 'tempo', 'walk'].includes(k)).map(([, id]) => id))
-  const others = S.routines.filter(r => !idSet.has(r.id) && !runIds.has(r.id))
+  // Today's run: one on today's plan (the BadgeFit plan's or one you put on the day), else the
+  // plan's run day. Run routines are started from the Runs list below, as guided runs.
+  const todayRunId = S.police?.level ? todayIds.find(id => runForRoutine(S.police, id, todayISO())) : null
+  const planRun = todayBadgeFitRun(S.police, todayISO())
+  const bfRun = todayRunId ? { run: runForRoutine(S.police, todayRunId, todayISO()), routineId: todayRunId, day: planRun?.routineId === todayRunId ? planRun.day : null } : planRun
+  const others = S.routines.filter(r => !idSet.has(r.id) && !isRunRoutine(S.police, r.id))
   return <div className="narrow">
     <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} · {todayRoutines.length ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you')}</div></div></div>
     {todayRoutines.length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
@@ -114,7 +117,7 @@ function StartChooser() {
       <div className="list">
         {bfRun && <div className="item" onClick={() => nav('/police?run=' + bfRun.run.id)}>
           <span className="lrow-i">🏃</span>
-          <div className="grow"><div className="tt">Today: {bfRun.run.name}</div><div className="ss">Guided run with Jarvis · {bfRun.day.title}</div></div>
+          <div className="grow"><div className="tt">Today: {bfRun.run.name}</div><div className="ss">Guided run with Jarvis{bfRun.day ? ` · ${bfRun.day.title}` : ''}</div></div>
           <span className="tag acc">Run</span></div>}
         <div className="item" onClick={() => nav('/police?tab=run')}>
           <span className="lrow-i">🗺️</span>
