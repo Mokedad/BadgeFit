@@ -507,3 +507,13 @@
 .pf-adjust.easy{box-shadow:inset 3px 0 0 #f59e0b}
 .pf-adjust.light{box-shadow:inset 3px 0 0 #ef4444}
 .pf-adjust.go{box-shadow:inset 3px 0 0 #22c55e}
+.pf-strip.pf-strip3{grid-template-columns:repeat(3,1fr)}
+.pf-goalw{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:13px}
+.pf-prep{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pf-prep-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.35}
+.pf-prep-row input{width:20px;height:20px;flex:none;margin-top:1px}
+.pf-jsw{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}
+.pf .pf-jsw-row{display:flex;flex-direction:row;align-items:center;gap:10px;color:#fff}
+.pf-jsw-row>span{flex:1;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.pf-jsw-row small{opacity:.75;font-size:12px;line-height:1.35}
+.pf-jsw-row input[type=time]{width:auto;border-radius:10px;padding:4px 6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff}

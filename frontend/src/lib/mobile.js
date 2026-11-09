@@ -10,6 +10,7 @@
 // Like the demo build, MOBILE is replaced at build time, so all of this folds away in
 // web bundles; the Capacitor plugins are only ever imported behind it.
 import { buildMealNotifications, allMealIds } from './police/meal-reminders.js'
+import { PLAN_ID_BASE } from './police/push-plan.js'
 import { t, tn } from './i18n-core.js'
 import { isoOf, todayISO } from './format.js'
 import { effectiveRoutineIds } from './history.js'
@@ -245,11 +246,17 @@ export async function syncReminder(S, interactive = false) {
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
       ...allMealIds().map(id => ({ id })),
+      ...Array.from({ length: 30 }, (_, i) => ({ id: PLAN_ID_BASE + i })),
     ] }).catch(() => {})
     const r = S.reminder
     // BadgeFit meal reminders (lib/police/meal-reminders.js): their own switch, so they are
     // scheduled whether or not the workout reminder is on.
     const meals = buildMealNotifications(S.police?.mealReminders)
+    // BadgeFit's morning nudge and test reminders (lib/police/push-plan.js), at their local times.
+    const plan = S.police?.pushPlan?.on ? S.police.pushPlan.items || [] : []
+    const nowMs = Date.now()
+    meals.push(...plan.map((it, i) => ({ id: PLAN_ID_BASE + i, title: it.title, body: it.body, schedule: { at: new Date(it.at.replace(' ', 'T') + ':00'), allowWhileIdle: true } }))
+      .filter(n => n.schedule.at.getTime() > nowMs).slice(0, 30))
     // The background check (lib/nudge-check.js) follows what is scheduled: nothing, nothing to check.
     const check = notifications => import('./nudge-check.js').then(m => m.armNudgeCheck(S, notifications)).catch(() => {})
     if (!r?.on && !meals.length) { await check([]); return true }

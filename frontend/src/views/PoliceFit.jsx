@@ -30,6 +30,8 @@ import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
 import BeepTrainer from '../components/BeepTrainer.jsx'
+import { weightTrack } from '../lib/police/weight-track.js'
+import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { CHECKIN_QUESTIONS, checkinCall, adjustNote, checkinLine, addCheckin, CALL_WORD } from '../lib/police/checkin.js'
@@ -126,9 +128,68 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
     <div className="card pf-jarvis">
       <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your trainer</span></div>
       {lines.slice(1, 3).map((l, i) => <p key={i}>{l}</p>)}
-      <p className="pf-sub">🎧 I talk you through every workout: your next weight after each set, when rest is up, and how you are tracking to your {testName}.{isOn(S, 'coach') ? ' Tap 🎤 in a workout to ask me anything.' : ''}</p>
+      <p className="pf-sub">🎧 I talk you through every workout: your next weight after each set, when rest is up, and how you are tracking to your {testName}.{isOn(S, 'coach') ? ' Tap 🎤 in a workout and just say "12 at 60", "done" or "swap to dumbbells".' : ''}</p>
+      {!fresh && <JarvisSwitches S={S} P={P} />}
     </div>
   </>
+}
+
+// The last week: everything to sort before the test, ticked off here (S.police.testPrep).
+const TEST_PREP = [
+  ['id', '🪪 Photo ID and any letter or paperwork they asked for'],
+  ['gear', '👟 Running shoes with grip, comfortable training clothes'],
+  ['water', '💧 Water bottle and a snack for after'],
+  ['travel', '🚗 Know the venue, parking and travel time. Arrive 30 min early'],
+  ['food', '🍝 Carbs at dinner the night before, nothing new to eat'],
+  ['sleep', '😴 In bed early two nights running, 8 hours'],
+  ['easy', '🧘 Day before: rest or a 20 minute easy jog, nothing hard'],
+]
+function TestWeek({ P, name }) {
+  const setP = usePolice()
+  const done = P.testPrep || {}
+  const n = TEST_PREP.filter(([k]) => done[k]).length
+  return <div className="pf-prep">
+    <b>✅ {name} week checklist · {n}/{TEST_PREP.length}</b>
+    {TEST_PREP.map(([k, label]) => <label key={k} className="pf-prep-row"><input type="checkbox" checked={!!done[k]} onChange={e => setP(p => ({ testPrep: { ...(p.testPrep || {}), [k]: e.target.checked } }))} /><span>{label}</span></label>)}
+  </div>
+}
+
+/** Notifications allowed for BadgeFit: on the phone app its local ones, on the web the push from the server. */
+async function allowNotifications(user, S, nextPolice) {
+  if (MOBILE) {
+    const ok = await syncReminder({ ...S, police: nextPolice }, true)
+    if (!ok) throw new Error('Allow notifications for BadgeFit in your phone settings, then try again')
+    return
+  }
+  if (!user) throw new Error('Sign in first: reminders come from your BadgeFit server')
+  if (!pushSupported()) throw new Error('On iPhone: Share → Add to Home Screen, open BadgeFit from there, then turn this on')
+  await enablePush()
+}
+
+/** Jarvis's two switches: the morning nudge (with the test reminders) and music mode. */
+function JarvisSwitches({ S, P }) {
+  const setP = usePolice()
+  const user = useStore(s => s.user)
+  const [busy, setBusy] = useState(false)
+  const nudge = nudgeSettings(P.nudge)
+  const turnNudge = async on => {
+    if (!on) { setP({ nudge: { ...nudge, on: false }, pushPlan: { on: false } }); return }
+    setBusy(true)
+    try {
+      const next = { ...P, nudge: { ...nudge, on: true } }
+      const plan = buildPushPlan(next, todayISO(), localTZ())
+      await allowNotifications(user, S, { ...next, pushPlan: plan })
+      setP({ nudge: next.nudge, pushPlan: plan })
+      useUI.getState().toast(`🔔 Every morning at ${nudge.time}: today's session and the days left`)
+    } catch (e) { useUI.getState().toast(e?.message || 'Notifications were not allowed') } finally { setBusy(false) }
+  }
+  return <div className="pf-jsw">
+    <label className="pf-jsw-row"><span><b>🔔 Morning nudge</b><small>Today's session at {nudge.time}, plus reminders the night before and the morning of your test</small></span>
+      {nudge.on && <input type="time" value={nudge.time} aria-label="Nudge time" onChange={e => { if (!e.target.value) return; const n = { ...nudge, time: e.target.value }; setP(p => ({ nudge: n, pushPlan: buildPushPlan({ ...p, nudge: n }, todayISO(), localTZ()) })) }} />}
+      <Switch checked={nudge.on} disabled={busy} onChange={() => turnNudge(!nudge.on)} aria-label="Morning nudge" /></label>
+    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Jarvis keeps it short, the weight and the bell, no pep talks</small></span>
+      <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
+  </div>
 }
 
 /** Three taps each morning; Jarvis eases the day off when you are wrecked (lib/police/checkin.js). */
@@ -166,14 +227,18 @@ function More({ setTab }) {
 /** Three numbers at a glance: days to the test, readiness, weight change. Each opens its tab. */
 function StatusStrip({ S, P, ready, setTab }) {
   const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
-  return <div className="pf-strip pf-strip2">
+  const bw = (S.bodyweight || []).filter(b => b && Number(b.w) > 0).sort((a, b) => (a.d < b.d ? -1 : 1))
+  const nowKg = bw.length ? Number(bw.at(-1).w) : Number(P.weightKg) || null
+  const track = weightTrack({ startKg: Number(P.weightKg) || (bw[0] ? Number(bw[0].w) : null), goalKg: Number(S.targetW) || null, startISO: P.start, testISO: P.testDate, nowKg, todayISO: todayISO() })
+  return <div className="pf-strip pf-strip3">
     <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
     <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
+    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{track ? (track.onTrack ? `⚖️ on track (${track.expected})` : `⚖️ line: ${track.expected}`) : nowKg ? '⚖️ set a goal' : '⚖️ kg'}</span></button>
   </div>
 }
 
 /** Days to the test, and setting its date: the programme then counts down so week 12 is test week. */
-function TestCountdown({ P }) {
+function TestCountdown({ S, P }) {
   const update = useStore(s => s.update)
   const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
   const name = (P.testName || '').trim() || 'PCT'
@@ -201,6 +266,8 @@ function TestCountdown({ P }) {
         <label>Date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       </div>
       {left != null && left >= 0 && left <= 7 && <ul className="pf-taper">{TAPER.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+      {left != null && left >= 0 && left <= 7 && <TestWeek P={P} name={name} />}
+      <label className="pf-goalw">⚖️ Goal weight on {name} day (kg)<NumberField value={S?.targetW ?? null} nullable onChange={v => update(s => { s.targetW = v })} /></label>
       {P.testDate && <p className="pf-sub">Plan weeks run Monday to Sunday. Your plan runs from week 1 to week {pw.last}, your final week: light training, the {name} on its own day and an easy day before it{pw.week && !pw.after && !pw.before ? `. This is week ${pw.week}` : ''}. Change the date and the plan fits itself to it.</p>}
     </div>
   </div>
@@ -345,12 +412,12 @@ function RunTab({ S, P, startRun }) {
 }
 
 // --- Tests -------------------------------------------------------------------------------
-function Tests({ P, openBeep, openTest }) {
+function Tests({ S, P, openBeep, openTest }) {
   const setP = usePolice()
   const ready = readiness(P.results, P.beepTarget)
   const [open, setOpen] = useState(null)
   return <>
-    <TestCountdown P={P} />
+    <TestCountdown S={S} P={P} />
     <div className="pf-tools">
       <button className="card pf-tool" onClick={openTest}><span aria-hidden="true">🧪</span><b>Test day</b><small>All 6 standards in order, with rests. Baseline now, mock PCT a week out.</small></button>
       <button className="card pf-tool" onClick={openBeep}><span aria-hidden="true">📣</span><b>Beep test trainer</b><small>Real beeps, Jarvis calls the levels. Saves your score.</small></button>
@@ -793,7 +860,7 @@ export default function PoliceFit() {
     <PfTabs value={tab} onChange={setTab} />
     {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openTest={() => setOverlay('test')} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
-    {tab === 'tests' && <Tests P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}
+    {tab === 'tests' && <Tests S={S} P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}
     {tab === 'plan' && <Plan S={S} P={P} />}
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}

@@ -6,6 +6,7 @@
 //               next set: weight, the plates on each side, one form cue
 //   shorter     rest cut short (to 2:30, say) is remembered for that exercise from then on
 //   the end     a wrap-up: volume against last time, PRs, what it means for the goal, days left
+//   music mode  only the numbers: the weight calls, the 20-second bell, the next exercise
 // Lines: lib/police/workout-voice.js, cues: form-cues.js, voice: voice.js. Mounted once in App.
 // The first tap anywhere unlocks the sound, which an iPhone needs before a page plays anything.
 import { useEffect } from 'react'
@@ -19,9 +20,12 @@ import { checkinCall } from '../lib/police/checkin.js'
 import { daysUntil } from '../lib/police/programme.js'
 import { rowLoad, loadKindFor, baseWeightFor, inventoryFor } from '../lib/plates.js'
 import { todayISO, exerciseNameText } from '../lib/format.js'
+import { buildPushPlan } from '../lib/police/push-plan.js'
 
 export const DEFAULT_REST_SEC = 240
 const member = S => !!S?.police?.level
+// Music mode (S.police.musicMode): training to Spotify or YouTube, so Jarvis keeps to the numbers.
+const quiet = S => !!S?.police?.musicMode
 const round15 = sec => Math.max(30, Math.round(sec / 15) * 15)
 
 // The exercise names live in the big exercise library: loaded only when there is a line to say.
@@ -37,7 +41,7 @@ const speak = async build => { const text = build(await nameOf()); if (text) say
 let bell = null
 
 /** The 20-second call for the set after this rest: weight, plates each side, a form cue. */
-function nextCall(S, nameOf) {
+function nextCall(S, nameOf, short = false) {
   const A = S.active
   const n = upNext(A)
   if (!n) return ''
@@ -45,7 +49,7 @@ function nextCall(S, nameOf) {
   const w = Number(n.entry.sets[n.setIdx]?.w)
   let plates = ''
   try { plates = w > 0 ? plateWords(rowLoad(loadKindFor(S, n.entry.id), w, baseWeightFor(S, n.entry.id), inventoryFor(S)), unit) : '' } catch { /* no plate maths for this one */ }
-  return nextSetLine(A, { nameOf, unit, plates, cue: cueLine(nameOf(n.entry.id), n.setNo) })
+  return nextSetLine(A, { nameOf, unit, plates, cue: short ? '' : cueLine(nameOf(n.entry.id), n.setNo) })
 }
 
 export default function JarvisWorkout() {
@@ -57,6 +61,19 @@ export default function JarvisWorkout() {
     }
     document.addEventListener('pointerdown', unlock, { capture: true, passive: true })
     const update = fn => useStore.getState().update(fn)
+
+    // The planned reminders (lib/police/push-plan.js) cover the next days: rebuilt once a day, and
+    // whenever the app comes back, so the morning nudge always says the right session.
+    const refreshPlan = () => {
+      const P = useStore.getState().S.police
+      if (!P?.nudge?.on || P.pushPlan?.built === todayISO()) return
+      let tz = 'UTC'
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { /* UTC */ }
+      update(s => { s.police = { ...s.police, pushPlan: buildPushPlan(s.police, todayISO(), tz) } })
+    }
+    refreshPlan()
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshPlan() }
+    document.addEventListener('visibilitychange', onVisible)
 
     const offStore = useStore.subscribe((st, prev) => {
       const S = st.S, P = prev.S
@@ -72,13 +89,17 @@ export default function JarvisWorkout() {
         })
         const call = checkinCall(S.police?.checkins?.[todayISO()])
         const ease = call === 'easy' ? 'Easy day, like we said: about half the sets, nothing to failure. ' : call === 'light' ? 'Light day: two easy sets each, and stop if anything hurts. ' : ''
-        speak(nameOf => { const first = A.entries?.[0]; return ease + startLine(A, nameOf) + (first ? ' ' + cueLine(nameOf(first.id), 1) : '') })
+        speak(nameOf => { const first = A.entries?.[0]; return ease + startLine(A, nameOf) + (first && !quiet(S) ? ' ' + cueLine(nameOf(first.id), 1) : '') })
         return
       }
       // A set ticked in the running one.
       if (A && B && !A.backfill) {
         const at = tickedSet(B, A)
-        if (at) speak(nameOf => setDoneLine(A, at, { nameOf, unit: S.unit === 'lb' ? 'lb' : 'kg' }))
+        if (at) speak(nameOf => {
+          const line = setDoneLine(A, at, { nameOf, unit: S.unit === 'lb' ? 'lb' : 'kg' })
+          // In music mode only a line with a number or the next exercise in it is worth the interruption.
+          return quiet(S) && !/\d|Next up|last one/.test(line) ? '' : line
+        })
         return
       }
       // The session ended: saved (it is in the history now) or dropped (nothing to say).
@@ -102,11 +123,11 @@ export default function JarvisWorkout() {
       }
       if (rest && b && !b.ready && !b.paused) {
         const el = (Date.now() - rest.start) / 1000
-        if (!rest.mid && b.total >= 90 && el >= 45 && b.left > 40) { rest.mid = true; say(restMotivation()) }
+        if (!rest.mid && b.total >= 90 && el >= 45 && b.left > 40) { rest.mid = true; if (!quiet(S)) say(restMotivation()) }
         if (!rest.warned && b.left <= 20 && b.left > 3) {
           rest.warned = true
           bell?.play()
-          speak(nameOf => nextCall(useStore.getState().S, nameOf))
+          speak(nameOf => { const now = useStore.getState().S; return nextCall(now, nameOf, quiet(now)) })
         }
       }
       const ended = a && !a.ready && a.kind !== 'switch' && (!b || b.ready)
@@ -123,11 +144,11 @@ export default function JarvisWorkout() {
           })
         }
         rest = null
-        if (ranOut) speak(() => restLine(S.active))
+        if (ranOut && !quiet(S)) speak(() => restLine(S.active))
       }
     })
 
-    return () => { document.removeEventListener('pointerdown', unlock, { capture: true }); offStore(); offUI() }
+    return () => { document.removeEventListener('pointerdown', unlock, { capture: true }); document.removeEventListener('visibilitychange', onVisible); offStore(); offUI() }
   }, [])
   return null
 }

@@ -1,10 +1,12 @@
-// Jarvis's voice: one Australian male voice, no options. First choice is the server's voice
+// Jarvis's voice: one Australian male voice, no options. In the phone app, the native voice that
+// lowers your music while he talks. On the web, first choice is the server's voice
 // (api/coach/tts.js, Gemini text-to-speech) played as an audio file, which iPhones play far more
 // reliably than their own speech synthesis. Without it (another AI provider, offline, the phone
 // app unpaired) the device's own speech reads it, with the most natural Australian male voice
 // the device has. A generic Aussie bloke, never an imitation of any real person.
 //
 import { apiPostBlob } from '../api.js'
+import { MOBILE as NATIVE } from '../mobile.js'
 const KEY = 'badgefit_voice'
 // Known Australian male voices across iOS/macOS, Windows/Edge and Android, best first.
 const AU_MALE = ['lee', 'william', 'gordon', 'james', 'darren', 'duncan', 'ken', 'tim', 'neil']
@@ -66,6 +68,18 @@ export const DELIVERY = { rate: 0.97, pitch: 0.92 }
  */
 export async function say(text, opts = {}) {
   if (!text) return false
+  // The phone app: the native voice (RestAlertPlugin.speak), which lowers Spotify or YouTube while
+  // Jarvis talks and brings it back up after, and plays with the silent switch on. A web page
+  // cannot do that. It answers when the line starts, so the wait covers the time it takes.
+  if (NATIVE) {
+    const { speakNative } = await import('../rest-alert.js')
+    if (await speakNative(String(text), { lang: 'en-AU', rate: 0.95, onSilent: true })) {
+      opts.onStart?.()
+      await new Promise(r => { nativeStop = () => r(false); setTimeout(r, speakMs(text) * 0.7) })
+      nativeStop = null
+      return true
+    }
+  }
   // First choice: the server's voice (api/coach/tts.js), played as an audio file. Safari plays a
   // file it has been allowed to play (primeSpeech, on a tap) far more reliably than it speaks.
   if (Date.now() > serverOffUntil) {
@@ -79,7 +93,7 @@ export async function say(text, opts = {}) {
 }
 
 // The one audio player for Jarvis, unlocked by a tap (primeSpeech) and reused for every clip.
-let player = null, serverOffUntil = 0, stopClip = null, unlocked = false
+let player = null, serverOffUntil = 0, stopClip = null, unlocked = false, nativeStop = null
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 function playerOf() {
   if (!player && typeof Audio !== 'undefined') { player = new Audio(); player.preload = 'auto'; player.setAttribute?.('playsinline', '') }
@@ -169,7 +183,7 @@ export function primeSpeech() {
     synth.speak(u)
   } catch { /* nothing to unlock */ }
 }
-export const stopSpeaking = () => { stopClip?.(); try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }
+export const stopSpeaking = () => { nativeStop?.(); stopClip?.(); try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }
 
 /** primeSpeech once: for a listener on the first tap anywhere, so Jarvis can talk in a workout. */
 export function unlockOnce() { if (!unlocked) primeSpeech() }
