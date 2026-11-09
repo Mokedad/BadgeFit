@@ -10,7 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO, localTZ } from '../lib/format.js'
-import { lastBW } from '../lib/history.js'
+import { lastBW, effectiveRoutineIds } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
 import { Button, NumberField, Segmented, Switch, TextField } from '../components/ui.jsx'
 import { saveProgramme, startProgramme } from '../lib/programmes.js'
@@ -25,7 +25,7 @@ import { LEVELS, PHASES, WEEKS, WARMUP, TAPER, zone2, startForTest, daysUntil, p
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
-import { bwSheet } from '../sheets.jsx'
+import { bwSheet, startFlow } from '../sheets.jsx'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
@@ -110,7 +110,12 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
       {(() => {
         const run = runForDay(day)
         if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
-        if (day?.kind === 'gym') return <button className="pf-go" onClick={() => nav('/home')}>🏋️ Start workout</button>
+        if (day?.kind === 'gym') return <button className="pf-go" onClick={() => {
+          // Straight into today's session: one tap, no second Start on Home.
+          if (S.active) { nav('/workout'); return }
+          const ids = effectiveRoutineIds(S, todayISO())
+          if (ids.length) startFlow(ids); else nav('/home')
+        }}>{S.active ? '🏋️ Back to your workout' : '🏋️ Start workout'}</button>
         if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>🧪 Start test day</button>
         return null
       })()}

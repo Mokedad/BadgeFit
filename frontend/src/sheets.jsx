@@ -1911,6 +1911,17 @@ export function swapActiveWorkoutToBackup(index, backupId) {
   commitActiveSwap(index, ex, cfg)
 }
 
+/**
+ * A swap by voice (BadgeFit, "machine's taken, switch to dumbbell incline"): no picker, the
+ * exercise's own default config, and buildSessionEntry brings its history and weights along.
+ */
+export function swapActiveWorkoutTo(index, exId) {
+  const ex = EXIDX[exId]
+  if (!ex || !S().active?.entries?.[index]) return false
+  commitActiveSwap(index, ex, pickedExerciseConfig(ex.id))
+  return true
+}
+
 function commitActiveSwap(index, ex, cfg) {
   const st = S()
   const current = st.active?.entries?.[index]

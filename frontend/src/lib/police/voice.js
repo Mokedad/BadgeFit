@@ -117,7 +117,8 @@ async function sayOnDevice(text, { onStart } = {}) {
   if (synth.speaking || synth.pending) { synth.cancel(); await new Promise(r => setTimeout(r, 150)) }
   try { synth.resume() } catch { /* not paused */ }
   // Sentence by sentence: long utterances get cut off on some phones, and the gaps sound natural.
-  const parts = String(text).replace(/\s+/g, ' ').match(/[^.!?]+[.!?]*/g) || [text]
+  // Sentence ends only: the dot in 22.5 kg is not one.
+  const parts = String(text).replace(/\s+/g, ' ').match(/(?:[^.!?]|[.!?](?=\d))+[.!?]*/g) || [text]
   return new Promise(resolve => {
     let i = 0, timer = null, over = false
     const end = ok => { if (over) return; over = true; clearTimeout(timer); if (stopCurrent === stop) stopCurrent = null; resolve(ok) }

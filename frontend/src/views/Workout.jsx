@@ -2,7 +2,9 @@ import { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { workoutControlsSheet, leaveWorkoutSheet, isPaused, resumeWorkout } from '../workout-controls.jsx'
 import RepRangeCoach from '../components/RepRangeCoach.jsx'
 import JarvisOrb from '../components/JarvisOrb.jsx'
-import { tapJarvis } from '../store/useJarvis.js'
+import { tapJarvis, useJarvis } from '../store/useJarvis.js'
+import { upNext } from '../lib/police/workout-voice.js'
+import { matchExercise } from '../lib/police/exercise-match.js'
 import MusicBar from '../components/MusicBar.jsx'
 import SwipeCards from '../components/SwipeCards.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
@@ -11,7 +13,7 @@ import { useStore } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
 import { autoHoldsFor, forecastHolds, nextAutoHold } from '../lib/auto-holds.js'
-import { EXIDX, exOr, betterWeight, isAssisted } from '../lib/exercises.js'
+import { EXIDX, CATALOGUE, exOr, betterWeight, isAssisted } from '../lib/exercises.js'
 import { bestsFor, lastRowFor, oddValues } from '../lib/typo-check.js'
 import { usesBar } from '../lib/bar.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad, sameLoad, plateDelta, dropGrid } from '../lib/plates.js'
@@ -39,7 +41,7 @@ import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest, restWheelValue } from '../lib/duration.js'
 import { youtubeSearchUrl } from '../lib/youtube.js'
 import { openExternal } from '../components/CustomMedia.jsx'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet, finishWorkoutNow, swapActiveWorkoutToBackup, setNoteSheet } from '../sheets.jsx'
+import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet, finishWorkoutNow, swapActiveWorkoutToBackup, setNoteSheet, swapActiveWorkoutTo } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
@@ -2162,6 +2164,43 @@ function ActiveWorkout() {
   // The Apple Watch ticks sets through this same toggle (lib/watch-sync.js): the weight and reps it
   // logged go into the row first, then the tick runs as if tapped here (rest, high-water mark, the
   // end-of-workout sheet). A row already ticked only takes the numbers.
+  // BadgeFit: Jarvis's voice commands act on this screen (store/useJarvis.js `workout`): log the
+  // next set ("15 at 20"), log it like the last one, swap the exercise by name. The handlers are
+  // read through a ref, so the registered object always calls this render's functions.
+  const jarvisRef = useRef(null)
+  jarvisRef.current = { toggle, setField, modeAt }
+  useEffect(() => {
+    if (editing) return
+    const api = {
+      logSet: ({ reps = null, weight = null } = {}) => {
+        const A = useStore.getState().S.active
+        const n = upNext(A)
+        if (!n || jarvisRef.current.modeAt(n.idx) !== 'reps') return null
+        if (weight != null) jarvisRef.current.setField(n.idx, n.setIdx, 'w', weight)
+        if (reps != null) jarvisRef.current.setField(n.idx, n.setIdx, 'r', reps)
+        jarvisRef.current.toggle(n.idx, n.setIdx)
+        return n
+      },
+      sameAgain: () => {
+        const A = useStore.getState().S.active
+        const n = upNext(A)
+        const prev = n && [...n.entry.sets.slice(0, n.setIdx)].reverse().find(x => x.done)
+        return api.logSet(prev ? { reps: Number(prev.r) || null, weight: Number(prev.w) || null } : {})
+      },
+      swap: query => {
+        const A = useStore.getState().S.active
+        const n = upNext(A)
+        if (!n) return null
+        const done = new Set((useStore.getState().S.workouts || []).flatMap(w => (w.entries || []).map(e => e.id)))
+        const hit = matchExercise(query, CATALOGUE, { current: EXIDX[n.entry.id], done })
+        return hit && swapActiveWorkoutTo(n.idx, hit.id) ? hit : null
+      },
+      finish: () => finishWorkoutNow(),
+    }
+    useJarvis.setState({ workout: api })
+    return () => { if (useJarvis.getState().workout === api) useJarvis.setState({ workout: null }) }
+  }, [editing]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleRef = useRef(toggle)
   toggleRef.current = toggle
   // The time is the watch's: the phone may hear of the set much later (lib/finish-workout.js
@@ -2576,14 +2615,15 @@ function ActiveWorkout() {
         <Icon name="plusCircle" className="wk-end-i" />
         <span className="lrow-m"><span className="lrow-t">{t('Add exercise')}</span></span>
       </button>
-      <button type="button" className={'lrow tap wk-end-row' + (A.note ? ' has-note' : '')} onClick={sessionNoteSheet}>
+      {/* BadgeFit keeps the workout lean: the session note lives in the ⋯ menu only. */}
+      {!S.police?.level && <button type="button" className={'lrow tap wk-end-row' + (A.note ? ' has-note' : '')} onClick={sessionNoteSheet}>
         <Icon name="note" className="wk-end-i" />
         <span className="lrow-m">
           <span className="lrow-t">{A.note ? t('Edit session note') : t('Add session note')}</span>
           {A.note && <span className="lrow-s wk-end-note">{A.note}</span>}
         </span>
         <Icon name="chevronRight" className="lrow-c" />
-      </button>
+      </button>}
     </div>
     {wc.exerciseButtons && A.entries.length > 0 && <>
       <div style={{ height: 6 }} />
