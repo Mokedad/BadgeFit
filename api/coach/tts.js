@@ -12,10 +12,11 @@ import crypto from 'node:crypto';
 import * as cfgStore from './config.js';
 import { baseUrlFor } from './core/providers.js';
 
-export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Charon';
+// Puck: Gemini's upbeat male voice, the closest to a trainer's; COACH_TTS_VOICE picks another.
+export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Puck';
 export const TTS_MODELS = (process.env.COACH_TTS_MODEL || 'gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts')
   .split(',').map(s => s.trim()).filter(Boolean);
-export const STYLE = 'Read this aloud as Jarvis: a warm, confident Australian man, a personal trainer with a natural Australian accent. Upbeat, clear, not rushed. Say only the words after the colon:';
+export const STYLE = 'You are Jarvis, an Australian personal trainer talking to your client in the gym or on a run. Speak naturally and conversationally with a relaxed Australian accent, warm and energetic, like a real coach beside them: natural pauses, a smile in your voice, never like reading a script. Say exactly these words and nothing else:';
 export const MAX_CHARS = 700;
 const PER_WINDOW = 60, WINDOW_MS = 10 * 60 * 1000, CACHE_MAX = 300, TIMEOUT_MS = 30000;
 

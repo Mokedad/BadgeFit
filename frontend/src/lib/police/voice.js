@@ -5,7 +5,7 @@
 // app unpaired) the device's own speech reads it, with the most natural Australian male voice
 // the device has. A generic Aussie bloke, never an imitation of any real person.
 //
-import { apiPostBlob } from '../api.js'
+import { apiPostBlob, apiPostBlobInfo } from '../api.js'
 import { MOBILE as NATIVE } from '../mobile.js'
 const KEY = 'badgefit_voice'
 // Known Australian male voices across iOS/macOS, Windows/Edge and Android, best first.
@@ -211,4 +211,29 @@ export async function preloadSpeech(text) {
   if (preloaded.has(k) || Date.now() <= serverOffUntil) return
   const blob = await apiPostBlob('/api/coach/speak', { text: k })
   if (blob && blob.size > 100) { preloaded.set(k, blob); if (preloaded.size > 40) preloaded.delete(preloaded.keys().next().value) }
+}
+
+/**
+ * "Hear Jarvis" (the BadgeFit hub): says one line and reports which voice it was, so a robotic
+ * voice has a reason: { via: 'gemini' } or { via: 'phone', why }. Call from a tap.
+ */
+export async function voiceCheck(text) {
+  primeSpeech()
+  if (NATIVE) { await say(text); return { via: 'native' } }
+  const r = await apiPostBlobInfo('/api/coach/speak', { text })
+  if (r.blob && r.blob.size > 100) {
+    serverOffUntil = 0
+    talking(+1)
+    try { const played = await playClip(r.blob); if (played !== null) return { via: 'gemini' } } finally { talking(-1) }
+    await sayOnDevice(text)
+    return { via: 'phone', why: 'this phone would not play the Gemini clip. Turn the silent switch off and try again.' }
+  }
+  await sayOnDevice(text)
+  const why = r.status === 501 ? 'the AI Coach is not on Google Gemini.'
+    : r.status === 503 ? 'the AI Coach is switched off on the server.'
+      : r.status === 401 ? 'you are not signed in.'
+        : r.status === 404 ? 'the server is on an older version. Run the update.'
+          : r.status === 429 ? 'Jarvis has talked a lot in the last 10 minutes.'
+            : `the Gemini voice did not answer (${r.error || 'unknown'}).`
+  return { via: 'phone', why }
 }

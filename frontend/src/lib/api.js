@@ -61,6 +61,18 @@ function refusal(status, body) {
  * A POST whose answer is a file (Jarvis's voice, /api/coach/speak): the Blob, or null when the
  * server cannot give one (any error, offline, not paired). Never throws.
  */
+/** apiPostBlob with the reason when there is no file: { blob } or { status, error }. */
+export async function apiPostBlobInfo(path, body, ms = 35000) {
+  if (MOBILE && !remoteBase) return { status: 0, error: 'This phone is not connected to a server.' }
+  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  try {
+    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, remoteHeaders()), body: JSON.stringify(body), signal: AbortSignal.timeout?.(ms) })
+    if (r.ok) return { blob: await r.blob() }
+    const data = await r.json().catch(() => null)
+    return { status: r.status, error: data?.error || ('HTTP ' + r.status) }
+  } catch (e) { return { status: 0, error: e?.name === 'TimeoutError' ? 'the voice took too long' : 'the server could not be reached' } }
+}
+
 export async function apiPostBlob(path, body, ms = 35000) {
   if (MOBILE && !remoteBase) return null
   const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path

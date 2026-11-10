@@ -7,6 +7,7 @@ import { startHandsFree, stopHandsFree, handsFreeAvailable } from '../components
 import { upNext } from '../lib/police/workout-voice.js'
 import { todayBadgeFitRun } from '../lib/police/today-run.js'
 import { runForRoutine, isRunRoutine } from '../lib/police/run-routines.js'
+import '../police.css'
 import { matchExercise } from '../lib/police/exercise-match.js'
 import MusicBar from '../components/MusicBar.jsx'
 import SwipeCards from '../components/SwipeCards.jsx'
@@ -2509,6 +2510,14 @@ function ActiveWorkout() {
       ? <div className="wprog-row"><div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
         <span className="wvol" data-session-volume>{fmtVol(vol, S.unit)}</span></div>
       : <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>}
+    {/* BadgeFit: a run started as a session (from before runs opened as guided runs) gets one tap
+        over to the guided run with Jarvis and the countdown; nothing logged yet is lost. */}
+    {(() => {
+      if (!S.police?.level || editing || A.backfill) return null
+      const runOf = (A.entries || []).map(e => (e.rid ? runForRoutine(S.police, e.rid, todayISO()) : null))
+      if (!runOf.length || !runOf.every(Boolean) || (A.entries || []).some(e => (e.sets || []).some(x => x.done))) return null
+      return <button type="button" className="pf-go wk-run-go" onClick={() => { const id = runOf[0].id; markDiscarded(A.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/police?run=' + id) }}>🏃 Open the guided run with Jarvis</button>
+    })()}
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
     {listMode && chipRow}

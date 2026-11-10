@@ -32,6 +32,7 @@ import MusicBar from '../components/MusicBar.jsx'
 import RunPlayer from '../components/RunPlayer.jsx'
 import BeepTrainer from '../components/BeepTrainer.jsx'
 import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
+import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { CHECKIN_QUESTIONS, checkinCall, adjustNote, checkinLine, addCheckin, CALL_WORD } from '../lib/police/checkin.js'
@@ -167,7 +168,14 @@ function JarvisSwitches({ S, P }) {
     <label className="pf-jsw-row"><span><b>🔔 Morning nudge</b><small>Today's session and the days left, every morning at {nudge.time}</small></span>
       {nudge.on && <input type="time" value={nudge.time} aria-label="Nudge time" onChange={e => { if (!e.target.value) return; const n = { ...nudge, time: e.target.value }; setP(p => ({ nudge: n, pushPlan: buildPushPlan({ ...p, nudge: n }, todayISO(), localTZ()) })) }} />}
       <Switch checked={nudge.on} disabled={busy} onChange={() => turnNudge(!nudge.on)} aria-label="Morning nudge" /></label>
-    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Jarvis keeps it short, the weight and the bell, no pep talks</small></span>
+    <button type="button" className="pf-hear" disabled={busy} onClick={async () => {
+      setBusy(true)
+      try {
+        const r = await voiceCheck('G\'day, it\'s Jarvis. This is how I sound in your workouts and on your runs. Let\'s get to work.')
+        useUI.getState().toast(r.via === 'phone' ? `📱 That was the phone's voice, because ${r.why}` : '✅ That was Jarvis\'s Gemini voice.')
+      } finally { setBusy(false) }
+    }}>🔊 Hear Jarvis</button>
+    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Jarvis keeps it short and uses the phone's voice, which talks over your music</small></span>
       <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
   </div>
 }
@@ -842,6 +850,9 @@ export default function PoliceFit() {
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
   const [running, setRunning] = useState(() => runById(params.get('run')))
+  // A run asked for while the hub is already open (Start, Home): open it.
+  const runParam = params.get('run')
+  useEffect(() => { const r = runById(runParam); if (r) setRunning(r) }, [runParam])
   const [overlay, setOverlay] = useState(null) // 'beep' | 'test'
   // Members set up under an older plan model: plans start at week 1 when you join and run as long
   // as the test is away. A start far in the future (the old "12 weeks before the test") moves to
@@ -868,7 +879,7 @@ export default function PoliceFit() {
     useUI.getState().toast('Run saved. That is another level banked. 🏁')
   }
   return <div className="narrow pf">
-    {running && <RunPlayer run={running} age={P.age} runLog={P.runLog || []} onClose={() => setRunning(null)} onLog={logRun} />}
+    {running && <RunPlayer run={running} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode} onClose={() => setRunning(null)} onLog={logRun} />}
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
       setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
       setOverlay(null); useUI.getState().toast(`📣 Beep test ${v} saved`)

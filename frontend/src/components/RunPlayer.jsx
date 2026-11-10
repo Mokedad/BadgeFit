@@ -13,7 +13,7 @@ import '../police.css'
 const fmt = sec => { const s = Math.max(0, Math.round(sec)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 const KIND = { warm: 'Warm-up', work: 'Go', rest: 'Recover', cool: 'Cool-down' }
 
-function cue(audio, text, kind) {
+function cue(audio, text, kind, music = false) {
   try {
     if (audio.current) {
       const ctx = audio.current, now = ctx.currentTime
@@ -29,10 +29,11 @@ function cue(audio, text, kind) {
     }
   } catch { /* no audio */ }
   try { navigator.vibrate?.(kind === 'work' ? [200, 100, 200] : [300]) } catch { /* no vibration */ }
-  if (text) say(text, { music: true }).catch(() => {}) // Jarvis's voice, over your music (lib/police/voice.js)
+  // The natural Gemini voice; in music mode the phone's own voice, which talks over Spotify.
+  if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, runLog = [] }) {
+export default function RunPlayer({ run, age, onClose, onLog, runLog = [], musicMode = false }) {
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
@@ -52,7 +53,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [] }) {
     if (!text) return
     said.current.add(text)
     setBubble({ text, at: Date.now() })
-    sayAloud(text, { music: true }).catch(() => {}) // the voice, not the step-text `say` below
+    sayAloud(text, { music: musicMode }).catch(() => {}) // the voice, not the step-text `say` below
     try { navigator.vibrate?.(kind === 'work' ? [80, 60, 80] : 60) } catch { /* none */ }
   }
   const seg = segs[idx]
@@ -62,11 +63,11 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [] }) {
 
   const say = s => `${KIND[s.kind]}. ${s.label}${s.sec ? ', ' + (s.sec >= 60 ? Math.round(s.sec / 60) + ' minutes' : s.sec + ' seconds') : ''}.`
   const go = i => {
-    if (i >= segs.length) { setDone(true); cue(audio, 'Session complete. Great work.', 'cool'); return }
+    if (i >= segs.length) { setDone(true); cue(audio, 'Session complete. Great work.', 'cool', musicMode); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
     // A hard part starting gets Jarvis's lift on top of the step itself.
     const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
-    cue(audio, say(segs[i]) + lift, segs[i].kind)
+    cue(audio, say(segs[i]) + lift, segs[i].kind, musicMode)
     if (lift) setBubble({ text: lift.trim(), at: Date.now() })
   }
   const start = () => {
@@ -128,7 +129,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [] }) {
       <h2>{run.name}</h2>
       <p className="rp-sub">{run.why}</p>
       <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">🎵 Start Spotify or YouTube first, then tap Start. Jarvis talks over your music: each change, and a check-in at 2, 5, 7 and 10 minutes.</p>
+      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Jarvis talks over your music.' : '🎧 Jarvis talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Turn on Music mode on the Jarvis card.'}</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>

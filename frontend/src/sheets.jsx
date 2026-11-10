@@ -1,5 +1,5 @@
 import { RUNS, CATEGORIES as RUN_CATEGORIES, runMinutes } from './lib/police/runs.js'
-import { ensureRunRoutine } from './lib/police/run-routines.js'
+import { ensureRunRoutine, runForRoutine } from './lib/police/run-routines.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { exView, exUnitPin, exUnitOf, exUnitTag, withExUnit, profileUnit, viewTarget, storedTarget, storedBar, viewEntry, viewRow, shownWeight } from './lib/ex-unit.js'
@@ -3487,6 +3487,11 @@ export function DayNoteRow({ iso, note }) {
 // `routineIds` accepts `string | string[] | null` — `[r.id]` for one routine,
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
 export function startFlow(routineIds) {
+  // BadgeFit: a run (one picked in the planner, or the plan's run day) is not a gym session with
+  // a duration row: it opens as the guided run with Jarvis and the countdown, from every Start.
+  const P = S().police
+  const runs = P?.level && (routineIds || []).length ? routineIds.map(id => runForRoutine(P, id, todayISO())) : []
+  if (runs.length && runs.every(Boolean)) { location.hash = '#/police?run=' + runs[0].id; return }
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   // Off in Settings → Workout, or with the Body module (Settings → Modules): straight into the session.
