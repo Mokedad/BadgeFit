@@ -32,3 +32,16 @@ describe('parseCommand', () => {
   ]
   for (const [said, want] of cases) it(said, () => expect(parseCommand(said)).toEqual(want))
 })
+
+describe('parseSet: the weight is never dropped', () => {
+  const cases = [
+    ["that's 55 kg 12 reps", 55, 12], ['12 reps 55 kg', 55, 12], ['12 reps, 55 kilos', 55, 12],
+    ['55 kg and 12 reps', 55, 12], ['55 kgs. 12 reps', 55, 12], ["that's 55, 12 reps", 55, 12],
+    ['weight 55 reps 12', 55, 12], ['fifty two point five kg twelve reps', 52.5, 12],
+    ["55 kg's 12 reps", 55, 12], ['55 k g 12 reps', 55, 12], ['55 kg with 12 reps', 55, 12],
+    ['55 kg, I did 12 reps', 55, 12], ['8 at 60', 60, 8], ['20 kilos for 8', 20, 8], ['55 12', 55, 12],
+  ]
+  for (const [said, weight, reps] of cases) it(said, () => expect(parseCommand(said)).toEqual({ type: 'set', weight, reps }))
+  it('a weight alone is a weight, not reps', () => expect(parseCommand('55 kg')).toEqual({ type: 'set', weight: 55 }))
+  it('a bare number is reps', () => expect(parseCommand('12')).toEqual({ type: 'set', reps: 12 }))
+})

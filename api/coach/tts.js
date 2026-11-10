@@ -12,11 +12,12 @@ import crypto from 'node:crypto';
 import * as cfgStore from './config.js';
 import { baseUrlFor } from './core/providers.js';
 
-// Puck: Gemini's upbeat male voice, natural, no accent asked for; COACH_TTS_VOICE picks another.
-export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Puck';
+// Orus: Gemini's firm, deeper male voice (Puck read too light), no accent asked for;
+// COACH_TTS_VOICE picks another (Fenrir, Charon and Alnilam are male too).
+export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Orus';
 export const TTS_MODELS = (process.env.COACH_TTS_MODEL || 'gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts')
   .split(',').map(s => s.trim()).filter(Boolean);
-export const STYLE = 'Say this naturally, in a warm, friendly and encouraging tone, like a helpful coach talking to someone, not like reading. Say exactly these words and nothing else:';
+export const STYLE = 'Say this as a confident male personal trainer motivating someone mid-workout: strong, energetic and encouraging, natural and human, not like reading. Say exactly these words and nothing else:';
 export const MAX_CHARS = 700;
 const PER_WINDOW = 60, WINDOW_MS = 10 * 60 * 1000, CACHE_MAX = 300, TIMEOUT_MS = 30000;
 

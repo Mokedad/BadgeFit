@@ -33,11 +33,56 @@ export function wordsToNumbers(text) {
     else { flush(); acc = v }
   }
   flush()
-  return out.join(' ').replace(/\b(\d+) and a half\b/g, (_, n) => `${Number(n) + 0.5}`)
+  return out.join(' ').replace(/\b(\d+) and a half\b/g, (_, n) => `${Number(n) + 0.5}`).replace(/\b(\d+) point (\d+)\b/g, '$1.$2')
 }
 
-const num = s => (s == null ? null : Number(s))
-const UNIT = '(?:kg|kgs|kilo|kilos|kilograms?|lb|lbs|pounds?)'
+const N = '(\\d+(?:\\.\\d+)?)'
+
+// The ways speech recognition writes a unit: "55kg", "55 KG", "55 kgs.", "55 kg's", "55 k g", "55 kilos".
+function units(text) {
+  return text
+    .replace(/(\d)\s*(?:kg'?s|kgs?|k\.?\s?g\.?|kgm|kilo ?grams?|kilogrammes?|kilos?|kilo's|keys|kegs?)(?=\W|$)/g, '$1 kg')
+    .replace(/(\d)\s*(?:lbs?|pounds?)(?=\W|$)/g, '$1 lb')
+    .replace(/\b(?:reps?|repetitions?|times)\b/g, 'reps')
+    .replace(/[,.;:](?!\d)/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/** A logged set, in any order: "55 kg 12 reps", "12 reps 55 kg", "12 at 55", "55 for 12", "that's 55, 12 reps". */
+export function parseSet(raw) {
+  const text = units(raw)
+  if (!/\d/.test(text)) return null
+  let weight = null, reps = null, wAt = -1, rAt = -1
+  let m = new RegExp(`${N} (?:kg|lb)\\b`).exec(text) || new RegExp(`\\bweight (?:of |is |was )?${N}`).exec(text)
+  if (m) { weight = Number(m[1]); wAt = m.index + m[0].indexOf(m[1]) }
+  m = /\b(\d+) reps\b/.exec(text)
+  // "weight 55 reps 12": the number before "reps" was the weight
+  if (!m || m.index === wAt) m = /\breps (?:of |is |was )?(\d+)\b/.exec(text) || m
+  if (m && m.index !== wAt) { reps = Number(m[1]); rAt = m.index + m[0].indexOf(m[1]) }
+  // "8 at 60", "6 on 80", "12 reps with 55": reps then the weight
+  if (weight == null) {
+    m = new RegExp(`\\b(\\d+)(?: reps)? (?:at|on|with|@|of|using) ${N}\\b`).exec(text)
+    if (m) { reps ??= Number(m[1]); weight = Number(m[2]) }
+  }
+  // "55 for 12", "55 x 12", "55 by 12": the weight then reps
+  if (reps == null) {
+    m = new RegExp(`${N} (?:kg |lb )?(?:for|x|by) ?(\\d+)\\b`).exec(text) || new RegExp(`${N} (?:kg |lb )?x(\\d+)\\b`).exec(text)
+    if (m) { weight ??= Number(m[1]); reps = Number(m[2]) }
+  }
+  // One side named, the other a bare number: "that's 55, 12 reps", "55 kg 12"
+  const bare = [...text.matchAll(/\d+(?:\.\d+)?/g)].filter(x => x.index !== wAt && x.index !== rAt).map(x => Number(x[0]))
+  if (weight != null && reps == null && bare.length) reps = bare.find(n => Number.isInteger(n) && n !== weight) ?? null
+  else if (reps != null && weight == null && bare.length) weight = bare.find(n => n !== reps) ?? null
+  else if (weight == null && reps == null) {
+    if (bare.length >= 2) { weight = bare[0]; reps = bare[1] } // "55 12": weight, then reps
+    else if (bare.length === 1 && /^(?:(?:that'?s|did|got|hit|made|done) )?\d+$/.test(text)) reps = bare[0]
+    else return null
+  }
+  if (reps != null && !Number.isInteger(reps)) return null
+  const out = { type: 'set' }
+  if (reps != null) out.reps = reps
+  if (weight != null) out.weight = weight
+  return out.reps != null || out.weight != null ? out : null
+}
 
 export function parseCommand(raw) {
   const text = wordsToNumbers(raw).replace(/^(hey |hi |ok |okay )?(hayden|haydn|heyden|haiden|aidan|aiden)[, ]*/, '').replace(/[.!?]+$/, '').trim()
@@ -57,17 +102,8 @@ export function parseCommand(raw) {
   if (/\b(what'?s next|what is next|next exercise|what now)\b/.test(text)) return { type: 'next' }
   if (/\b(same (again|as last|as before)|repeat( that)?|same weight same reps)\b/.test(text)) return { type: 'same' }
 
-  // "15 reps at 20 kilos", "did 6 on 80", "20 kilos for 8", "8 at 60", "12 reps"
-  let m = new RegExp(`\\b(\\d+)\\s*(?:reps?|times)?\\s*(?:at|on|with|@|of)\\s*(\\d+(?:\\.\\d+)?)\\s*${UNIT}?\\b`).exec(text)
-  if (m) return { type: 'set', reps: num(m[1]), weight: num(m[2]) }
-  m = new RegExp(`\\b(\\d+(?:\\.\\d+)?)\\s*${UNIT}\\s*(?:for|x|times|by)?\\s*(\\d+)\\b`).exec(text)
-  if (m) return { type: 'set', reps: num(m[2]), weight: num(m[1]) }
-  m = new RegExp(`\\b(\\d+(?:\\.\\d+)?)\\s*(?:for|x|by)\\s*(\\d+)\\b`).exec(text)
-  if (m) return { type: 'set', reps: num(m[2]), weight: num(m[1]) }
-  m = /\b(\d+)\s*reps?\b/.exec(text)
-  if (m) return { type: 'set', reps: num(m[1]) }
-  m = /^(?:done|did|got|hit|made)\s+(\d+)$/.exec(text) || /^(\d+)$/.exec(text)
-  if (m) return { type: 'set', reps: num(m[1]) }
+  const set = parseSet(text)
+  if (set) return set
   if (/^(done|done it|set done|finished|got it|nailed it|tick( it)?|log it|next set|complete)$/.test(text) || /\b(set (is )?done|done (that|the) set|log (that|the) set)\b/.test(text)) return { type: 'set' }
   return null
 }

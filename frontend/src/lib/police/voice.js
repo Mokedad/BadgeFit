@@ -11,9 +11,9 @@ import { MOBILE as NATIVE } from '../mobile.js'
 const KEY = 'badgefit_voice'
 // The phone's own voice (the fallback): the most natural English voice the device has, a male one
 // where there is a choice. No accent preferred: Hayden sounds like a natural AI voice.
-const MALE = ['alex', 'aaron', 'evan', 'nathan', 'tom', 'reed', 'eddy', 'guy', 'davis', 'daniel', 'arthur', 'oliver', 'ryan', 'george', 'thomas', 'lee', 'william', 'gordon', 'james', 'male']
+const MALE = ['alex', 'aaron', 'evan', 'nathan', 'tom', 'reed', 'eddy', 'guy', 'davis', 'daniel', 'arthur', 'oliver', 'ryan', 'george', 'thomas', 'lee', 'william', 'gordon', 'james', 'fred', 'rishi', 'ralph', 'albert', 'bruce', 'junior', 'male']
 // Female voices to skip when looking for a male one (a voice reports its language, not gender).
-const FEMALE = ['karen', 'catherine', 'natasha', 'annette', 'carly', 'isabella', 'hayley', 'tina', 'elsie', 'freya', 'joanne', 'kim', 'tracey', 'samantha', 'serena', 'kate', 'moira', 'tessa', 'fiona', 'martha', 'sonia', 'libby', 'female', 'zira', 'hazel', 'susan', 'ava', 'allison', 'nicky', 'zoe', 'aria', 'jenny']
+const FEMALE = ['karen', 'catherine', 'natasha', 'annette', 'carly', 'isabella', 'hayley', 'tina', 'elsie', 'freya', 'joanne', 'kim', 'tracey', 'samantha', 'serena', 'kate', 'moira', 'tessa', 'fiona', 'martha', 'sonia', 'libby', 'female', 'zira', 'hazel', 'susan', 'ava', 'allison', 'nicky', 'zoe', 'aria', 'jenny', 'victoria', 'kathy', 'vicki', 'veena', 'shelley', 'sandy', 'flo', 'grandma', 'princess', 'tara', 'nora', 'emma', 'amy', 'sara', 'sarah', 'olivia', 'michelle']
 
 const low = v => `${v?.name || ''} ${v?.voiceURI || ''}`.toLowerCase()
 const has = (v, words) => words.some(w => new RegExp(`\\b${w}\\b`).test(low(v)))
