@@ -1104,7 +1104,7 @@ function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
   if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><JarvisOrb /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
-    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Hayden is listening. Say "Hayden, 20 kg, 4 reps"') } }}
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Hayden is listening. Say "Hayden", "Hey" or "H", then "20 kilos, 4 reps"') } }}
     aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><JarvisOrb /></button>
 }
 

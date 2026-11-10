@@ -1,7 +1,7 @@
 // Hands-free Hayden (BadgeFit): through the workout he listens for his name, so nothing needs a
 // tap. "Hayden, that's 20 kg, 4 reps" logs the set (and the rep-range call for the next set
 // follows, or the next exercise after the last set); "Hayden, skip rest", "Hayden, swap to
-// dumbbells", "Hayden, wrap up". Saying only "Hayden" gets a short beep (not a spoken "Yeah?",
+// dumbbells", "Hayden, wrap up" ("Hey" or "H" first works too, lib/police/wake-word.js). Saying only "Hayden" gets a short beep (not a spoken "Yeah?",
 // which stopped the listening and lost the weight said over it) and the next words count. A
 // weight heard alone ("55 kg", cut off by a pause) waits for the reps that follow.
 // Anything else said to him is a question for the coach. Words not said to him are ignored, and
@@ -49,7 +49,7 @@ export function stopHandsFree(remember = true) {
 
 async function loop() {
   running = true
-  let armedUntil = 0, failures = 0, held = ''
+  let armedUntil = 0, failures = 0, held = '', armedShort = false
   while (useJarvis.getState().handsFree) {
     const S = useStore.getState().S
     if (!S.active) { stopHandsFree(false); break }
@@ -72,11 +72,14 @@ async function loop() {
       if (held && Date.now() > armedUntil) { const line = await runCommand(`${held} done`); held = ''; if (line) await say(line) }
       continue
     }
-    const { woke, rest } = splitWake(out.text)
+    const { woke, rest, short } = splitWake(out.text)
     let said = null
+    // "Hey, how are you" to a mate is not for Hayden: after a bare "Hey" or "H" only a workout
+    // command counts (his name still takes a question for the coach).
+    if (woke && rest && short && !parseCommand(rest)) continue
     if (woke && rest) said = rest
-    else if (woke) { armedUntil = Date.now() + 8000; ping(); continue }
-    else if (Date.now() < armedUntil) said = out.text
+    else if (woke) { armedUntil = Date.now() + 8000; armedShort = !!short; ping(); continue }
+    else if (Date.now() < armedUntil) { if (armedShort && !parseCommand(out.text)) continue; said = out.text }
     if (!said) continue
     armedUntil = 0
     if (held) { said = `${held} ${said}`; held = '' }
