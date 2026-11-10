@@ -3320,3 +3320,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .card>.today-row:first-child{margin-top:0}
 .today-row.is-done{cursor:default}
 .today-row.is-done:active{background:var(--surface-2)}
+/* BadgeFit week strip: past days are over, faded and not tappable; a trained one keeps a ✓. */
+.wday.past{opacity:.4;cursor:default;pointer-events:none}
+.wday.past.was-done{opacity:.55}
+.wday .wcheck{height:5px;line-height:5px;font-size:11px;font-weight:700;color:var(--green);overflow:visible}

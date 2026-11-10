@@ -95,7 +95,6 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
   const call = checkinCall(checkin)
   return <>
     {fresh && <Setup S={S} P={P} />}
-    {!fresh && !checkin && <CheckIn P={P} day={day} />}
     {fresh ? null : <div className="card pf-todaycard">
       <div className="row between"><h3>{pw.after ? `📅 After your ${testName}` : pw.final ? `🏁 Final week · week ${week} of ${pw.last}` : `📅 Week ${week} of ${pw.last}`}</h3><span className="pf-chip">Phase {plan.phase.n} of 3</span></div>
       <p className="pf-sub pf-explain">{pw.after

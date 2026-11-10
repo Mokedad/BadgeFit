@@ -85,8 +85,12 @@ export default function Home() {
     const eff = effectiveRoutineIds(S, iso).length > 0, ovr = S.dayPlan[iso] !== undefined, done = doneDays.has(iso)
     // A day off with a note (#261) reads as excused, not as a plan that went by.
     const dot = done ? ' done' : dayNoteOf(S, iso) ? ' noted' : ovr && eff ? ' ovr' : eff ? ' plan' : ''
-    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => dayOverrideSheet(iso))}>
-      <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div><div className={'dot' + dot} /></div>)
+    // BadgeFit: a day gone by is over: faded, not tappable, a ✓ if it was trained, else blank.
+    const past = !!S.police?.start && iso < todayISO()
+    if (past) strip.push(<div key={i} className={'wday past' + (done ? ' was-done' : '')} aria-disabled="true">
+      <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div>{done ? <div className="wcheck" aria-label={t('Done')}>✓</div> : <div className="dot" />}</div>)
+    else strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => dayOverrideSheet(iso))}>
+      <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div>{S.police?.start && done ? <div className="wcheck" aria-label={t('Done')}>✓</div> : <div className={'dot' + dot} />}</div>)
   }
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6)
   const wkLabel = weekOffset === 0 ? t('This week') : `${wkStart.getDate()} ${wkStart.toLocaleDateString(dateLocale(), { month: 'short' })} – ${wkEnd.getDate()} ${wkEnd.toLocaleDateString(dateLocale(), { month: 'short' })}`
