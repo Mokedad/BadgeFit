@@ -7,6 +7,7 @@ import { ZONES, hrFor, runMinutes } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
 import { say, say as sayAloud } from '../lib/police/voice.js'
 import { checkInMinutes, checkInLine, statLines, intenseLine } from '../lib/police/run-coach.js'
+import { runResult } from '../lib/police/run-result.js'
 import { todayISO } from '../lib/format.js'
 import '../police.css'
 
@@ -33,13 +34,15 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ run, age, onClose, onLog, onUpdate, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
   const [paused, setPaused] = useState(false)
   const [now, setNow] = useState(Date.now())
   const [done, setDone] = useState(false)
+  const [result, setResult] = useState(null) // runResult(): what was run, saved the moment it ends
+  const savedId = useRef(null)
   const [rpe, setRpe] = useState(null)
   const [km, setKm] = useState(null)
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
@@ -63,7 +66,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
 
   const say = s => `${KIND[s.kind]}. ${s.label}${s.sec ? ', ' + (s.sec >= 60 ? Math.round(s.sec / 60) + ' minutes' : s.sec + ' seconds') : ''}.`
   const go = i => {
-    if (i >= segs.length) { setDone(true); cue(audio, 'Session complete. Great work.', 'cool', musicMode); return }
+    if (i >= segs.length) { cue(audio, '', 'cool', musicMode); finish(true); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
     // A hard part starting gets Hayden's lift on top of the step itself.
     const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
@@ -100,7 +103,6 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
   }, [started, paused, done, idx, bubble]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
 
-  const totalMin = Math.max(1, Math.round((Date.now() - runStart.current) / 60000))
   const next = segs[idx + 1]
 
   // Leaving mid-run pauses it and keeps it in a bar at the bottom, like music: ▶ carries on, ✕ ends.
@@ -109,14 +111,27 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
     if (!paused) togglePause()
     onMinimize()
   }
-  const end = () => {
-    const ranMin = (((paused ? pausedAt.current : Date.now()) - runStart.current) / 60000)
-    if (ranMin < 1) { if (confirm('End this run? Nothing is saved yet.')) onClose(); return }
-    if (!confirm('End the run? You can save what you did.')) return
-    if (!paused) togglePause()
+  // The end, finished or stopped early: saved at once, so it counts in the stats whatever happens
+  // next, then the congratulations (lib/police/run-result.js).
+  const finish = completed => {
+    const ranSec = ((paused ? pausedAt.current : Date.now()) - runStart.current) / 1000
+    const res = runResult({ run, ranSec, completed, runLog, today: todayISO(), seed: seed.current })
+    if (!paused) { pausedAt.current = Date.now(); setPaused(true) }
+    setResult(res)
     setDone(true)
+    savedId.current = onLog({ run: run.id, min: res.min, completed, pct: res.pct })
+    try { wake.current?.release() } catch { /* gone */ }
+    sayAloud(res.line, { music: musicMode }).catch(() => {})
+    try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
     onRestore?.()
   }
+  const end = () => {
+    const ranMin = (((paused ? pausedAt.current : Date.now()) - runStart.current) / 60000)
+    if (ranMin < 1) { if (confirm('End this run? Under a minute is not saved.')) onClose(); return }
+    if (!confirm('End the run here? What you have done is saved.')) return
+    finish(false)
+  }
+  const note = patch => { if (savedId.current) onUpdate?.(savedId.current, patch) }
 
   if (minimized && !done) {
     const t = started ? fmt(((paused ? pausedAt.current : now) - runStart.current) / 1000) : ''
@@ -130,19 +145,25 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
     </div>
   }
 
-  if (done) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
+  if (done && result) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
     <div className="rp-top"><button className="rp-x" onClick={onClose} aria-label="Close">✕</button></div>
     <div className="rp-body">
-      <div className="rp-emoji" aria-hidden="true">🏁</div>
-      <h2>{run.name}: done</h2>
-      <p className="rp-sub">{totalMin} min. Every one of these is a level on test day.</p>
-      <p className="rp-q">How hard was it?</p>
-      <div className="rp-rpe">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <button key={n} className={rpe === n ? 'on' : ''} onClick={() => setRpe(n)} aria-pressed={rpe === n}>{n}</button>)}</div>
-      <p className="rp-hint">1 very easy · 5 steady · 8 hard · 10 everything</p>
-      <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={setKm} /></label>
-      <button className="rp-main" onClick={() => onLog({ run: run.id, min: totalMin, km: km || null, rpe })}>Save run</button>
+      <div className="rp-party" aria-hidden="true">{['🥳', '🎉', '🏃', '💪', '🎉', '🥳'].map((e, i) => <span key={i} style={{ animationDelay: `${i * 0.12}s` }}>{e}</span>)}</div>
+      <h2>{result.headline}</h2>
+      <p className="rp-sub">{result.completed ? `${run.name}, all of it.` : `You did ${result.min} of ${result.planned} minutes. It counts.`} <b>Saved ✅</b></p>
+      <div className="rp-stats">
+        <div><b>{result.min}</b><span>minutes</span></div>
+        <div><b>{result.pct}%</b><span>of the run</span></div>
+        <div><b>{result.weekRuns}</b><span>runs this week</span></div>
+        <div><b>{result.weekMin}</b><span>min this week</span></div>
+      </div>
+      <p className="rp-q">How hard was it? <small>(optional)</small></p>
+      <div className="rp-rpe">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <button key={n} className={rpe === n ? 'on' : ''} onClick={() => { setRpe(n); note({ rpe: n }) }} aria-pressed={rpe === n}>{n}</button>)}</div>
+      <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
+      <button className="rp-main" onClick={onClose}>Done 🥳</button>
     </div>
   </div>
+
 
   return <div className={'rp rp-' + (seg?.kind || 'warm') + (paused ? ' paused' : '')} role="dialog" aria-label={run.name}>
     <div className="rp-top">
@@ -171,6 +192,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
         <button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button>
         <button onClick={() => go(idx + 1)} aria-label="Next step">⏭</button>
       </div>
+      <button className="rp-end" onClick={end}>■ End run here</button>
     </div>}
   </div>
 }
