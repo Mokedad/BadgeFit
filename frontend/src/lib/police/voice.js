@@ -6,6 +6,7 @@
 // the device has. A generic Aussie bloke, never an imitation of any real person.
 //
 import { apiPostBlob, apiPostBlobInfo } from '../api.js'
+import { spoken } from './spoken.js'
 import { MOBILE as NATIVE } from '../mobile.js'
 const KEY = 'badgefit_voice'
 // Known Australian male voices across iOS/macOS, Windows/Edge and Android, best first.
@@ -68,6 +69,7 @@ export const DELIVERY = { rate: 0.97, pitch: 0.92 }
  */
 export async function say(text, opts = {}) {
   if (!text) return false
+  text = spoken(text) // "Let's go", not "Let us go": how people talk (spoken.js)
   talking(+1)
   try { return await sayNow(text, opts) } finally { talking(-1) }
 }
@@ -207,7 +209,7 @@ export function unlockOnce() { if (!unlocked) primeSpeech() }
 const preloaded = new Map()
 /** Fetches the server's clip for `text` now, for a say() that must not wait. */
 export async function preloadSpeech(text) {
-  const k = String(text)
+  const k = spoken(String(text))
   if (preloaded.has(k) || Date.now() <= serverOffUntil) return
   const blob = await apiPostBlob('/api/coach/speak', { text: k })
   if (blob && blob.size > 100) { preloaded.set(k, blob); if (preloaded.size > 40) preloaded.delete(preloaded.keys().next().value) }
@@ -218,6 +220,7 @@ export async function preloadSpeech(text) {
  * voice has a reason: { via: 'gemini' } or { via: 'phone', why }. Call from a tap.
  */
 export async function voiceCheck(text) {
+  text = spoken(text)
   primeSpeech()
   if (NATIVE) { await say(text); return { via: 'native' } }
   const r = await apiPostBlobInfo('/api/coach/speak', { text })

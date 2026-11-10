@@ -16,7 +16,7 @@ import { baseUrlFor } from './core/providers.js';
 export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Puck';
 export const TTS_MODELS = (process.env.COACH_TTS_MODEL || 'gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts')
   .split(',').map(s => s.trim()).filter(Boolean);
-export const STYLE = 'You are Jarvis, an Australian personal trainer talking to your client in the gym or on a run. Speak naturally and conversationally with a relaxed Australian accent, warm and energetic, like a real coach beside them: natural pauses, a smile in your voice, never like reading a script. Say exactly these words and nothing else:';
+export const STYLE = 'Voice: Jarvis, a male personal trainer from Sydney with a natural, broad Australian accent (Australian vowels, relaxed Aussie rhythm, never American or British). Style: casual and warm, upbeat, like talking to a mate beside him at the gym or on a run, a smile in his voice, natural pauses, small changes in pitch. Pace: natural, a touch quick when pumped up. Never sound like reading a script. Say exactly these words and nothing else:';
 export const MAX_CHARS = 700;
 const PER_WINDOW = 60, WINDOW_MS = 10 * 60 * 1000, CACHE_MAX = 300, TIMEOUT_MS = 30000;
 
