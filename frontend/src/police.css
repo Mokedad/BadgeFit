@@ -549,7 +549,7 @@
 .rp-runner{position:absolute;top:50%;font-size:26px;line-height:1;transform:translate(-50%,-58%) scaleX(-1);transition:left .25s linear;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
 .rp-track.live .rp-runner{cursor:grab}
 .rp-flag{position:absolute;right:-6px;top:50%;font-size:18px;transform:translateY(-60%)}
-.pf .pf-ran{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--green) 16%,transparent)}
+.pf .pf-ran{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:12px 14px;border-radius:14px;background:rgba(52,199,89,.16);background:color-mix(in srgb,var(--green) 16%,transparent)}
 .pf .pf-ran b{color:var(--green-ink,var(--green));font-size:16px}
 .pf .pf-ran span{flex:1;min-width:0;font-size:14px;color:var(--label-2)}
 .pf .pf-again{border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;background:var(--surface-2);color:inherit}
