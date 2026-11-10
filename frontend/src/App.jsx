@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 're
 import JarvisFab from './components/JarvisFab.jsx'
 import JarvisWorkout from './components/JarvisWorkout.jsx'
 import JarvisHandsFree from './components/JarvisHandsFree.jsx'
+import RunHost from './components/RunHost.jsx'
 import { hideBoot } from './lib/boot.js'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
@@ -395,6 +396,7 @@ function Shell() {
           workout's 🎤 (JarvisFab). */}
       {authed && <JarvisWorkout />}
       {authed && <JarvisHandsFree />}
+      {authed && <RunHost />}
       {authed && <JarvisFab />}
       {!noTabs && authed && <ScrollTopButton off={loc.pathname === '/workout'} path={loc.pathname} />}
       <RestTimer />

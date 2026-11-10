@@ -29,7 +29,8 @@ import { bwSheet, startFlow, confirmSheet } from '../sheets.jsx'
 import { deleteRoutine } from '../lib/routines.js'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
-import RunPlayer from '../components/RunPlayer.jsx'
+import { useRun } from '../store/useRun.js'
+import { runForRoutine } from '../lib/police/run-routines.js'
 import BeepTrainer from '../components/BeepTrainer.jsx'
 import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import { voiceCheck } from '../lib/police/voice.js'
@@ -111,7 +112,9 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
       {day && <DayCard d={day} today />}
       {call && <p className={'pf-adjust ' + call}><b>{CALL_WORD[call]}</b>{adjustNote(day, call) ? ' · ' + adjustNote(day, call) : ''}</p>}
       {(() => {
-        const run = runForDay(day)
+        // What is on today, if you changed it (a run you picked for today wins over the plan's).
+        const picked = effectiveRoutineIds(S, todayISO()).map(id => runForRoutine(P, id, todayISO())).find(Boolean)
+        const run = picked || runForDay(day)
         if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
         if (day?.kind === 'gym') return <button className="pf-go" onClick={() => {
           // Straight into today's session: one tap, no second Start on Home.
@@ -394,7 +397,7 @@ function PhaseSync({ S, P, week }) {
 }
 
 function DayCard({ d, today }) {
-  return <div className={'pf-day pf-' + d.kind + (today ? ' on' : '')}>
+  return <div className={'pf-day pfk-' + d.kind + (today ? ' on' : '')}>
     <div className="pf-day-h"><span>{d.dayName}{d.minutes ? ` · ⏱ ${d.minutes} min` : ''}</span><b><span className="pf-ds" aria-hidden="true">{DAY_SYM[d.kind] || '•'}</span>{d.title}</b></div>
     <ul>{d.details.map((x, i) => <li key={i}>{x}</li>)}</ul>
     {d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{recSym(x)}{x}</span>)}</div>}
@@ -849,10 +852,10 @@ export default function PoliceFit() {
   const tab = ALL_TABS.some(x => x.value === params.get('tab')) ? params.get('tab') : 'today'
   const setTab = v => setParams(v === 'today' ? {} : { tab: v }, { replace: true })
   const setP = usePolice()
-  const [running, setRunning] = useState(() => runById(params.get('run')))
-  // A run asked for while the hub is already open (Start, Home): open it.
+  // A run asked for in the link (Start, Home): the guided run opens (components/RunHost.jsx).
   const runParam = params.get('run')
-  useEffect(() => { const r = runById(runParam); if (r) setRunning(r) }, [runParam])
+  useEffect(() => { const r = runById(runParam); if (r) { useRun.getState().open(r); setParams(p => { p.delete('run'); return p }, { replace: true }) } }, [runParam]) // eslint-disable-line react-hooks/exhaustive-deps
+  const setRunning = r => (r ? useRun.getState().open(r) : useRun.getState().close())
   const [overlay, setOverlay] = useState(null) // 'beep' | 'test'
   // Members set up under an older plan model: plans start at week 1 when you join and run as long
   // as the test is away. A start far in the future (the old "12 weeks before the test") moves to
@@ -873,13 +876,7 @@ export default function PoliceFit() {
       s.police = next
     })
   }, [P.planV, P.level, P.start])
-  const logRun = entry => {
-    setP(p => ({ runLog: [...(p.runLog || []), { id: Date.now().toString(36), at: todayISO(), ...entry }].slice(-200) }))
-    setRunning(null)
-    useUI.getState().toast('Run saved. That is another level banked. 🏁')
-  }
   return <div className="narrow pf">
-    {running && <RunPlayer run={running} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode} onClose={() => setRunning(null)} onLog={logRun} />}
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
       setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
       setOverlay(null); useUI.getState().toast(`📣 Beep test ${v} saved`)

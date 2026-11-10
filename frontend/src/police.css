@@ -32,10 +32,10 @@
 /* days */
 .pf-day{border-left:4px solid var(--surface-3);background:var(--surface);border-radius:12px;padding:12px 14px;margin:10px 0}
 .pf-day.on{outline:2px solid var(--acc,var(--blue))}
-.pf-day.pf-gym{border-left-color:var(--orange)}
-.pf-day.pf-run{border-left-color:var(--blue)}
-.pf-day.pf-walk{border-left-color:var(--green)}
-.pf-day.pf-test{border-left-color:var(--red)}
+.pf-day.pfk-gym{border-left-color:var(--orange)}
+.pf-day.pfk-run{border-left-color:var(--blue)}
+.pf-day.pfk-walk{border-left-color:var(--green)}
+.pf-day.pfk-test{border-left-color:var(--red)}
 .pf-day-h{display:flex;flex-direction:column;gap:2px}
 .pf-day-h span{color:var(--label-2);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 .pf-rec{display:flex;gap:6px;flex-wrap:wrap}
@@ -183,7 +183,7 @@
 .pf-weeks button.now{box-shadow:inset 0 0 0 2px var(--acc)}
 .pf-prot div.on{box-shadow:inset 0 0 0 2px var(--acc)}
 .pf-day.on{outline-color:var(--acc)}
-.pf-day.pf-gym{border-left-color:var(--acc)}
+.pf-day.pfk-gym{border-left-color:var(--acc)}
 .pf-count-n b{color:var(--acc-ink,var(--acc))}
 .pf-week7 i{background:var(--acc)}
 .cm-av{background:var(--acc);color:var(--on-acc)}
@@ -521,3 +521,11 @@
 @media (prefers-reduced-motion:reduce){.rp-bubble{animation:none}}
 .wk-run-go{margin:10px 0 4px;width:100%}
 .pf-hear{align-self:flex-start;border:0;border-radius:999px;padding:8px 14px;font-weight:700;background:rgba(255,255,255,.14);color:#fff}
+.rp-mini{position:fixed;left:12px;right:12px;bottom:calc(var(--sab,0px) + 84px);z-index:150;display:flex;align-items:center;gap:8px;max-width:520px;margin:0 auto;padding:8px 8px 8px 12px;border-radius:18px;color:#fff;background:#0d1b33;border:1px solid rgba(255,198,41,.5);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.rp-mini-m{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;color:inherit;text-align:left;padding:0}
+.rp-mini-m>span:first-child{font-size:22px}
+.rp-mini-m>span:last-child{display:flex;flex-direction:column;min-width:0}
+.rp-mini-m b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-mini-m small{opacity:.8;font-variant-numeric:tabular-nums}
+.rp-mini-b{flex:none;width:42px;height:42px;border-radius:50%;border:0;font-size:16px;background:#ffc629;color:#111}
+.rp-mini-b:last-child{background:rgba(255,255,255,.15);color:#fff}

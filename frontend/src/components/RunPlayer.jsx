@@ -33,7 +33,7 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, runLog = [], musicMode = false }) {
+export default function RunPlayer({ run, age, onClose, onLog, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
@@ -103,6 +103,33 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
   const totalMin = Math.max(1, Math.round((Date.now() - runStart.current) / 60000))
   const next = segs[idx + 1]
 
+  // Leaving mid-run pauses it and keeps it in a bar at the bottom, like music: ▶ carries on, ✕ ends.
+  const leave = () => {
+    if (!started || done || !onMinimize) { onClose(); return }
+    if (!paused) togglePause()
+    onMinimize()
+  }
+  const end = () => {
+    const ranMin = (((paused ? pausedAt.current : Date.now()) - runStart.current) / 60000)
+    if (ranMin < 1) { if (confirm('End this run? Nothing is saved yet.')) onClose(); return }
+    if (!confirm('End the run? You can save what you did.')) return
+    if (!paused) togglePause()
+    setDone(true)
+    onRestore?.()
+  }
+
+  if (minimized && !done) {
+    const t = started ? fmt(((paused ? pausedAt.current : now) - runStart.current) / 1000) : ''
+    return <div className="rp-mini" role="region" aria-label={run.name}>
+      <button className="rp-mini-m" onClick={onRestore} aria-label="Open the run">
+        <span aria-hidden="true">🏃</span>
+        <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
+      </button>
+      <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}>{paused ? '▶' : '⏸'}</button>
+      <button className="rp-mini-b" onClick={end} aria-label="End run">✕</button>
+    </div>
+  }
+
   if (done) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
     <div className="rp-top"><button className="rp-x" onClick={onClose} aria-label="Close">✕</button></div>
     <div className="rp-body">
@@ -119,7 +146,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
 
   return <div className={'rp rp-' + (seg?.kind || 'warm') + (paused ? ' paused' : '')} role="dialog" aria-label={run.name}>
     <div className="rp-top">
-      <button className="rp-x" onClick={onClose} aria-label="End run">✕</button>
+      <button className="rp-x" onClick={leave} aria-label={started ? 'Pause and minimise' : 'Close'} title={started ? 'Pause and minimise' : 'Close'}>{started ? '⌄' : '✕'}</button>
       <span>{run.name}</span>
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
     </div>
