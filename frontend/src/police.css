@@ -541,3 +541,5 @@
 .rp-q small{opacity:.7;font-weight:400}
 .rp.rp-done{background:linear-gradient(170deg,#183463,#0d1b33)}
 .pf .rp-km{color:#fff}
+.rp-ctl>span{display:flex;flex-direction:column;align-items:center;gap:6px}
+.rp-ctl small{font-size:12px;opacity:.8;font-weight:600}

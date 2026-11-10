@@ -23,6 +23,10 @@ export default function RunHost() {
     })
     return id
   }
+  const unlog = id => useStore.getState().update(s => {
+    const p = s.police || {}
+    s.police = { ...p, runLog: (p.runLog || []).filter(r => r.id !== id) }
+  })
   const update = (id, patch) => useStore.getState().update(s => {
     const p = s.police || {}
     s.police = { ...p, runLog: (p.runLog || []).map(r => (r.id === id ? { ...r, ...patch } : r)) }
@@ -30,6 +34,6 @@ export default function RunHost() {
   return <Suspense fallback={null}><div className="pf">
     <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode}
       minimized={minimized} onMinimize={() => useRun.getState().minimize()} onRestore={() => useRun.getState().restore()}
-      onClose={() => useRun.getState().close()} onLog={log} onUpdate={update} />
+      onClose={() => useRun.getState().close()} onLog={log} onUpdate={update} onUnlog={unlog} />
   </div></Suspense>
 }

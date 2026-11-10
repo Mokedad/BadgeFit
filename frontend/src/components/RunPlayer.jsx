@@ -34,7 +34,7 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, onUpdate, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
@@ -132,6 +132,17 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, runLog =
     finish(false)
   }
   const note = patch => { if (savedId.current) onUpdate?.(savedId.current, patch) }
+  // Ended by mistake (Skip at the last step, End): back to the run where it stopped, paused, and
+  // the save undone, so the run is saved once, when it really ends.
+  const back = () => {
+    if (savedId.current) onUnlog?.(savedId.current)
+    savedId.current = null
+    setResult(null); setRpe(null); setKm(null)
+    // A step whose time had run out starts again, or ▶ would end the run at once.
+    if (seg?.sec != null && (pausedAt.current - segStart.current) / 1000 >= seg.sec - 1) segStart.current = pausedAt.current
+    setDone(false)
+    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
+  }
 
   if (minimized && !done) {
     const t = started ? fmt(((paused ? pausedAt.current : now) - runStart.current) / 1000) : ''
@@ -161,6 +172,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, runLog =
       <div className="rp-rpe">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <button key={n} className={rpe === n ? 'on' : ''} onClick={() => { setRpe(n); note({ rpe: n }) }} aria-pressed={rpe === n}>{n}</button>)}</div>
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-main" onClick={onClose}>Done 🥳</button>
+      <button className="rp-end" onClick={back}>⬅️ Back to the run</button>
     </div>
   </div>
 
@@ -188,9 +200,9 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, runLog =
       {bubble && <div className="rp-bubble" role="status"><span className="pf-orb" aria-hidden="true" />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
-        <button onClick={() => idx > 0 && go(idx - 1)} aria-label="Previous step" disabled={idx === 0}>⏮</button>
-        <button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button>
-        <button onClick={() => go(idx + 1)} aria-label="Next step">⏭</button>
+        <span><button onClick={() => idx > 0 && go(idx - 1)} aria-label="Back a step" disabled={idx === 0}>⏮</button><small>Back</small></span>
+        <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>
+        <span><button onClick={() => go(idx + 1)} aria-label={idx >= segs.length - 1 ? 'Finish the run' : 'Skip this step'}>⏭</button><small>{idx >= segs.length - 1 ? 'Finish' : 'Skip'}</small></span>
       </div>
       <button className="rp-end" onClick={end}>■ End run here</button>
     </div>}
