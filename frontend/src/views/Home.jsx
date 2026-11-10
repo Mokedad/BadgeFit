@@ -232,7 +232,7 @@ export default function Home() {
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
       {!S.active && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/workout')}>
-          {t('Choose a different workout')}
+          {doneToday && S.police?.level ? 'Add an extra workout' : t('Choose a different workout')}
         </Button>
       </div>}
       <SeasonDeco spot="home-hero" />

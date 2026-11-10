@@ -3324,3 +3324,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .wday.past{opacity:.4;cursor:default;pointer-events:none}
 .wday.past.was-done{opacity:.55}
 .wday .wcheck{height:5px;line-height:5px;font-size:11px;font-weight:700;color:var(--green);overflow:visible}
+/* BadgeFit: today done, the Start button is a green tick and starts nothing. */
+#tabbar button.start.day-done .cir{background:#34c759;color:#fff;box-shadow:0 6px 18px -4px rgba(52,199,89,.55)}
+#tabbar button.start.day-done span{color:var(--green)}

@@ -7,6 +7,7 @@ import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 import { retapTab } from '../lib/scroll-top.js'
+import { useUI } from '../store/useUI.js'
 
 // Module scope, not TabBar's render body. Declared inside it, `Tab` was a new function on every
 // render, so React saw a different component type each time and threw the button away and built a
@@ -44,15 +45,18 @@ export default function TabBar({ onStart }) {
   }
 
   const running = !!S.active && cur !== 'workout' && !S.active.editingWorkoutId && !S.active.backfill && S.active.start > 0
+  // BadgeFit: today's plan done is done and dusted. Start shows a tick and starts nothing; an
+  // extra workout is added on purpose from Home ("Add an extra workout"), and once one is running
+  // the button resumes it as usual.
+  const ids = effectiveRoutineIds(S, todayISO())
+  const doneIds = new Set(S.workouts.filter(w => w.d === todayISO()).flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
+  const dayDone = !S.active && !!S.police?.level && ids.length > 0 && ids.every(id => doneIds.has(id))
   const startWorkout = () => {
+    if (dayDone) { useUI.getState().toast('✅ Today is done. Want more? Add an extra workout on Home.'); return }
     if (!S.active) {
       // A weekday can hold several routines; start the combined session if any of them has
       // exercises, otherwise fall through to the picker.
-      // BadgeFit: today's plan already done is not started again; Start opens the picker instead.
-      const ids = effectiveRoutineIds(S, todayISO())
-      const doneIds = new Set(S.workouts.filter(w => w.d === todayISO()).flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
-      const doneToday = !!S.police?.level && ids.length > 0 && ids.every(id => doneIds.has(id))
-      if (!doneToday && effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(ids); return }
+      if (effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(ids); return }
     }
     nav('/workout')
   }
@@ -68,10 +72,10 @@ export default function TabBar({ onStart }) {
           A live session you stepped away from shows its running time instead of a word, the
           button still named Resume; a past workout being edited or logged after the fact has no
           clock to run. */}
-      <button data-tour="start" className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}
-        aria-label={running ? t('Resume') : undefined}>
-        <span className="cir"><Icon name="play" /></span>
-        {running ? <span className="tab-time"><Elapsed start={S.active.start} pausedAt={S.active.pausedAt} /></span>
+      <button data-tour="start" className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '') + (dayDone ? ' day-done' : '')} onClick={startWorkout}
+        aria-label={running ? t('Resume') : dayDone ? 'Today done' : undefined} aria-disabled={dayDone || undefined}>
+        <span className="cir"><Icon name={dayDone ? 'check' : 'play'} /></span>
+        {dayDone ? <span>{t('Done')}</span> : running ? <span className="tab-time"><Elapsed start={S.active.start} pausedAt={S.active.pausedAt} /></span>
           : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>}
       </button>
       <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => switchTab('/stats')} tour="tab-stats" />
