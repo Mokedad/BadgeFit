@@ -50,7 +50,10 @@ export default function TabBar({ onStart }) {
   // the button resumes it as usual.
   const ids = effectiveRoutineIds(S, todayISO())
   const doneIds = new Set(S.workouts.filter(w => w.d === todayISO()).flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
-  const dayDone = !S.active && !!S.police?.level && ids.length > 0 && ids.every(id => doneIds.has(id))
+  // Done = something trained today and every planned routine left today covered (a removed
+  // plan leaves none, so a day trained and then cleared counts as done too).
+  const trainedToday = S.workouts.some(w => w.d === todayISO())
+  const dayDone = !S.active && !!S.police?.level && trainedToday && ids.every(id => doneIds.has(id))
   const startWorkout = () => {
     if (dayDone) { useUI.getState().toast('✅ Today is done. Want more? Add an extra workout on Home.'); return }
     if (!S.active) {
