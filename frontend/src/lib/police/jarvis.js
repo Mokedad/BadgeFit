@@ -1,4 +1,4 @@
-// Police Prep: "Jarvis", the voice that talks the user through the day.
+// Police Prep: "Hayden", the voice that talks the user through the day.
 //
 // Deterministic text built from the user's own data (today's session, their standards, the
 // set they just logged), so it works offline and on every device, and the view can read it out
@@ -65,7 +65,7 @@ export function briefing({ name, hour = 9, week, total = 12, final = false, test
   return out.map(s => s.replace(/\.\.$/, '.'))
 }
 
-/** What Jarvis says after a set, from nextSetAdvice() (set-advice.js). */
+/** What Hayden says after a set, from nextSetAdvice() (set-advice.js). */
 export function setLine(advice, unit = 'kg', seed = Date.now()) {
   if (!advice) return ''
   const w = `${advice.weight} ${unit}`
@@ -84,7 +84,7 @@ export function setLine(advice, unit = 'kg', seed = Date.now()) {
   ], seed)
 }
 
-/** What Jarvis says about a newly logged standard result, from evaluate() (standards.js). */
+/** What Hayden says about a newly logged standard result, from evaluate() (standards.js). */
 export function resultLine(std, ev) {
   if (!std || !ev) return ''
   if (ev.pass) return `${std.name}: passed. That is one box ticked. Keep it, then beat it.`

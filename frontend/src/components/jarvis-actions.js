@@ -1,5 +1,5 @@
 // What a workout command does (BadgeFit), the same from the 🎤 call (JarvisLive) and from
-// hands-free (JarvisHandsFree): log a set, swap, rest, what's next, wrap up. Returns what Jarvis
+// hands-free (JarvisHandsFree): log a set, swap, rest, what's next, wrap up. Returns what Hayden
 // should say ('' when the workout's own call follows, as after a logged set), or null when the
 // words are not a command. The workout screen registers the actions (store/useJarvis.js).
 import { useStore } from '../store/useStore.js'

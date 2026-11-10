@@ -1,5 +1,5 @@
 // The beep test, on the phone (BadgeFit): set two lines 20 m apart, tap Start, and run to the
-// beeps. One beep ends a shuttle, three end a level, and Jarvis calls each new level. Tap
+// beeps. One beep ends a shuttle, three end a level, and Hayden calls each new level. Tap
 // "I'm out" when you miss the line: the score is the last shuttle completed, and it can go
 // straight into the PCT tab. Timing: lib/police/beep-run.js, from the same level table the
 // standard is scored with. The screen stays awake while it runs. English only.
@@ -23,7 +23,7 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
   const goalLevel = Number(String(goal).split('.')[0]) || 7
 
   useEffect(() => {
-    // Jarvis's level calls, fetched while you set up so they play on the beep.
+    // Hayden's level calls, fetched while you set up so they play on the beep.
     for (let l = 2; l <= Math.min(21, goalLevel + 4); l++) preloadSpeech(`Level ${l}`)
     preloadSpeech('That is the pass mark. Keep going.'); preloadSpeech('Goal reached. Everything now is a bonus.')
     return () => { clearInterval(timer.current); clearInterval(countdown.current); try { wake.current?.release() } catch { /* gone */ } stopSpeaking() }

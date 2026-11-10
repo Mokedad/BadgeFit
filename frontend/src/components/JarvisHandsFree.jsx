@@ -1,7 +1,7 @@
-// Hands-free Jarvis (BadgeFit): through the workout he listens for his name, so nothing needs a
-// tap. "Jarvis, that's 20 kg, 4 reps" logs the set (and the rep-range call for the next set
-// follows, or the next exercise after the last set); "Jarvis, skip rest", "Jarvis, swap to
-// dumbbells", "Jarvis, wrap up". Saying only "Jarvis" gets a "Yeah?" and the next words count.
+// Hands-free Hayden (BadgeFit): through the workout he listens for his name, so nothing needs a
+// tap. "Hayden, that's 20 kg, 4 reps" logs the set (and the rep-range call for the next set
+// follows, or the next exercise after the last set); "Hayden, skip rest", "Hayden, swap to
+// dumbbells", "Hayden, wrap up". Saying only "Hayden" gets a "Yeah?" and the next words count.
 // Anything else said to him is a question for the coach. Words not said to him are ignored, and
 // he stops listening while he talks so he never hears himself.
 //
@@ -56,7 +56,7 @@ async function loop() {
     if (!useJarvis.getState().handsFree) break
     if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
       stopHandsFree(false)
-      useUI.getState().toast('🎤 Tap the mic in your workout to let Jarvis listen')
+      useUI.getState().toast('🎤 Tap the mic in your workout to let Hayden listen')
       break
     }
     if (out.error) { failures++; await wait(Math.min(5000, 500 * failures)); continue }

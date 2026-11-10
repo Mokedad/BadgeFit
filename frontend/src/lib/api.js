@@ -58,7 +58,7 @@ function refusal(status, body) {
 }
 
 /**
- * A POST whose answer is a file (Jarvis's voice, /api/coach/speak): the Blob, or null when the
+ * A POST whose answer is a file (Hayden's voice, /api/coach/speak): the Blob, or null when the
  * server cannot give one (any error, offline, not paired). Never throws.
  */
 /** apiPostBlob with the reason when there is no file: { blob } or { status, error }. */

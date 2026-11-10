@@ -50,15 +50,15 @@ Focus/Do Not Disturb is off. Then switch the reminders off and on again in the a
 | # | Do this | You should see |
 |---|---|---|
 | 18 | Today → **Start** (or the green ▶ at the bottom) → do a set, tick it | The set is logged, the rest timer runs |
-| 19 | 🏋️ Reps → enter weight and reps | Move down / Stay / Move up and Jarvis's line |
+| 19 | 🏋️ Reps → enter weight and reps | Move down / Stay / Move up and Hayden's line |
 | 20 | 🍽️ Food → paste a Spotify playlist link in 🎵 Music → Save | The player shows; during a workout it sits under the header |
 | 21 | 🩹 Care → type "shins" | Shin splints: why, what to do, when to see a physio |
 
-## F. Jarvis and the community
+## F. Hayden and the community
 
 | # | Do this | You should see |
 |---|---|---|
-| 22 | Today → 🔊 Hear it | Jarvis reads the briefing aloud |
+| 22 | Today → 🔊 Hear it | Hayden reads the briefing aloud |
 | 23 | Admin dashboard → AI Coach → choose a provider, paste the API key → Connect | "Connected" |
-| 24 | Today → 🎤 Ask Jarvis → "What should I work on this week?" | An answer naming your weakest standard, in Jarvis's voice |
+| 24 | Today → 🎤 Ask Hayden → "What should I work on this week?" | An answer naming your weakest standard, in Hayden's voice |
 | 25 | Today → 👥 Community → write a post | It appears at the top; ask a friend to sign up and cheer it |

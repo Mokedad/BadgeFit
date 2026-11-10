@@ -1,4 +1,4 @@
-// How a line is said, not how it is written (BadgeFit voice): Jarvis's lines are written out in
+// How a line is said, not how it is written (BadgeFit voice): Hayden's lines are written out in
 // full ("Let us go", "That is the pass mark"), which a voice reads stiffly. Spoken, people use
 // contractions, so the voice gets "Let's go", "That's the pass mark". Only what is heard changes;
 // the screen keeps the written line. Pure.
@@ -12,7 +12,7 @@ const PAIRS = [
 ]
 const keepCase = (from, to) => (from[0] === from[0].toUpperCase() ? to[0].toUpperCase() + to.slice(1) : to)
 
-/** The line as Jarvis says it. */
+/** The line as Hayden says it. */
 export function spoken(text) {
   let s = String(text || '')
   for (const [re, to] of PAIRS) s = s.replace(re, m => keepCase(m, to))

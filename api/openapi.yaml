@@ -3514,7 +3514,7 @@ paths:
     post:
       tags: [coach]
       operationId: postCoachSpeak
-      summary: Jarvis's voice (BadgeFit)
+      summary: Hayden's voice (BadgeFit)
       description: |
         Turns one short line into speech with the instance's Google Gemini key and returns it
         as a WAV file, for phones whose own speech synthesis is blocked or muted. Only the line

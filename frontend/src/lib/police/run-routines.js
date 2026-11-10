@@ -2,7 +2,7 @@
 // guided runs beside your routines. A picked run becomes a small routine (one cardio row for its
 // minutes), so the week and the day plan can point at it like any other, and the run it stands for
 // is kept in S.police.runRoutines ({ routineId: runId }), which syncs with the rest of BadgeFit.
-// On the day, Home and Start open it as the guided run with Jarvis (runForRoutine).
+// On the day, Home and Start open it as the guided run with Hayden (runForRoutine).
 import { RUNS, runById, runMinutes } from './runs.js'
 import { routineFor } from './programme.js'
 import { todayBadgeFitRun } from './today-run.js'

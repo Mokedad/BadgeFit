@@ -126,7 +126,7 @@ export default function Home() {
   const onTodayNow = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
   // BadgeFit: today's workout asks first (Start / something else / rest today / not now), so a
   // tap never drops anyone into a session by accident. A running one opens straight away.
-  // BadgeFit: on a run day the plan's run routine opens the guided run (with Jarvis), not a gym
+  // BadgeFit: on a run day the plan's run routine opens the guided run (with Hayden), not a gym
   // session with a cardio row in it.
   const bfRun = S.active || !S.police?.level ? null : todayRoutines.map(r => runForRoutine(S.police, r.id, todayISO())).find(Boolean) || null
   const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
@@ -158,7 +158,7 @@ export default function Home() {
     {/* Police Prep (views/PoliceFit.jsx): the applicant hub, one tap from Home. English only, like that screen. */}
     <button type="button" className="card tap-host police-home" onClick={() => nav('/police')}>
       <BadgeLogo size={46} />
-      <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Jarvis has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
+      <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Hayden has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
       <Icon name="chevronRight" />
     </button>
     {S.police?.start && <EventCountdown P={S.police} />}
@@ -203,7 +203,7 @@ export default function Home() {
             <div className="ttl">{S.active ? (editingSaved ? S.active.name : t('{0} (in progress)', S.active.name))
               : doneToday ? (doneToday.name ? t('{0} (done)', doneToday.name) : t('Workout done'))
               : routine ? todayName : t('Rest day')}{todayOvr && routine && !doneToday ? ' · ' + t('rescheduled') : ''}</div>
-            {bfRun && !doneToday && <div className="ss">🏃 Guided run with Jarvis · {bfRun.name}</div>}
+            {bfRun && !doneToday && <div className="ss">🏃 Guided run with Hayden · {bfRun.name}</div>}
             {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.routine.name)}</div>}
           </div>
         </div>

@@ -13,7 +13,7 @@ export const MEALS = [
   { key: 'dinner', emoji: '🍽️', name: 'Dinner', time: '19:00' },
 ];
 
-// Jarvis's lines, one picked per day so they do not repeat every morning.
+// Hayden's lines, one picked per day so they do not repeat every morning.
 export const LINES = {
   breakfast: [
     'Breakfast time. 30-45 g of protein to start the day strong.',

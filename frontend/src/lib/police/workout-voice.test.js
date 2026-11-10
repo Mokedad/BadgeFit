@@ -7,7 +7,7 @@ const A = (sets1, sets2 = [{ done: false }]) => ({ start: 1, name: 'Chest day', 
   { id: 'b', sets: sets2 },
 ] })
 
-describe('Jarvis in the workout', () => {
+describe('Hayden in the workout', () => {
   it('opens with the first exercise and its range', () => {
     expect(startLine(A([{}, {}, {}]), nameOf)).toBe('Right, Chest day. First up, Bench press, 3 sets of 4 to 6. Let us go.')
   })

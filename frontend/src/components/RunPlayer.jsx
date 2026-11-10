@@ -43,7 +43,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
   const [rpe, setRpe] = useState(null)
   const [km, setKm] = useState(null)
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
-  // Jarvis the coach (lib/police/run-coach.js): check-ins at 2, 5, 7, 10 min then every 5, a lift
+  // Hayden the coach (lib/police/run-coach.js): check-ins at 2, 5, 7, 10 min then every 5, a lift
   // when a hard part starts, each shown for a moment on screen too. Nothing said twice.
   const [bubble, setBubble] = useState(null)
   const said = useRef(new Set()), checked = useRef(new Set()), seed = useRef(Date.now())
@@ -65,7 +65,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
   const go = i => {
     if (i >= segs.length) { setDone(true); cue(audio, 'Session complete. Great work.', 'cool', musicMode); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
-    // A hard part starting gets Jarvis's lift on top of the step itself.
+    // A hard part starting gets Hayden's lift on top of the step itself.
     const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
     cue(audio, say(segs[i]) + lift, segs[i].kind, musicMode)
     if (lift) setBubble({ text: lift.trim(), at: Date.now() })
@@ -129,7 +129,7 @@ export default function RunPlayer({ run, age, onClose, onLog, runLog = [], music
       <h2>{run.name}</h2>
       <p className="rp-sub">{run.why}</p>
       <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Jarvis talks over your music.' : '🎧 Jarvis talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Turn on Music mode on the Jarvis card.'}</p>
+      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Turn on Music mode on the Hayden card.'}</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>

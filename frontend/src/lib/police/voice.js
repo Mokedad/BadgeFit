@@ -1,35 +1,31 @@
-// Jarvis's voice: one Australian male voice, no options. In the phone app, the native voice that
+// Hayden's voice: one natural male voice, no options. In the phone app, the native voice that
 // lowers your music while he talks. On the web, first choice is the server's voice
 // (api/coach/tts.js, Gemini text-to-speech) played as an audio file, which iPhones play far more
 // reliably than their own speech synthesis. Without it (another AI provider, offline, the phone
-// app unpaired) the device's own speech reads it, with the most natural Australian male voice
-// the device has. A generic Aussie bloke, never an imitation of any real person.
+// app unpaired) the device's own speech reads it, with the most natural male voice
+// the device has. Never an imitation of any real person.
 //
 import { apiPostBlob, apiPostBlobInfo } from '../api.js'
 import { spoken } from './spoken.js'
 import { MOBILE as NATIVE } from '../mobile.js'
 const KEY = 'badgefit_voice'
-// Known Australian male voices across iOS/macOS, Windows/Edge and Android, best first.
-const AU_MALE = ['lee', 'william', 'gordon', 'james', 'darren', 'duncan', 'ken', 'tim', 'neil']
+// The phone's own voice (the fallback): the most natural English voice the device has, a male one
+// where there is a choice. No accent preferred: Hayden sounds like a natural AI voice.
+const MALE = ['alex', 'aaron', 'evan', 'nathan', 'tom', 'reed', 'eddy', 'guy', 'davis', 'daniel', 'arthur', 'oliver', 'ryan', 'george', 'thomas', 'lee', 'william', 'gordon', 'james', 'male']
 // Female voices to skip when looking for a male one (a voice reports its language, not gender).
-const FEMALE = ['karen', 'catherine', 'natasha', 'annette', 'carly', 'isabella', 'hayley', 'tina', 'elsie', 'freya', 'joanne', 'kim', 'tracey', 'samantha', 'serena', 'kate', 'moira', 'tessa', 'fiona', 'martha', 'sonia', 'libby', 'female', 'zira', 'hazel', 'susan']
-const UK_MALE = ['daniel', 'arthur', 'oliver', 'ryan', 'george', 'thomas', 'male']
+const FEMALE = ['karen', 'catherine', 'natasha', 'annette', 'carly', 'isabella', 'hayley', 'tina', 'elsie', 'freya', 'joanne', 'kim', 'tracey', 'samantha', 'serena', 'kate', 'moira', 'tessa', 'fiona', 'martha', 'sonia', 'libby', 'female', 'zira', 'hazel', 'susan', 'ava', 'allison', 'nicky', 'zoe', 'aria', 'jenny']
 
 const low = v => `${v?.name || ''} ${v?.voiceURI || ''}`.toLowerCase()
 const has = (v, words) => words.some(w => new RegExp(`\\b${w}\\b`).test(low(v)))
-const quality = v => (/premium|natural|neural|enhanced|online/.test(low(v)) ? 3 : 0) + (v.localService === false ? 1 : 0)
+const quality = v => (/premium|natural|neural|enhanced|online|siri/.test(low(v)) ? 40 : 0) + (v.localService === false ? 5 : 0)
 
-/** Ranks a voice for Jarvis: higher is better, -1 for one that is not English. */
+/** Ranks a voice for Hayden: higher is better, -1 for one that is not English. */
 export function scoreVoice(v) {
   const lang = String(v?.lang || '').toLowerCase().replace('_', '-')
   if (!lang.startsWith('en')) return -1
-  let s = 0
-  if (lang === 'en-au') s += 50
-  else if (lang === 'en-nz') s += 30
-  else if (lang === 'en-gb') s += 15
-  if (has(v, AU_MALE) && lang === 'en-au') s += 30
-  else if (has(v, UK_MALE)) s += 12
-  if (has(v, FEMALE)) s -= 40
+  let s = lang === 'en-us' ? 10 : 5
+  if (has(v, MALE)) s += 15
+  if (has(v, FEMALE)) s -= 30
   return s + quality(v)
 }
 
@@ -63,7 +59,7 @@ export function loadVoices() {
 export const DELIVERY = { rate: 0.97, pitch: 0.92 }
 
 /**
- * Says `text` in Jarvis's voice: one Australian male voice, no options. Resolves when it has
+ * Says `text` in Hayden's voice: one natural male voice, no options. Resolves when it has
  * finished (or failed), so a conversation can listen again straight after. Returns false when
  * nothing could be played.
  */
@@ -74,21 +70,21 @@ export async function say(text, opts = {}) {
   try { return await sayNow(text, opts) } finally { talking(-1) }
 }
 
-// Whether Jarvis is talking right now, for hands-free listening (it must not hear itself).
+// Whether Hayden is talking right now, for hands-free listening (it must not hear itself).
 let speakingCount = 0
 const speakingFns = new Set()
 const talking = d => { speakingCount = Math.max(0, speakingCount + d); speakingFns.forEach(f => { try { f(speakingCount > 0) } catch { /* a listener */ } }) }
 export const isSpeaking = () => speakingCount > 0
-/** Calls fn(true|false) whenever Jarvis starts or stops talking; returns the unsubscribe. */
+/** Calls fn(true|false) whenever Hayden starts or stops talking; returns the unsubscribe. */
 export function onSpeaking(fn) { speakingFns.add(fn); return () => speakingFns.delete(fn) }
 
 async function sayNow(text, opts = {}) {
   // The phone app: the native voice (RestAlertPlugin.speak), which lowers Spotify or YouTube while
-  // Jarvis talks and brings it back up after, and plays with the silent switch on. A web page
+  // Hayden talks and brings it back up after, and plays with the silent switch on. A web page
   // cannot do that. It answers when the line starts, so the wait covers the time it takes.
   if (NATIVE) {
     const { speakNative } = await import('../rest-alert.js')
-    if (await speakNative(String(text), { lang: 'en-AU', rate: 0.95, onSilent: true })) {
+    if (await speakNative(String(text), { lang: 'en-US', rate: 1, onSilent: true })) {
       opts.onStart?.()
       await new Promise(r => { nativeStop = () => r(false); setTimeout(r, speakMs(text) * 0.7) })
       nativeStop = null
@@ -109,7 +105,7 @@ async function sayNow(text, opts = {}) {
   return sayOnDevice(text, opts)
 }
 
-// The one audio player for Jarvis, unlocked by a tap (primeSpeech) and reused for every clip.
+// The one audio player for Hayden, unlocked by a tap (primeSpeech) and reused for every clip.
 let player = null, serverOffUntil = 0, stopClip = null, unlocked = false, nativeStop = null
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='
 function playerOf() {
@@ -162,7 +158,7 @@ async function sayOnDevice(text, { onStart } = {}) {
       const part = parts[i++].trim()
       const u = new SpeechSynthesisUtterance(part)
       if (voice) { u.voice = voice; u.lang = voice.lang }
-      else u.lang = 'en-AU'
+      else u.lang = 'en-US'
       u.rate = DELIVERY.rate; u.pitch = DELIVERY.pitch
       u.onend = next; u.onerror = () => end(false)
       if (i === 1) onStart?.()
@@ -183,7 +179,7 @@ const held = []
 
 /**
  * Call inside a tap. iPhone Safari only lets a page speak once speech has started from a tap, and
- * Jarvis answers seconds later, after the server: a silent utterance now unlocks the voice for
+ * Hayden answers seconds later, after the server: a silent utterance now unlocks the voice for
  * the answer.
  */
 export function primeSpeech() {
@@ -202,7 +198,7 @@ export function primeSpeech() {
 }
 export const stopSpeaking = () => { nativeStop?.(); stopClip?.(); try { window.speechSynthesis?.cancel() } catch { /* none */ } stopCurrent?.() }
 
-/** primeSpeech once: for a listener on the first tap anywhere, so Jarvis can talk in a workout. */
+/** primeSpeech once: for a listener on the first tap anywhere, so Hayden can talk in a workout. */
 export function unlockOnce() { if (!unlocked) primeSpeech() }
 
 // Lines fetched ahead of time (the beep test's "Level 7"), so they play the moment they are due.
@@ -216,7 +212,7 @@ export async function preloadSpeech(text) {
 }
 
 /**
- * "Hear Jarvis" (the BadgeFit hub): says one line and reports which voice it was, so a robotic
+ * "Hear Hayden" (the BadgeFit hub): says one line and reports which voice it was, so a robotic
  * voice has a reason: { via: 'gemini' } or { via: 'phone', why }. Call from a tap.
  */
 export async function voiceCheck(text) {
@@ -236,7 +232,7 @@ export async function voiceCheck(text) {
     : r.status === 503 ? 'the AI Coach is switched off on the server.'
       : r.status === 401 ? 'you are not signed in.'
         : r.status === 404 ? 'the server is on an older version. Run the update.'
-          : r.status === 429 ? 'Jarvis has talked a lot in the last 10 minutes.'
+          : r.status === 429 ? 'Hayden has talked a lot in the last 10 minutes.'
             : `the Gemini voice did not answer (${r.error || 'unknown'}).`
   return { via: 'phone', why }
 }

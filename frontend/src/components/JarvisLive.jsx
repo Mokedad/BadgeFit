@@ -1,9 +1,9 @@
-// Talk to Jarvis, live (BadgeFit): voice only, no pop-up. Speak, Jarvis answers out loud in an
-// Australian voice (lib/police/voice.js), then listens again, like a call. Nothing is shown as
+// Talk to Hayden, live (BadgeFit): voice only, no pop-up. Speak, Hayden answers out loud in an
+// natural voice (lib/police/voice.js), then listens again, like a call. Nothing is shown as
 // text and nothing is saved to the chat: the button that started the call shows what is happening
 // (store/useJarvis.js, components/JarvisOrb.jsx). Speech recognition is the browser's own
 // (lib/police/listen.js); where it is missing or blocked, a small card lets you type instead. The answer comes from the
-// app's AI Coach (lib/coach-api.js askCoach), which answers as Jarvis for a BadgeFit member
+// app's AI Coach (lib/coach-api.js askCoach), which answers as Hayden for a BadgeFit member
 // (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
 import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, disclosure, coachVia } from '../lib/coach-api.js'
@@ -23,14 +23,14 @@ import '../police.css'
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 const POLL_MS = 1500
 // The server has no AI connected yet: say who can fix it and where.
-const OFF_TEXT = 'Jarvis is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'
-const MAX_WAIT_MS = 45000 // then Jarvis answers from the plan rather than keep you waiting
+const OFF_TEXT = 'Hayden is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'
+const MAX_WAIT_MS = 45000 // then Hayden answers from the plan rather than keep you waiting
 
 /**
- * The Coach's go-ahead, asked once, the first time someone talks to Jarvis: the app's own sheet
+ * The Coach's go-ahead, asked once, the first time someone talks to Hayden: the app's own sheet
  * names the AI service and lists what goes there (components/CoachConsentSheet.jsx). One "Allow"
  * records both the provider consent and the Coach's own go-ahead (as the Coach's intake does), so
- * Jarvis just works from then on. A model on the member's own network is no third party: no sheet.
+ * Hayden just works from then on. A model on the member's own network is no third party: no sheet.
  */
 async function ensureJarvisConsent() {
   if (hasConsent(useStore.getState().S)) return true
@@ -60,7 +60,7 @@ async function waitForAnswer(cancelled) {
     }
     await new Promise(r => setTimeout(r, POLL_MS))
   }
-  return cancelled() ? null : { error: 'Jarvis took too long to answer. Try again in a moment.' }
+  return cancelled() ? null : { error: 'Hayden took too long to answer. Try again in a moment.' }
 }
 
 /**
@@ -123,7 +123,7 @@ export default function JarvisLive() {
     setPhase('thinking')
     let answer = null
     try {
-      if (!await ensureJarvisConsent()) { problem('Okay. Jarvis will wait until you say yes.'); return }
+      if (!await ensureJarvisConsent()) { problem('Okay. Hayden will wait until you say yes.'); return }
       await askCoach(text)
       const r = await waitForAnswer(() => closed.current)
       if (!r || closed.current) return
@@ -134,7 +134,7 @@ export default function JarvisLive() {
       if (e?.data?.code === 'off') useUI.getState().toast(OFF_TEXT)
     }
     if (closed.current) return
-    // The AI could not answer (the day's allowance, the service down, no signal): Jarvis answers
+    // The AI could not answer (the day's allowance, the service down, no signal): Hayden answers
     // from the plan instead, so he is never silent (lib/police/offline-jarvis.js).
     if (answer == null) answer = answerOffline(text, policeBrief(useStore.getState().S, todayISO()))
     setPhase('speaking')
@@ -142,7 +142,7 @@ export default function JarvisLive() {
     stopRef.current = () => { stopped = true }
     const spoke = await say(answer)
     if (closed.current) return
-    if (!spoke && !stopped) useUI.getState().toast('🔇 Jarvis answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
+    if (!spoke && !stopped) useUI.getState().toast('🔇 Hayden answered but this phone did not play it. Turn the volume up (and the silent switch off), then tap him again.')
     // A question heard hands-free is one question: the call ends and hands-free listens again.
     if (oneShot.current) { useJarvis.getState().end(); return }
     if (Recognition && !useJarvis.getState().panel) listen(); else setPhase('idle')
@@ -161,15 +161,15 @@ export default function JarvisLive() {
 
   if (!panel) return null
   const label = { idle: 'Type to ask', listening: 'Listening…', thinking: 'Thinking…', speaking: 'Talking…' }[phase]
-  return <div className="jl jl-v jl-t" role="dialog" aria-label="Type to Jarvis">
+  return <div className="jl jl-v jl-t" role="dialog" aria-label="Type to Hayden">
     <div className="jl-top">
-      <b>Jarvis</b>
+      <b>Hayden</b>
       {Recognition && <button className="jl-ic" onClick={() => useJarvis.setState({ panel: false })} aria-label="Back to voice" title="Back to voice">🎤</button>}
       <button className="jl-ic" onClick={() => useJarvis.setState({ panel: false })} aria-label="Hide" title="Hide">–</button>
     </div>
     <div className="jl-state" aria-live="polite">{note || label}</div>
     <form className="jl-type" onSubmit={e => { e.preventDefault(); if (typed.trim() && phase !== 'thinking') { stopSpeaking(); rec.current?.cancel(); ask(typed.trim()); setTyped('') } }}>
-      <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Ask Jarvis…" aria-label="Your question" />
+      <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Ask Hayden…" aria-label="Your question" />
       <button type="submit" disabled={!typed.trim() || phase === 'thinking'}>Send</button>
     </form>
   </div>

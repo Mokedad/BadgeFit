@@ -1,7 +1,7 @@
 // Police Prep: what running does to the body, and what to do about it. Running lands 2.5-3 times
 // your body weight on every stride, so most runners meet some of these. General information,
 // not a diagnosis: `see` says when it is time for a physio or doctor instead.
-// The same knowledge is in api/coach/prompts/ask.md, so Jarvis can answer about it.
+// The same knowledge is in api/coach/prompts/ask.md, so Hayden can answer about it.
 
 export const RUN_CARE_INTRO =
   'Running lands 2.5 to 3 times your body weight on every stride. Some aches on the way are normal: they are signs your body is changing, like a caterpillar becoming a butterfly. Listen to them, adjust, and keep going.'

@@ -1,6 +1,6 @@
 # Put BadgeFit online
 
-One small server runs everything: the app, the website, HTTPS, the community and Jarvis.
+One small server runs everything: the app, the website, HTTPS, the community and Hayden.
 About 30 minutes, about A$10 a month.
 
 ## 1. Get a server (10 min)
@@ -52,9 +52,9 @@ and log your baseline tests.
 On your phone: open the same address in Safari (iPhone) or Chrome (Android) → **Share → Add
 to Home Screen**. It opens full-screen like a normal app.
 
-## 5. Switch on Jarvis (5 min)
+## 5. Switch on Hayden (5 min)
 
-Jarvis's chat needs an AI provider. Get an API key (for example from console.anthropic.com,
+Hayden's chat needs an AI provider. Get an API key (for example from console.anthropic.com,
 platform.openai.com, or a free Google Gemini key from aistudio.google.com), then in the app:
 **Settings → Admin dashboard → AI Coach**, choose the provider, paste the key, and connect.
 You set a daily limit per person there, which keeps the cost under control.

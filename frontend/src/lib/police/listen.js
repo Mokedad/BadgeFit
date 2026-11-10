@@ -1,4 +1,4 @@
-// One turn of listening for Jarvis live, robust to the phones' speech recognition quirks:
+// One turn of listening for Hayden live, robust to the phones' speech recognition quirks:
 // iPhone Safari often never marks a result final and sometimes never fires `end`, which left the
 // screen stuck on "Listening…". Here the turn always ends: a short silence after speech sends
 // what was heard, no speech at all gives up, a hard cap stops it, and a stop that never gets its

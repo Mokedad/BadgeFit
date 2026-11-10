@@ -21,7 +21,7 @@ in the first hour.
 ## 30-day content plan
 
 Mix: 40% teach (standards, technique), 30% your own journey (film yourself training), 20%
-app demos (screen recordings), 10% motivation (Jarvis lines). Film real sessions on your phone
+app demos (screen recordings), 10% motivation (Hayden lines). Film real sessions on your phone
 and use the generated reels as the "explainer" posts between them.
 
 | Day | Type | Hook (first line on screen) |
@@ -39,7 +39,7 @@ and use the generated reels as the "explainer" posts between them.
 | 11 | Teach | Grip strength: 30 kg is the test, 35 kg is the academy |
 | 12 | Journey | 4×4 VO2 max intervals, watch my heart rate |
 | 13 | Teach | How to hold a 90 second prone bridge |
-| 14 | App demo | Jarvis told me my weakest standard. It was right |
+| 14 | App demo | Hayden told me my weakest standard. It was right |
 | 15 | Food | What I eat in a day to lose fat and keep muscle |
 | 16 | Food | Intermittent fasting 16:8 for training: how I time it |
 | 17 | Teach | Turn on the line, not around it: beep test technique |

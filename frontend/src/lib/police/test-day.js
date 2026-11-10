@@ -22,7 +22,7 @@ export function testDaySummary(values, beepTarget = DEFAULT_BEEP_TARGET) {
   return { rows, passed: tested.filter(r => r.ev.pass).length, tested: tested.length, total: rows.length, weakest: fails[0] || null }
 }
 
-/** What Jarvis says at the end. */
+/** What Hayden says at the end. */
 export function testDayLine(sum, testName = 'PCT') {
   if (!sum.tested) return 'Nothing logged this time. Run it when you are ready.'
   if (sum.passed === sum.total) return `All six passed. You are ready for your ${testName}. Now we keep you sharp and fresh.`

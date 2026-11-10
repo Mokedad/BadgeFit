@@ -1,4 +1,4 @@
-// Jarvis in the workout (BadgeFit): what he says, unprompted, while you train. Pure: the running
+// Hayden in the workout (BadgeFit): what he says, unprompted, while you train. Pure: the running
 // session comes in, a line goes out; components/JarvisWorkout.jsx watches the session and says
 // it (lib/police/voice.js). Short on purpose: spoken between sets, not read.
 //   start  - the session opens: what it is and the first exercise with its range

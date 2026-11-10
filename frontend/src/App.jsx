@@ -391,7 +391,7 @@ function Shell() {
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
-      {/* BadgeFit: Jarvis talks you through your workouts (JarvisWorkout) and answers the
+      {/* BadgeFit: Hayden talks you through your workouts (JarvisWorkout) and answers the
           workout's 🎤 (JarvisFab). */}
       {authed && <JarvisWorkout />}
       {authed && <JarvisHandsFree />}

@@ -3000,7 +3000,7 @@ function RunPicks({ isOn: on, onPick }) {
       const cat = RUN_CATEGORIES.find(c => c.id === r.cat)
       return <div key={r.id} className="item menu-item" aria-pressed={on(r.id)} {...tappable(() => onPick(r.id))}>
         <span className="lrow-i" style={{ background: 'var(--surface-3)', fontSize: 18 }}>{cat?.emoji || '🏃'}</span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min · guided run with Jarvis</div></div>
+        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min · guided run with Hayden</div></div>
         <span className={'menu-on' + (on(r.id) ? ' is-on' : '')}><Icon name="check" /></span>
       </div>
     })}</div>
@@ -3488,7 +3488,7 @@ export function DayNoteRow({ iso, note }) {
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
 export function startFlow(routineIds) {
   // BadgeFit: a run (one picked in the planner, or the plan's run day) is not a gym session with
-  // a duration row: it opens as the guided run with Jarvis and the countdown, from every Start.
+  // a duration row: it opens as the guided run with Hayden and the countdown, from every Start.
   const P = S().police
   const runs = P?.level && (routineIds || []).length ? routineIds.map(id => runForRoutine(P, id, todayISO())) : []
   if (runs.length && runs.every(Boolean)) { location.hash = '#/police?run=' + runs[0].id; return }

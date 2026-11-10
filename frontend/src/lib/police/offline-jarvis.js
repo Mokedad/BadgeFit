@@ -1,4 +1,4 @@
-// Jarvis without the AI (BadgeFit): when the coach cannot answer (the day's allowance used, the
+// Hayden without the AI (BadgeFit): when the coach cannot answer (the day's allowance used, the
 // AI service down, no signal), he still answers from what the app knows: the trainer brief
 // (brief.js policeBrief). Plain rules over the question's words, never a made-up number. Pure.
 
@@ -13,7 +13,7 @@ function dayWords(d, run) {
   return parts.join(' ')
 }
 
-/** Jarvis's answer from the brief, or a short honest line when there is nothing to go on. */
+/** Hayden's answer from the brief, or a short honest line when there is nothing to go on. */
 export function answerOffline(question, brief) {
   const q = ` ${String(question || '').toLowerCase()} `
   const b = brief || {}

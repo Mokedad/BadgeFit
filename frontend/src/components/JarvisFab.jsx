@@ -1,4 +1,4 @@
-// Jarvis's question-and-answer call (BadgeFit): no button of its own. The 🎤 in the workout
+// Hayden's question-and-answer call (BadgeFit): no button of its own. The 🎤 in the workout
 // header starts it (tapJarvis, store/useJarvis.js); the call itself is components/JarvisLive.jsx,
 // mounted here, outside any screen, so a reply still arrives when you move on. Ended when the
 // member stops being one or the admin switches the Coach off. The spoken workout cues are
@@ -10,7 +10,7 @@ import { useJarvis, tapJarvis } from '../store/useJarvis.js'
 
 const JarvisLive = lazy(() => import('./JarvisLive.jsx'))
 
-/** Starts (or taps) Jarvis's call from anywhere. */
+/** Starts (or taps) Hayden's call from anywhere. */
 export const openJarvis = () => tapJarvis()
 
 export default function JarvisFab() {

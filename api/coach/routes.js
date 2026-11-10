@@ -117,7 +117,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
 
     // A question in the chat. Answered in words; nothing to apply. The running session rides
     // along when there is one, since the server never holds it.
-    // Jarvis's voice (BadgeFit, coach/tts.js): one short line in, a WAV out. Signed in and the
+    // Hayden's voice (BadgeFit, coach/tts.js): one short line in, a WAV out. Signed in and the
     // Coach on, like every route here; only the words to be spoken leave, never training data.
     'POST /api/coach/speak': async (req, res) => {
       const user = guard(req, res); if (!user) return;
@@ -316,7 +316,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
         patch.caps = {
           perProfileDaily: Math.max(0, Math.min(200, +body.caps.perProfileDaily || 0)),
           instanceDaily: Math.max(0, Math.min(5000, +body.caps.instanceDaily || 0)),
-          // Questions (BadgeFit's Jarvis) have their own allowance; kept as it is unless sent.
+          // Questions (BadgeFit's Hayden) have their own allowance; kept as it is unless sent.
           askDaily: body.caps.askDaily !== undefined ? Math.max(0, Math.min(1000, +body.caps.askDaily || 0)) : (current.caps?.askDaily ?? 100)
         };
       }

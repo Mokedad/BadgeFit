@@ -1,5 +1,5 @@
 /* The police applicant context (BadgeFit) on a Coach question: bounded, typed, and only on `ask`.
- * The prompt switches the answer to the Jarvis voice when it is there. */
+ * The prompt switches the answer to the Hayden voice when it is there. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tempData } from './helpers.mjs';
@@ -42,12 +42,12 @@ test('cleanPolice: nothing there, nothing sent', () => {
   assert.equal(payloadLib.cleanPolice([1, 2]), null);
 });
 
-test('a question carries it, and the prompt knows to answer as Jarvis', () => {
+test('a question carries it, and the prompt knows to answer as Hayden', () => {
   const S = { unit: 'kg', routines: [], workouts: [], police };
   const p = payloadLib.build(S, { handle: 'u1', kind: 'ask', note: 'What should I work on?', now: NOW });
   assert.equal(p.police.level, 'intermediate');
   const { system } = buildPromptParts('ask', p);
-  assert.match(system, /speak as Jarvis/);
+  assert.match(system, /speak as Hayden/);
   assert.match(system, /caterpillar/);
   const review = payloadLib.build(S, { handle: 'u1', kind: 'review', now: NOW });
   assert.equal(review.police, undefined);

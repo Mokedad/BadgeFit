@@ -773,7 +773,7 @@ export function build(S, opts = {}) {
     if (today) p.today = today;
     // A police applicant (the app's BadgeFit hub, frontend/src/views/PoliceFit.jsx): their
     // programme, standards results and goals, so the answer speaks to their test. It also
-    // switches the reply to the Jarvis voice (prompts/ask.md).
+    // switches the reply to the Hayden voice (prompts/ask.md).
     const police = cleanPolice(S.police, now);
     const brief = cleanBrief(opts.police);
     if (police || brief) p.police = { ...(police || {}), ...(brief && { brief }) };

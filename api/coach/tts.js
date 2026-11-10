@@ -1,8 +1,8 @@
-/* Jarvis's voice (BadgeFit): the server turns a short line into speech with the Gemini key the
+/* Hayden's voice (BadgeFit): the server turns a short line into speech with the Gemini key the
  * admin connected, and the phone plays it as an audio file. Safari on iPhone blocks or mutes its
  * own speech synthesis in too many ways (no tap, silent switch, right after the microphone), and
- * an audio file plays where that does not. One voice for everyone: a fixed Gemini voice told to
- * speak as an Australian male trainer. No voice options by design.
+ * an audio file plays where that does not. One voice for everyone: a fixed, natural Gemini voice.
+ * No voice options by design.
  *
  * Gemini only: with another provider (or none) the route answers 501 and the phone falls back to
  * its own speech synthesis. What leaves: only the line to be spoken (the words the phone would
@@ -12,11 +12,11 @@ import crypto from 'node:crypto';
 import * as cfgStore from './config.js';
 import { baseUrlFor } from './core/providers.js';
 
-// Puck: Gemini's upbeat male voice, the closest to a trainer's; COACH_TTS_VOICE picks another.
+// Puck: Gemini's upbeat male voice, natural, no accent asked for; COACH_TTS_VOICE picks another.
 export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Puck';
 export const TTS_MODELS = (process.env.COACH_TTS_MODEL || 'gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts')
   .split(',').map(s => s.trim()).filter(Boolean);
-export const STYLE = 'Voice: Jarvis, a male personal trainer from Sydney with a natural, broad Australian accent (Australian vowels, relaxed Aussie rhythm, never American or British). Style: casual and warm, upbeat, like talking to a mate beside him at the gym or on a run, a smile in his voice, natural pauses, small changes in pitch. Pace: natural, a touch quick when pumped up. Never sound like reading a script. Say exactly these words and nothing else:';
+export const STYLE = 'Say this naturally, in a warm, friendly and encouraging tone, like a helpful coach talking to someone, not like reading. Say exactly these words and nothing else:';
 export const MAX_CHARS = 700;
 const PER_WINDOW = 60, WINDOW_MS = 10 * 60 * 1000, CACHE_MAX = 300, TIMEOUT_MS = 30000;
 
@@ -62,7 +62,7 @@ export function makeSpeaker({ fetchImpl = globalThis.fetch, keyFor = geminiKey, 
     if (cached) { cache.delete(text); cache.set(text, cached); return { ok: true, wav: cached }; }
     const t = now();
     const mine = (hits.get(uid) || []).filter(x => t - x < WINDOW_MS);
-    if (mine.length >= PER_WINDOW) return { ok: false, status: 429, error: 'Jarvis has talked a lot just now. Give it a few minutes.' };
+    if (mine.length >= PER_WINDOW) return { ok: false, status: 429, error: 'Hayden has talked a lot just now. Give it a few minutes.' };
     const cred = keyFor(uid);
     if (!cred) return { ok: false, status: 501, error: 'the server voice needs the Coach on Google Gemini' };
     mine.push(t); hits.set(uid, mine);

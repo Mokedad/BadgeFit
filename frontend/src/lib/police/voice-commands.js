@@ -1,4 +1,4 @@
-// What you can say to Jarvis mid-workout instead of tapping (BadgeFit). Pure: the words in, one
+// What you can say to Hayden mid-workout instead of tapping (BadgeFit). Pure: the words in, one
 // command out, or null for a real question that goes to the AI coach. Speech recognition hands
 // over digits mostly ("15 reps at 20 kilos"), sometimes words ("fifteen"): both are read.
 //   { type: 'set', reps?, weight? }   log the next set ("done" alone keeps what is pre-filled)
@@ -40,7 +40,7 @@ const num = s => (s == null ? null : Number(s))
 const UNIT = '(?:kg|kgs|kilo|kilos|kilograms?|lb|lbs|pounds?)'
 
 export function parseCommand(raw) {
-  const text = wordsToNumbers(raw).replace(/^(hey |ok |okay )?jarvis[, ]*/, '').replace(/[.!?]+$/, '').trim()
+  const text = wordsToNumbers(raw).replace(/^(hey |hi |ok |okay )?(hayden|haydn|heyden|haiden|aidan|aiden)[, ]*/, '').replace(/[.!?]+$/, '').trim()
   if (!text) return null
 
   if (/\b(wrap( it)? up|finish (the |my )?(workout|session)|end (the |my )?(workout|session)|i'?m done for (today|the day)|that'?s (it|me) for today)\b/.test(text)) return { type: 'finish' }

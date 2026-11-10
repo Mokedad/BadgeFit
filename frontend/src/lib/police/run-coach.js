@@ -1,10 +1,10 @@
-// Jarvis on a run (BadgeFit, components/RunPlayer.jsx): a coach, not a narrator. He checks in at
+// Hayden on a run (BadgeFit, components/RunPlayer.jsx): a coach, not a narrator. He checks in at
 // 2, 5, 7 and 10 minutes, then every 5, with something different each time: a push, a fact
 // about your own running this week, how this run compares with your last one of the same kind.
 // When a hard part starts he lifts the intensity. Never the same line twice in a run. Pure: the
 // numbers come in as arguments, and `seed` picks the line.
 
-/** Minutes into a run when Jarvis checks in. */
+/** Minutes into a run when Hayden checks in. */
 export function checkInMinutes(totalMin) {
   const out = [2, 5, 7, 10]
   for (let m = 15; m < totalMin - 1; m += 5) out.push(m)

@@ -1,6 +1,6 @@
 // Today's run on the BadgeFit plan, for the screens outside the hub (Home, Start): the guided
 // run (runs.js) the plan's day calls for, and the routine id the plan put on that day, so a tap
-// on it opens the run player with Jarvis rather than a gym session. Pure.
+// on it opens the run player with Hayden rather than a gym session. Pure.
 import { planWeekOf, weekPlan, planOptsOf } from './programme.js'
 import { runForDay } from './runs.js'
 

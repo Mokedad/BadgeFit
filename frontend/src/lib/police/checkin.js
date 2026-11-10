@@ -1,5 +1,5 @@
 // The morning check-in (BadgeFit): three taps, sleep, soreness and energy, each 1 (bad) to 3
-// (good). Jarvis reads them as go, easy or light, and adjusts the day's session: hard training
+// (good). Hayden reads them as go, easy or light, and adjusts the day's session: hard training
 // while wrecked and cutting weight is how recruits get hurt in the last weeks. Pure.
 
 export const CHECKIN_QUESTIONS = [
@@ -36,7 +36,7 @@ export function adjustNote(day, call) {
   return ''
 }
 
-/** What Jarvis says after the check-in. */
+/** What Hayden says after the check-in. */
 export function checkinLine(c, day) {
   const call = checkinCall(c)
   if (!call) return ''

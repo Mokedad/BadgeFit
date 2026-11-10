@@ -6,14 +6,14 @@ const IPHONE = [v('Karen', 'en-AU'), v('Lee', 'en-AU'), v('Lee (Premium)', 'en-A
 const EDGE = [v('Microsoft Natasha Online (Natural) - English (Australia)', 'en-AU', { localService: false }), v('Microsoft William Online (Natural) - English (Australia)', 'en-AU', { localService: false }), v('Microsoft David - English (United States)', 'en-US')]
 const CHROME = [v('Google US English', 'en-US'), v('Google UK English Male', 'en-GB'), v('Google UK English Female', 'en-GB')]
 
-describe('Jarvis voice', () => {
-  it('iPhone: the premium Australian male voice', () => {
+describe('Hayden voice', () => {
+  it('iPhone: the premium male voice', () => {
     expect(pickVoice(IPHONE).name).toBe('Lee (Premium)')
   })
   it('Edge: William (Natural), not Natasha', () => {
     expect(pickVoice(EDGE).name).toMatch(/William/)
   })
-  it('no Australian voice: a British male one', () => {
+  it('Chrome: the male voice', () => {
     expect(pickVoice(CHROME).name).toBe('Google UK English Male')
   })
   it('a saved choice wins while the device still has it', () => {
@@ -25,6 +25,7 @@ describe('Jarvis voice', () => {
     expect(opts.some(x => x.lang === 'fr-FR')).toBe(false)
     expect(opts[0].name).toBe('Lee (Premium)')
     expect(scoreVoice(v('Karen', 'en-AU'))).toBeLessThan(scoreVoice(v('Lee', 'en-AU')))
+    expect(scoreVoice(v('Aaron (Enhanced)', 'en-US'))).toBeGreaterThan(scoreVoice(v('Lee', 'en-AU')))
     expect(pickVoice([])).toBeNull()
   })
 })

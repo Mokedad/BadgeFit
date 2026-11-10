@@ -1,4 +1,4 @@
-// Form cues Jarvis says before a set (BadgeFit): two short cues and the mistake that hurts
+// Form cues Hayden says before a set (BadgeFit): two short cues and the mistake that hurts
 // joints or wastes the set, by movement pattern, matched from the exercise's name. General
 // coaching, not medical advice; pain that is sharp or stays means stop and get it checked.
 // First match wins, so the specific patterns come before the general ones.

@@ -234,7 +234,7 @@ export function enqueue(uid, opts) {
 
   // The caps, before the bind for the same reason: a job refused for the day spends nothing.
   const caps = cfgStore.load().caps || {};
-  // A question to the coach (BadgeFit's Jarvis, the chat) is one short answer: it has its own,
+  // A question to the coach (BadgeFit's Hayden, the chat) is one short answer: it has its own,
   // larger allowance (caps.askDaily), so asking all day never uses up the planning jobs, and
   // the planning jobs never silence the questions.
   const asking = opts && opts.kind === 'ask';

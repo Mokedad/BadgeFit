@@ -1,4 +1,4 @@
-// Police Prep: the police applicant hub. Jarvis's daily briefing, the six physical standards
+// Police Prep: the police applicant hub. Hayden's daily briefing, the six physical standards
 // with pass/fail tracking, the 12-week beginner/intermediate programme (installed as ordinary
 // routines and a programme, so it runs in the normal workout screen), the rep-range rule, and
 // the nutrition guides. All logic lives in lib/police/*, each with its test beside it.
@@ -147,7 +147,7 @@ async function allowNotifications(user, S, nextPolice) {
   await enablePush()
 }
 
-/** Jarvis's two switches: the morning nudge (with the test reminders) and music mode. */
+/** Hayden's two switches: the morning nudge (with the test reminders) and music mode. */
 function JarvisSwitches({ S, P }) {
   const setP = usePolice()
   const user = useStore(s => s.user)
@@ -171,16 +171,16 @@ function JarvisSwitches({ S, P }) {
     <button type="button" className="pf-hear" disabled={busy} onClick={async () => {
       setBusy(true)
       try {
-        const r = await voiceCheck('G\'day, it\'s Jarvis. This is how I sound in your workouts and on your runs. Let\'s get to work.')
-        useUI.getState().toast(r.via === 'phone' ? `📱 That was the phone's voice, because ${r.why}` : '✅ That was Jarvis\'s Gemini voice.')
+        const r = await voiceCheck('Hi, it\'s Hayden. This is how I sound in your workouts and on your runs. Let\'s get to work.')
+        useUI.getState().toast(r.via === 'phone' ? `📱 That was the phone's voice, because ${r.why}` : '✅ That was Hayden\'s Gemini voice.')
       } finally { setBusy(false) }
-    }}>🔊 Hear Jarvis</button>
-    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Jarvis keeps it short and uses the phone's voice, which talks over your music</small></span>
+    }}>🔊 Hear Hayden</button>
+    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Hayden keeps it short and uses the phone's voice, which talks over your music</small></span>
       <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
   </div>
 }
 
-/** Three taps each morning; Jarvis eases the day off when you are wrecked (lib/police/checkin.js). */
+/** Three taps each morning; Hayden eases the day off when you are wrecked (lib/police/checkin.js). */
 function CheckIn({ P, day }) {
   const setP = usePolice()
   const [c, setC] = useState({})
@@ -316,10 +316,10 @@ function installPlan(update, P, { level, choice = 'badgefit', date = P.testDate,
 const PLAN_CHOICES = [
   { id: 'badgefit', title: '🛡️ BadgeFit plan', sub: 'Gym days and runs on your level, ending on your test' },
   { id: 'run', title: '🏃 Running focus', sub: 'Same base, more running: a second interval day and, for intermediate, an easy Sunday run' },
-  { id: 'own', title: '🤖 My own plan', sub: 'Jarvis builds one around what you like, on your BadgeFit level and test date' },
+  { id: 'own', title: '🤖 My own plan', sub: 'Hayden builds one around what you like, on your BadgeFit level and test date' },
 ]
 
-/** Which plan Home follows: BadgeFit, running focus, or one Jarvis builds (the Coach). */
+/** Which plan Home follows: BadgeFit, running focus, or one Hayden builds (the Coach). */
 function PlanChoice({ S, P }) {
   const update = useStore(s => s.update)
   const nav = useNavigate()
@@ -328,7 +328,7 @@ function PlanChoice({ S, P }) {
   const level = P.level || 'beginner'
   const pick = id => {
     if (id === 'own') {
-      if (!isOn(S, 'coach')) { useUI.getState().toast('Jarvis builds plans once the AI coach is switched on in Settings'); return }
+      if (!isOn(S, 'coach')) { useUI.getState().toast('Hayden builds plans once the AI coach is switched on in Settings'); return }
       update(s => { s.police = { ...(s.police || {}), planChoice: 'own' } })
       nav('/coach/intake')
       return
@@ -344,7 +344,7 @@ function PlanChoice({ S, P }) {
   return <div className="card pf-planpick">
     <h3>📋 Your plan</h3>
     {!onHome && P.planChoice !== 'own' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
-    {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Jarvis built you. Pick another below any time.</p>}
+    {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Hayden built you. Pick another below any time.</p>}
     <div className="pf-choice">{PLAN_CHOICES.map(c => <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : ''} onClick={() => pick(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
   </div>
 }
@@ -453,7 +453,7 @@ function Tests({ S, P, openBeep, openTest }) {
     <TestCountdown S={S} P={P} />
     <div className="pf-tools">
       <button className="card pf-tool" onClick={openTest}><span aria-hidden="true">🧪</span><b>Test day</b><small>All 6 standards in order, with rests. Baseline now, mock PCT a week out.</small></button>
-      <button className="card pf-tool" onClick={openBeep}><span aria-hidden="true">📣</span><b>Beep test trainer</b><small>Real beeps, Jarvis calls the levels. Saves your score.</small></button>
+      <button className="card pf-tool" onClick={openBeep}><span aria-hidden="true">📣</span><b>Beep test trainer</b><small>Real beeps, Hayden calls the levels. Saves your score.</small></button>
     </div>
     <p className="pf-sub pf-pad">Test yourself at the start, then at the end of every 4-week phase. Log every attempt: the latest one counts.</p>
     {ready.rows.map(({ std, latest, ev }) => <div key={std.id} className="card pf-std">

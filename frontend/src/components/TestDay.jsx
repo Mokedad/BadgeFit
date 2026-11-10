@@ -124,7 +124,7 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
         <span>{r.std.icon} {r.std.name}</span>
         <b className={r.ev ? (r.ev.pass ? 'pass' : 'fail') : ''}>{r.ev ? `${fmtResult(r.std.id, r.v)} ${r.ev.pass ? '✅' : '❌'}` : 'skipped'}</b>
       </div>)}</div>
-      {sum.weakest && <p className="rp-sub">Biggest gap: <b>{sum.weakest.std.name}</b>. Jarvis will put the work there.</p>}
+      {sum.weakest && <p className="rp-sub">Biggest gap: <b>{sum.weakest.std.name}</b>. Hayden will put the work there.</p>}
       {sum.tested > 0 && <button className="pf-go bt-start" onClick={() => onSave(vals)}>💾 Save all to PCT</button>}
       <button className="pf-link bt-again" onClick={onClose}>Close without saving</button>
     </div>}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { checkInMinutes, checkInLine, statLines, intenseLine } from './run-coach.js'
 
-describe('Jarvis on a run', () => {
+describe('Hayden on a run', () => {
   it('checks in at 2, 5, 7, 10, then every 5', () => {
     expect(checkInMinutes(30)).toEqual([2, 5, 7, 10, 15, 20, 25])
     expect(checkInMinutes(8)).toEqual([2, 5, 7])

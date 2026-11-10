@@ -1,7 +1,7 @@
-// Jarvis's trainer brief: what a personal trainer would want on a clipboard before answering
+// Hayden's trainer brief: what a personal trainer would want on a clipboard before answering
 // "what should I do today?". Built on the device from the BadgeFit data and sent with a question
 // to the AI Coach (lib/coach-api.js askCoach → api/coach/core/payload.js cleanBrief), which
-// answers as Jarvis (api/coach/prompts/ask.md). Pure: everything comes in as arguments.
+// answers as Hayden (api/coach/prompts/ask.md). Pure: everything comes in as arguments.
 import { weekPlan, phaseOf, daysUntil, planOptsOf, planWeekOf } from './programme.js'
 import { readiness, fmtResult, DEFAULT_BEEP_TARGET } from './standards.js'
 import { runForDay, runsThisWeek, runById, runMinutes } from './runs.js'

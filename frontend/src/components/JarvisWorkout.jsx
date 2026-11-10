@@ -1,4 +1,4 @@
-// Jarvis in the workout (BadgeFit): no buttons, no screen. While a BadgeFit member trains he
+// Hayden in the workout (BadgeFit): no buttons, no screen. While a BadgeFit member trains he
 // talks, so there is as little to tap as possible:
 //   start       the plan for the first exercise (eased off after a rough morning check-in)
 //   each set    the rep-range call, and the next weight already in the next set's row
@@ -24,7 +24,7 @@ import { buildPushPlan } from '../lib/police/push-plan.js'
 
 export const DEFAULT_REST_SEC = 240
 const member = S => !!S?.police?.level
-// Music mode (S.police.musicMode): training to Spotify or YouTube, so Jarvis keeps to the numbers.
+// Music mode (S.police.musicMode): training to Spotify or YouTube, so Hayden keeps to the numbers.
 const quiet = S => !!S?.police?.musicMode
 const round15 = sec => Math.max(30, Math.round(sec / 15) * 15)
 

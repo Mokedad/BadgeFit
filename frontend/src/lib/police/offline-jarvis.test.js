@@ -10,7 +10,7 @@ const brief = {
   weight: { start: 114, now: 113.2, change: -0.8, unit: 'kg' },
 }
 
-describe('Jarvis without the AI', () => {
+describe('Hayden without the AI', () => {
   it('answers from the plan', () => {
     expect(answerOffline('what should I do today?', brief)).toMatch(/^Today: Chest, Shoulders & Abs, about 63 minutes\..*27 days/)
     expect(answerOffline('what about tomorrow', brief)).toMatch(/^Tomorrow: VO2/)

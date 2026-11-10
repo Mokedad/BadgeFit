@@ -5,5 +5,5 @@
 export const BRAND = {
   name: 'BadgeFit',
   tagline: 'Train for the test. Earn the badge.',
-  coach: 'Jarvis',
+  coach: 'Hayden',
 }

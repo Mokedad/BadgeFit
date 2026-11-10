@@ -113,12 +113,12 @@ function StartChooser() {
       </div>
       <Button variant="primary" icon="play" onClick={() => (bfRun && todayIds.length === 1 && todayIds[0] === bfRun.routineId ? nav('/police?run=' + bfRun.run.id) : startFlow(todayIds))}>{t('Start {0}', todayName)}</Button>
     </div>}
-    {/* BadgeFit: the runs sit with the gym sessions, today's first, each a guided run with Jarvis. */}
+    {/* BadgeFit: the runs sit with the gym sessions, today's first, each a guided run with Hayden. */}
     {S.police?.level && <><h4 className="sec">🏃 Runs</h4>
       <div className="list">
         {bfRun && <div className="item" onClick={() => nav('/police?run=' + bfRun.run.id)}>
           <span className="lrow-i">🏃</span>
-          <div className="grow"><div className="tt">Today: {bfRun.run.name}</div><div className="ss">Guided run with Jarvis{bfRun.day ? ` · ${bfRun.day.title}` : ''}</div></div>
+          <div className="grow"><div className="tt">Today: {bfRun.run.name}</div><div className="ss">Guided run with Hayden{bfRun.day ? ` · ${bfRun.day.title}` : ''}</div></div>
           <span className="tag acc">Run</span></div>}
         <div className="item" onClick={() => nav('/police?tab=run')}>
           <span className="lrow-i">🗺️</span>
@@ -1097,15 +1097,15 @@ const coveredTop = () => {
   return inset
 }
 
-// BadgeFit: the one Jarvis button in a workout. One tap and he listens for his name for the rest
-// of the session ("Jarvis, that's 20 kg, 4 reps"); tap again and he stops. Where the browser
+// BadgeFit: the one Hayden button in a workout. One tap and he listens for his name for the rest
+// of the session ("Hayden, that's 20 kg, 4 reps"); tap again and he stops. Where the browser
 // cannot listen it opens the typing card instead (with the Coach on).
 function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
-  if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Jarvis" title="Ask Jarvis"><JarvisOrb /></button> : null
+  if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><JarvisOrb /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
-    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Jarvis stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Jarvis is listening. Say "Jarvis, 20 kg, 4 reps"') } }}
-    aria-label={hf ? 'Jarvis is listening. Tap to stop' : 'Let Jarvis listen'} title={hf ? 'Jarvis is listening' : 'Let Jarvis listen'}><JarvisOrb /></button>
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Hayden is listening. Say "Hayden, 20 kg, 4 reps"') } }}
+    aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><JarvisOrb /></button>
 }
 
 function ActiveWorkout() {
@@ -2196,7 +2196,7 @@ function ActiveWorkout() {
   // The Apple Watch ticks sets through this same toggle (lib/watch-sync.js): the weight and reps it
   // logged go into the row first, then the tick runs as if tapped here (rest, high-water mark, the
   // end-of-workout sheet). A row already ticked only takes the numbers.
-  // BadgeFit: Jarvis's voice commands act on this screen (store/useJarvis.js `workout`): log the
+  // BadgeFit: Hayden's voice commands act on this screen (store/useJarvis.js `workout`): log the
   // next set ("15 at 20"), log it like the last one, swap the exercise by name. The handlers are
   // read through a ref, so the registered object always calls this render's functions.
   const jarvisRef = useRef(null)
@@ -2511,12 +2511,12 @@ function ActiveWorkout() {
         <span className="wvol" data-session-volume>{fmtVol(vol, S.unit)}</span></div>
       : <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>}
     {/* BadgeFit: a run started as a session (from before runs opened as guided runs) gets one tap
-        over to the guided run with Jarvis and the countdown; nothing logged yet is lost. */}
+        over to the guided run with Hayden and the countdown; nothing logged yet is lost. */}
     {(() => {
       if (!S.police?.level || editing || A.backfill) return null
       const runOf = (A.entries || []).map(e => (e.rid ? runForRoutine(S.police, e.rid, todayISO()) : null))
       if (!runOf.length || !runOf.every(Boolean) || (A.entries || []).some(e => (e.sets || []).some(x => x.done))) return null
-      return <button type="button" className="pf-go wk-run-go" onClick={() => { const id = runOf[0].id; markDiscarded(A.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/police?run=' + id) }}>🏃 Open the guided run with Jarvis</button>
+      return <button type="button" className="pf-go wk-run-go" onClick={() => { const id = runOf[0].id; markDiscarded(A.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/police?run=' + id) }}>🏃 Open the guided run with Hayden</button>
     })()}
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
