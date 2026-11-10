@@ -3,7 +3,7 @@
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
-import { ZONES, hrFor, runMinutes } from '../lib/police/runs.js'
+import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
 import { say, say as sayAloud } from '../lib/police/voice.js'
 import { checkInMinutes, checkInLine, statLines, intenseLine } from '../lib/police/run-coach.js'
@@ -43,6 +43,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   const [done, setDone] = useState(false)
   const [result, setResult] = useState(null) // runResult(): what was run, saved the moment it ends
   const savedId = useRef(null)
+  const track = useRef(null), dragging = useRef(false)
   const [rpe, setRpe] = useState(null)
   const [km, setKm] = useState(null)
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
@@ -104,6 +105,32 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
 
   const next = segs[idx + 1]
+
+  // The timeline: seconds into the whole run, for the runner on the track and for dragging him.
+  const totalSec = segs.reduce((a, x) => a + segSeconds(x), 0)
+  const inSeg = started ? Math.max(0, ((paused ? pausedAt.current : now) - segStart.current) / 1000) : 0
+  const atSec = started ? Math.min(totalSec, runSecondsAt(run, idx, Math.min(inSeg, segSeconds(seg || {}) || inSeg))) : 0
+  const pct = totalSec ? (atSec / totalSec) * 100 : 0
+  const dragTo = e => {
+    const r = track.current?.getBoundingClientRect()
+    if (!r) return
+    const t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * totalSec
+    const at = seekRun(run, t)
+    const base = paused ? pausedAt.current : Date.now()
+    dragging.current = true
+    if (at.idx !== idx) setIdx(at.idx)
+    segStart.current = base - at.offset * 1000
+    runStart.current = base - t * 1000
+    // The check-ins already passed are not said in a rush after a jump forward.
+    checkInMinutes(planned).forEach(m => { if (m <= t / 60) checked.current.add(m) })
+    setNow(Date.now())
+  }
+  const endDrag = () => {
+    if (!dragging.current) return
+    dragging.current = false
+    try { navigator.vibrate?.(30) } catch { /* none */ }
+    if (seg && !paused) cue(audio, `${KIND[seg.kind]}. ${seg.label}.`, seg.kind, musicMode)
+  }
 
   // Leaving mid-run pauses it and keeps it in a bar at the bottom, like music: ▶ carries on, ✕ ends.
   const leave = () => {
@@ -183,7 +210,16 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       <span>{run.name}</span>
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
     </div>
-    <div className="rp-prog"><span style={{ width: (started ? (idx / segs.length) * 100 : 0) + '%' }} /></div>
+    {/* The runner crosses the track as the run goes, start to finish; drag him to move the time. */}
+    <div className={'rp-track' + (started ? ' live' : '')} ref={track}
+      onPointerDown={started ? e => { e.currentTarget.setPointerCapture?.(e.pointerId); dragTo(e) } : undefined}
+      onPointerMove={started ? e => { if (e.buttons || e.pointerType === 'touch') dragTo(e) } : undefined}
+      onPointerUp={started ? endDrag : undefined} onPointerCancel={started ? endDrag : undefined}
+      role={started ? 'slider' : undefined} aria-label="Run progress" aria-valuemin={0} aria-valuemax={totalSec} aria-valuenow={Math.round(atSec)}>
+      <span className="rp-track-fill" style={{ width: pct + '%' }} />
+      <span className="rp-runner" style={{ left: pct + '%' }} aria-hidden="true">🏃</span>
+      <span className="rp-flag" aria-hidden="true">🏁</span>
+    </div>
     {!started ? <div className="rp-body">
       <div className="rp-emoji" aria-hidden="true">🏃</div>
       <h2>{run.name}</h2>
@@ -200,7 +236,6 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       {bubble && <div className="rp-bubble" role="status"><span className="pf-orb" aria-hidden="true" />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
-        <span><button onClick={() => idx > 0 && go(idx - 1)} aria-label="Back a step" disabled={idx === 0}>⏮</button><small>Back</small></span>
         <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>
         <span><button onClick={() => go(idx + 1)} aria-label={idx >= segs.length - 1 ? 'Finish the run' : 'Skip this step'}>⏭</button><small>{idx >= segs.length - 1 ? 'Finish' : 'Skip'}</small></span>
       </div>

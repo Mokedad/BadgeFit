@@ -543,3 +543,9 @@
 .pf .rp-km{color:#fff}
 .rp-ctl>span{display:flex;flex-direction:column;align-items:center;gap:6px}
 .rp-ctl small{font-size:12px;opacity:.8;font-weight:600}
+.rp-track{position:relative;height:34px;margin:4px 6px 0;touch-action:none}
+.rp-track::before{content:'';position:absolute;left:0;right:0;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:rgba(255,255,255,.18)}
+.rp-track-fill{position:absolute;left:0;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:#ffc629}
+.rp-runner{position:absolute;top:50%;font-size:26px;line-height:1;transform:translate(-50%,-58%) scaleX(-1);transition:left .25s linear;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.rp-track.live .rp-runner{cursor:grab}
+.rp-flag{position:absolute;right:-6px;top:50%;font-size:18px;transform:translateY(-60%)}

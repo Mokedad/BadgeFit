@@ -72,11 +72,29 @@ export const RUNS = [
 export const runById = id => RUNS.find(r => r.id === id) || null
 export const runsIn = cat => RUNS.filter(r => r.cat === cat)
 
+/** A segment's seconds: its own, or a distance at 4 min/km work, 8 walking. */
+export const segSeconds = s => s.sec ?? (s.dist / 1000) * (s.kind === 'work' ? 240 : 480)
+
 /** About how long a run takes, in minutes, counting a distance segment at 4 min/km work, 8 walking. */
 export function runMinutes(run) {
-  const sec = (run?.segments || []).reduce((a, s) => a + (s.sec ?? (s.dist / 1000) * (s.kind === 'work' ? 240 : 480)), 0)
+  const sec = (run?.segments || []).reduce((a, s) => a + segSeconds(s), 0)
   return Math.round(sec / 60)
 }
+
+/** Where a run is on its timeline: seconds `t` in → { idx (segment), offset (s into it) }. */
+export function seekRun(run, t) {
+  const segs = run?.segments || []
+  let left = Math.max(0, t)
+  for (let i = 0; i < segs.length; i++) {
+    const d = segSeconds(segs[i])
+    if (left < d || i === segs.length - 1) return { idx: i, offset: Math.min(left, Math.max(0, d - 1)) }
+    left -= d
+  }
+  return { idx: 0, offset: 0 }
+}
+
+/** Seconds into the run at segment `idx`, `offset` seconds in. */
+export const runSecondsAt = (run, idx, offset) => (run?.segments || []).slice(0, idx).reduce((a, s) => a + segSeconds(s), 0) + Math.max(0, offset)
 
 /** Heart rate range for a zone at an age (220 − age), or null without an age. */
 export function hrFor(effort, age) {

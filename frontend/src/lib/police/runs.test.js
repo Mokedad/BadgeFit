@@ -47,3 +47,16 @@ describe('runForDay', () => {
     expect(runsThisWeek([{ at: '2026-11-08' }, { at: '2026-11-02' }, { at: '2026-11-01' }], '2026-11-08')).toHaveLength(2)
   })
 })
+
+import { seekRun, runSecondsAt, runById as byId } from './runs.js'
+describe('the run timeline', () => {
+  it('finds the segment for a time, and the time for a segment', () => {
+    const run = byId('vo2-4x4')
+    const at = seekRun(run, 11 * 60) // 10 min warm-up, then 1 min into the first hard 4 min
+    expect(at.idx).toBe(1)
+    expect(at.offset).toBeCloseTo(60, 0)
+    expect(runSecondsAt(run, at.idx, at.offset)).toBeCloseTo(11 * 60, 0)
+    expect(seekRun(run, -5)).toEqual({ idx: 0, offset: 0 })
+    expect(seekRun(run, 1e6).idx).toBe(run.segments.length - 1)
+  })
+})
