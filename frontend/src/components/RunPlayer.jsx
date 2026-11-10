@@ -44,7 +44,6 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   const [result, setResult] = useState(null) // runResult(): what was run, saved the moment it ends
   const savedId = useRef(null)
   const track = useRef(null), dragging = useRef(false)
-  const [rpe, setRpe] = useState(null)
   const [km, setKm] = useState(null)
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
   // Hayden the coach (lib/police/run-coach.js): check-ins at 2, 5, 7, 10 min then every 5, a lift
@@ -164,7 +163,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   const back = () => {
     if (savedId.current) onUnlog?.(savedId.current)
     savedId.current = null
-    setResult(null); setRpe(null); setKm(null)
+    setResult(null); setKm(null)
     // A step whose time had run out starts again, or ▶ would end the run at once.
     if (seg?.sec != null && (pausedAt.current - segStart.current) / 1000 >= seg.sec - 1) segStart.current = pausedAt.current
     setDone(false)
@@ -184,7 +183,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   }
 
   if (done && result) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
-    <div className="rp-top"><button className="rp-x" onClick={onClose} aria-label="Close">✕</button></div>
+    <div className="rp-top"><button className="rp-x" onClick={back} aria-label="Back to the run" title="Back to the run">←</button></div>
     <div className="rp-body">
       <div className="rp-party" aria-hidden="true">{['🥳', '🎉', '🏃', '💪', '🎉', '🥳'].map((e, i) => <span key={i} style={{ animationDelay: `${i * 0.12}s` }}>{e}</span>)}</div>
       <h2>{result.headline}</h2>
@@ -195,11 +194,8 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
         <div><b>{result.weekRuns}</b><span>runs this week</span></div>
         <div><b>{result.weekMin}</b><span>min this week</span></div>
       </div>
-      <p className="rp-q">How hard was it? <small>(optional)</small></p>
-      <div className="rp-rpe">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <button key={n} className={rpe === n ? 'on' : ''} onClick={() => { setRpe(n); note({ rpe: n }) }} aria-pressed={rpe === n}>{n}</button>)}</div>
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-main" onClick={onClose}>Done 🥳</button>
-      <button className="rp-end" onClick={back}>⬅️ Back to the run</button>
     </div>
   </div>
 
