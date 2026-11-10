@@ -3309,3 +3309,12 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ev-item small{color:var(--label-2);font-size:12px}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ev-box b{color:#ffc629}}
 :root[data-theme=dark] .ev-box b{color:#ffc629}
+/* BadgeFit countdown with the week strip inside (Home): one card, a line between. */
+.ev-wrap{border:1px solid var(--sep)}
+.ev-wrap .ev-card{border:0;background:none;padding:0;font:inherit}
+.ev-wrap .ev-box{width:80px;min-height:80px}
+.ev-wrap .ev-box b{font-size:34px}
+.ev-wk{margin-top:12px;padding-top:10px;border-top:1px solid var(--sep)}
+.ev-wk .wkleft{margin-top:6px}
+.ev-wk>.row.between{margin-bottom:2px!important}
+.card>.today-row:first-child{margin-top:0}

@@ -36,6 +36,7 @@ import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
+import { weeklyFocus } from '../lib/police/weekly-focus.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -98,6 +99,14 @@ export default function Home() {
   // an empty-state card takes its place. Plan does the same in rotation mode: no weekday grid, only
   // the days that add a routine the loop does not have (Plan.jsx, "Also on fixed days").
   const rotating = scheduleModeOf(S) === 'rotation'
+  const weekNav = <>
+    <div className="row between" style={{ marginBottom: 8 }}>
+      <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 'var(--fs-subhead)' }} onClick={() => setWeekOffset(w => w - 1)} aria-label={t('Previous week')}><Icon name="chevronLeft" /></button>
+      <div className="small muted" style={{ fontWeight: 500 }}>{wkLabel}</div>
+      <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 'var(--fs-subhead)' }} onClick={() => setWeekOffset(w => w + 1)} aria-label={t('Next week')}><Icon name="chevronRight" /></button>
+    </div>
+    <div className="week">{strip}</div>
+  </>
   // A planner-written queue (no rotationId) still names its weekday when it hasn't started yet —
   // that copy predates rotation and stays as it is. Our own rotation has no weekday of its own
   // (lib/rotation.js): naming one here — including on the pass's own one-day empty gap (THE
@@ -115,6 +124,12 @@ export default function Home() {
   const tally = weekTally(S, todayISO())
   const { done: doneThisWeek, planned: plannedPerWeek } = tally
   const left = workoutsLeft(S, todayISO())
+  // The week's plan as a countdown (#753, lib/week-left.js): "2 of 4 left this week".
+  const weekLeft = left && <div className={'small dim wkleft' + (left.left > 0 ? '' : ' done')}>
+    {left.left > 0 ? tn('{0} of {1} left this week', '{0} of {1} left this week', left.left, left.of) : t('All done this week. Nice.')}
+  </div>
+  // BadgeFit: the week strip sits inside the countdown card, so the two read as one card.
+  const bfWeek = !rotating && !!S.police?.start && !!weeklyFocus(S.police, todayISO())
   // The streak with its best run and freezes (lib/streak.js), read back from the workouts.
   const todayKey = todayISO()
   const streak = useMemo(() => streakInfo(S, todayKey), [S.workouts, S.weekStart, todayKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -161,7 +176,7 @@ export default function Home() {
       <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Hayden has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
       <Icon name="chevronRight" />
     </button>
-    {S.police?.start && <EventCountdown P={S.police} />}
+    {S.police?.start && <EventCountdown P={S.police}>{bfWeek && <>{weekNav}{weekLeft}</>}</EventCountdown>}
 
     <div className="card">
       {/* A running programme (lib/programmes.js) wrote this week's plan: where it stands, one tap from its screen. */}
@@ -174,17 +189,9 @@ export default function Home() {
         {t('No rotation yet. Add routines to it in Plan.')}
         <div style={{ marginTop: 10 }}><Button size="sm" variant="tinted" onClick={() => nav('/plan')}>{t('Set up in Plan')}</Button></div>
       </div>) : <>
-        <div className="row between" style={{ marginBottom: 8 }}>
-          <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 'var(--fs-subhead)' }} onClick={() => setWeekOffset(w => w - 1)} aria-label={t('Previous week')}><Icon name="chevronLeft" /></button>
-          <div className="small muted" style={{ fontWeight: 500 }}>{wkLabel}</div>
-          <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 'var(--fs-subhead)' }} onClick={() => setWeekOffset(w => w + 1)} aria-label={t('Next week')}><Icon name="chevronRight" /></button>
-        </div>
-        <div className="week">{strip}</div>
+        {!bfWeek && weekNav}
       </>}
-      {/* The week's plan as a countdown (#753, lib/week-left.js): "2 of 4 left this week". */}
-      {left && <div className={'small dim wkleft' + (left.left > 0 ? '' : ' done')}>
-        {left.left > 0 ? tn('{0} of {1} left this week', '{0} of {1} left this week', left.left, left.of) : t('All done this week. Nice.')}
-      </div>}
+      {!bfWeek && weekLeft}
       {/* Once today's session is logged the row stops asking for it. The week strip already
           knew (its dot goes 'done'); this row did not, so a finished day kept showing the
           routine name behind a green Start tag and read as still outstanding (issue #4).
