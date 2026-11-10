@@ -29,6 +29,28 @@ export async function runCommand(text) {
     const nameOf = await names()
     return `Swapped to ${nameOf(hit.id)}. ${nextSetLine(useStore.getState().S.active, { nameOf, unit }).replace(/^20 seconds\. /, '')}`
   }
+  if (cmd.type === 'nextExercise') {
+    const nameOf = await names()
+    const off = w.nextExercise?.()
+    if (!off) return 'That is everything. Say wrap up when you are ready.'
+    const line = nextSetLine(useStore.getState().S.active, { nameOf, unit }).replace(/^20 seconds\. /, '')
+    return line ? `Done with ${nameOf(off.id)}. Next up: ${line}` : `Done with ${nameOf(off.id)}. That is everything. Say wrap up when you are ready.`
+  }
+  if (cmd.type === 'setRest') {
+    // This rest becomes that long, and the exercise keeps it for the rest of the session and next time.
+    const tm = ui.timer
+    if (tm && !tm.ready && Number.isFinite(tm.left)) ui.addRest?.(cmd.sec - tm.left)
+    const A = useStore.getState().S.active
+    const idx = tm?.forIdx ?? A?.cur
+    const entry = A?.entries?.[idx]
+    if (entry) useStore.getState().update(s => {
+      s.police = { ...s.police, restByEx: { ...(s.police?.restByEx || {}), [entry.id]: cmd.sec } }
+      for (const e of s.active?.entries || []) if (e.id === entry.id) e.target = { ...(e.target || {}), restSec: cmd.sec }
+    })
+    const m = Math.floor(cmd.sec / 60), r = cmd.sec % 60
+    const words = m && r ? `${m} minute${m > 1 ? 's' : ''} ${r}` : m ? `${m} minute${m > 1 ? 's' : ''}` : `${r} seconds`
+    return `${words} rest. Got it.`
+  }
   if (cmd.type === 'skipRest') { ui.skipRest?.(); return 'Let us go.' }
   if (cmd.type === 'addRest') { ui.addRest?.(cmd.sec); return cmd.sec >= 60 ? 'Another minute.' : `${cmd.sec} more seconds.` }
   if (cmd.type === 'next') return nextSetLine(useStore.getState().S.active, { nameOf: await names(), unit }).replace(/^20 seconds\. /, 'Next: ') || 'That is everything. Say wrap up when you are ready.'

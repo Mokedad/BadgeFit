@@ -2200,7 +2200,7 @@ function ActiveWorkout() {
   // next set ("15 at 20"), log it like the last one, swap the exercise by name. The handlers are
   // read through a ref, so the registered object always calls this render's functions.
   const jarvisRef = useRef(null)
-  jarvisRef.current = { toggle, setField, modeAt }
+  jarvisRef.current = { toggle, setField, modeAt, mutEntry, removeExercise }
   useEffect(() => {
     if (editing) return
     const api = {
@@ -2226,6 +2226,17 @@ function ActiveWorkout() {
         const done = new Set((useStore.getState().S.workouts || []).flatMap(w => (w.entries || []).map(e => e.id)))
         const hit = matchExercise(query, CATALOGUE, { current: EXIDX[n.entry.id], done })
         return hit && swapActiveWorkoutTo(n.idx, hit.id) ? hit : null
+      },
+      // "Done with this machine": the sets not logged on this exercise are dropped (the ones done
+      // stay); one not started at all leaves the session. Returns the exercise moved off, or null.
+      nextExercise: () => {
+        const A = useStore.getState().S.active
+        const n = upNext(A)
+        if (!n) return null
+        const id = n.entry.id
+        if (n.entry.sets.some(x => x.done)) jarvisRef.current.mutEntry(n.idx, e => { e.sets = e.sets.filter(x => x.done) })
+        else jarvisRef.current.removeExercise(n.idx)
+        return { id }
       },
       finish: () => finishWorkoutNow(),
     }

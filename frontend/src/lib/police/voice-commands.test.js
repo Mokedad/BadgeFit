@@ -45,3 +45,18 @@ describe('parseSet: the weight is never dropped', () => {
   it('a weight alone is a weight, not reps', () => expect(parseCommand('55 kg')).toEqual({ type: 'set', weight: 55 }))
   it('a bare number is reps', () => expect(parseCommand('12')).toEqual({ type: 'set', reps: 12 }))
 })
+
+describe('gym talk: change the rest, move on', () => {
+  const rest = { '2 minutes rest instead': 120, 'two minutes rest instead': 120, 'rest 90 seconds': 90, 'cut the rest to a minute': 60,
+    'only a minute rest': 60, 'a minute and a half rest': 90, 'rest is 3 minutes': 180, 'make it 2 minutes rest': 120 }
+  for (const [said, sec] of Object.entries(rest)) it(said, () => expect(parseCommand(said)).toEqual({ type: 'setRest', sec }))
+  for (const said of ['next exercise', "I'm done with this machine", 'done with this one', 'move on', 'skip this exercise', "machine's taken"]) {
+    it(said, () => expect(parseCommand(said)).toEqual({ type: 'nextExercise' }))
+  }
+  it('still: what is next, add rest, swap, a set', () => {
+    expect(parseCommand("what's next")).toEqual({ type: 'next' })
+    expect(parseCommand('add 30 seconds')).toEqual({ type: 'addRest', sec: 30 })
+    expect(parseCommand("machine's taken, switch to dumbbells").type).toBe('swap')
+    expect(parseCommand('done')).toEqual({ type: 'set' })
+  })
+})

@@ -5,6 +5,8 @@
 //   { type: 'same' }                  log it like the last one
 //   { type: 'skipRest' } | { type: 'addRest', sec }
 //   { type: 'swap', query }           swap the current exercise ("machine's taken, switch to X")
+//   { type: 'setRest', sec }          the rest is this long now, and for this exercise from now on
+//   { type: 'nextExercise' }          done with this exercise ("done with this machine"): on to the next
 //   { type: 'next' }                  what is next
 //   { type: 'finish' }                wrap up and save
 
@@ -93,13 +95,26 @@ export function parseCommand(raw) {
   const swap = /\b(?:swap|switch|change|move)(?: it| this| that)?(?: over)? (?:to|for|with) (?:an? |the )?(.+)$/.exec(text) || /\b(?:let'?s do|i'?ll do|use) (?:an? |the )?(.+?) instead\b/.exec(text)
   if (swap) return { type: 'swap', query: swap[1].replace(/\b(instead|please|then)\b/g, '').trim() }
 
+  // "Done with this machine", "next exercise", "move on": the rest of this exercise is dropped.
+  if (/\b(next exercise|next machine|next one please|move on|moving on|let'?s move on|on to the next( one)?|skip (this|the) exercise|skip this one|(i'?m )?(done|finished) with (this|that|the) (machine|exercise|one|1|station|bench|rack|cable|thing)|(i'?m )?(done|finished) with (this|that)$|machine'?s? (is )?(taken|busy|full|in use))\b/.test(text) && !/\b(swap|switch|change)\b/.test(text)) return { type: 'nextExercise' }
+  // "2 minutes rest instead", "rest 90 seconds", "cut the rest to a minute", "only a minute rest"
+  if (/\brest|instead\b/.test(text)) {
+    const r = text.replace(/\b(?:a|one) minute and a half\b/g, '1.5 minutes').replace(/\bhalf a minute\b/g, '30 seconds').replace(/\b(?:a|one) minute\b/g, '1 minute')
+    const m = /(\d+(?:\.\d+)?)\s*(minutes?|mins?|m|seconds?|secs?|s)\b(?:\s*(?:of|for))?(?:\s*(?:rest|instead|break))/.exec(r) ||
+      /\b(?:rest|break)\s*(?:time\s*)?(?:for|of|to|is|at)?\s*(?:only|just)?\s*(\d+(?:\.\d+)?)\s*(minutes?|mins?|m|seconds?|secs?|s)\b/.exec(r) ||
+      /\b(?:cut|make|change|set|drop|bring)\s*(?:the\s*|my\s*)?(?:rest|it|that)\s*(?:time\s*)?(?:to|down to|at)\s*(\d+(?:\.\d+)?)\s*(minutes?|mins?|m|seconds?|secs?|s)\b/.exec(r)
+    if (m) {
+      const sec = Math.round(Number(m[1]) * (/^m/.test(m[2]) ? 60 : 1))
+      if (sec >= 10 && sec <= 900) return { type: 'setRest', sec }
+    }
+  }
   if (/\b(skip (the )?rest|i'?m ready|ready to go|let'?s go|start (the )?(next )?set)\b/.test(text)) return { type: 'skipRest' }
   const more = /\b(?:add|another|give me)(?: an?)? (\d+) ?(seconds?|secs?|minutes?|mins?)\b/.exec(text)
   if (more) return { type: 'addRest', sec: Number(more[1]) * (/^min/.test(more[2]) ? 60 : 1) }
   if (/\b(another minute|a minute more|one more minute)\b/.test(text)) return { type: 'addRest', sec: 60 }
   if (/\b(more rest|need more time)\b/.test(text)) return { type: 'addRest', sec: 30 }
 
-  if (/\b(what'?s next|what is next|next exercise|what now)\b/.test(text)) return { type: 'next' }
+  if (/\b(what'?s next|what is next|what now|what'?s after this)\b/.test(text)) return { type: 'next' }
   if (/\b(same (again|as last|as before)|repeat( that)?|same weight same reps)\b/.test(text)) return { type: 'same' }
 
   const set = parseSet(text)
