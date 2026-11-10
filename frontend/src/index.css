@@ -3330,3 +3330,15 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* Kept short: the strip sits snug under the line, no extra rows. */
 .ev-wk{margin-top:10px;padding-top:6px}
 .ev-wk .wday .num{margin:2px 0}
+/* Today's box swipe (components/TodaySwipe.jsx): the red Remove under the row. */
+.tswipe{position:relative;margin-top:12px;border-radius:var(--r);overflow:hidden;touch-action:pan-y}
+.tswipe>.tswipe-fg>.today-row{margin-top:0}
+.tswipe-fg{position:relative;z-index:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tswipe-del{position:absolute;inset:0 0 0 auto;width:96px;border:0;background:#ff3b30;color:#fff;font:inherit;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:20px}
+.tswipe-del span{font-size:13px}
+/* Done today (BadgeFit): every workout logged today, ticked. */
+.done-today{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.done-today button{display:flex;align-items:center;gap:10px;width:100%;text-align:start;border:0;border-radius:12px;padding:10px 14px;font:inherit;background:rgba(52,199,89,.12);background:color-mix(in srgb,var(--green) 12%,transparent);color:inherit}
+.done-today b{font-weight:600}
+.done-today small{color:var(--label-2);margin-inline-start:auto;white-space:nowrap}
+.done-today .ok{color:var(--green);font-weight:800}

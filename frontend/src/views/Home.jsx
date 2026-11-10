@@ -8,7 +8,7 @@ import { streakInfo } from '../lib/streak.js'
 import { StreakFlame, StreakMeta, StreakParty } from '../components/Streak.jsx'
 import { fmtNum, fmtDate, todayISO, isoOf, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, tn, dateLocale } from '../lib/i18n.js'
-import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
+import { bwSheet, goalSheet, workoutDetailSheet, menuSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import CardHead from '../components/CardHead.jsx'
@@ -36,6 +36,9 @@ import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
+import TodaySwipe from '../components/TodaySwipe.jsx'
+import { useUI } from '../store/useUI.js'
+import { REST } from '../lib/rotation.js'
 import { weeklyFocus } from '../lib/police/weekly-focus.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
@@ -150,6 +153,15 @@ export default function Home() {
   const bfRun = S.active || !S.police?.level ? null : todayRoutines.map(r => runForRoutine(S.police, r.id, todayISO())).find(Boolean) || null
   const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
     : S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
+  // BadgeFit: today's box swipes away (TodaySwipe) while there is a plan still to do.
+  const swipeable = !!S.police?.level && !S.active && !doneToday && todayRoutines.length > 0
+  const removeToday = () => { useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } }); useUI.getState().toast('🗑 Removed. Today is a rest day.') }
+  const holdToday = () => menuSheet({ title: todayName || t('Today'), sections: [{ items: [
+    { icon: 'swap', label: 'Swap for another workout', onClick: () => dayOverrideSheet(todayISO()) },
+    { icon: 'trash', danger: true, label: "Remove today's workout", onClick: removeToday },
+  ] }, { items: [{ icon: 'xmark', label: t('Cancel'), onClick: () => {} }] }] })
+  // Everything logged today that the row above does not already show as done.
+  const extraDone = loggedToday.filter(w => w !== doneToday)
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
   // A BadgeFit member's programme runs as long as their plan (lib/police/programme.js), not 12 weeks.
@@ -201,6 +213,9 @@ export default function Home() {
           routine name behind a green Start tag and read as still outstanding (issue #4).
           An in-progress session still wins — that one is happening right now. Tapping the
           row keeps working, so a second session in one day is a tap away, just not urged. */}
+      {/* BadgeFit: swipe today's box left (or hold it) to remove today's workout: today becomes a
+          rest day, nothing is deleted. */}
+      <TodaySwipe enabled={swipeable} onRemove={removeToday} onHold={holdToday}>
       {/* Done for today: shown as complete and not tappable, so a finished session is not started again. */}
       <div className={'today-row' + (doneToday && !S.active ? ' is-done' : '')} data-tour="today" {...(doneToday && !S.active ? { 'aria-disabled': true } : tappable(onToday))}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
@@ -224,13 +239,21 @@ export default function Home() {
           : routine ? <span className="row" style={{ gap: 8 }}><MiniBodyMap routines={todayRoutines} body={S.body} /><span className="tag acc">{t('Start')}</span></span>
           : <Icon name="plus" className="chev" />}
       </div>
+      </TodaySwipe>
+      {/* BadgeFit: everything trained today, ticked, so a session beside the plan (legs on a run
+          day) shows as done too. Tap one to see it. */}
+      {S.police?.level && extraDone.length > 0 && <div className="done-today">
+        {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>
+          <span className="ok">✓</span><b>{w.name || t('Workout')}</b><small>{t('Done')}</small>
+        </button>)}
+      </div>}
       {/* The row above starts today's plan in one tap, and so does the Start button in the tab
           bar — which is the whole problem when you want something else. Both jump straight into
           the planned session whenever there is one, so the Start screen (a freestyle session,
           and your other routines) is only reachable on a day with nothing planned. The one other
           way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
-      {!S.active && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+      {!S.active && (!S.police?.level || doneToday) && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/workout')}>
           {doneToday && S.police?.level ? 'Add an extra workout' : t('Choose a different workout')}
         </Button>
