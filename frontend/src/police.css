@@ -266,10 +266,6 @@
 .rp-ctl button{width:58px;height:58px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:22px}
 .rp-ctl .rp-pause{width:76px;height:76px;background:#fff;color:#111;font-size:28px}
 .rp-ctl button:disabled{opacity:.35}
-.rp-q{font-weight:700;margin:6px 0 0}
-.rp-rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:min(100%,340px)}
-.rp-rpe button{border:0;border-radius:12px;padding:10px 0;font-weight:800;font-size:17px;background:rgba(255,255,255,.14);color:#fff}
-.rp-rpe button.on{background:#ffc629;color:#111}
 .rp-km{display:flex;flex-direction:column;gap:6px;font-size:13px;opacity:.9;width:min(100%,240px)}
 .rp-km input{text-align:center}
 @media (prefers-reduced-motion:reduce){.rp,.rp-prog span{transition:none}}
@@ -492,20 +488,10 @@
 .td-row{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.08)}
 .td .pf-go:disabled{opacity:.5}
 /* morning check-in, test tools, the day's adjustment (views/PoliceFit.jsx) */
-.pf-checkin h3{margin:0 0 8px}
-.pf-ci-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
-.pf-ci-row>span{font-weight:600;min-width:62px}
-.pf-ci-row>div{display:flex;gap:8px}
-.pf-ci-row button{width:48px;height:48px;border-radius:14px;border:0;font-size:24px;background:var(--surface-2,rgba(128,128,128,.12))}
-.pf-ci-row button.on{background:var(--pf-gold,#ffc629);box-shadow:0 0 0 2px #b8860b}
 .pf-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
 .pf-tool{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:0;color:inherit;margin:0;padding:14px}
 .pf-tool>span{font-size:28px}
 .pf-tool small{color:var(--label-2);font-size:12px;line-height:1.35}
-.pf-adjust{margin:8px 0 0;padding:8px 12px;border-radius:12px;font-size:14px;background:var(--surface-2,rgba(128,128,128,.12))}
-.pf-adjust.easy{box-shadow:inset 3px 0 0 #f59e0b}
-.pf-adjust.light{box-shadow:inset 3px 0 0 #ef4444}
-.pf-adjust.go{box-shadow:inset 3px 0 0 #22c55e}
 .pf-strip.pf-strip3{grid-template-columns:repeat(3,1fr)}
 .pf-jsw{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}
 .pf .pf-jsw-row{display:flex;flex-direction:row;align-items:center;gap:10px;color:#fff}
@@ -538,7 +524,6 @@
 .rp-stats div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;background:rgba(255,255,255,.12)}
 .rp-stats b{font-size:22px}
 .rp-stats span{font-size:11px;opacity:.8;text-align:center}
-.rp-q small{opacity:.7;font-weight:400}
 .rp.rp-done{background:linear-gradient(170deg,#183463,#0d1b33)}
 .pf .rp-km{color:#fff}
 .rp-ctl>span{display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -552,4 +537,3 @@
 .pf .pf-ran{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:12px 14px;border-radius:14px;background:rgba(52,199,89,.16);background:color-mix(in srgb,var(--green) 16%,transparent)}
 .pf .pf-ran b{color:var(--green-ink,var(--green));font-size:16px}
 .pf .pf-ran span{flex:1;min-width:0;font-size:14px;color:var(--label-2)}
-.pf .pf-again{border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;background:var(--surface-2);color:inherit}

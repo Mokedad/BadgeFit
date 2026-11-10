@@ -19,7 +19,7 @@ import { MOBILE, syncReminder } from '../lib/mobile.js'
 import { pushSupported, enablePush } from '../lib/push.js'
 import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
-import { STANDARDS, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
+import { DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
 import { LEVELS, PHASES, WEEKS, WARMUP, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, planStart, PHASE_WORDS, weekPlan, phaseOf, templateWeek, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
@@ -36,8 +36,6 @@ import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
-import { CHECKIN_QUESTIONS, checkinCall, adjustNote, checkinLine, addCheckin, CALL_WORD } from '../lib/police/checkin.js'
-import { say, primeSpeech } from '../lib/police/voice.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import '../police.css'
 
@@ -91,8 +89,6 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
     [P.name, user?.name, week, pw.last, pw.final, day, pw.after, ready.passed, ready.weakest?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fresh = !P.level || !P.start
-  const checkin = P.checkins?.[todayISO()] || null
-  const call = checkinCall(checkin)
   return <>
     {fresh && <Setup S={S} P={P} />}
     {fresh ? null : <div className="card pf-todaycard">
@@ -109,7 +105,6 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
               ? `Your plan is ${pw.last} weeks, up to your ${testName}${pw.last > WEEKS ? ' (the 12-week cycle repeats, ending on test day)' : ''}. Week ${pw.last} is your final week: light training. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}.`
               : `No test date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {day && <DayCard d={day} today />}
-      {call && <p className={'pf-adjust ' + call}><b>{CALL_WORD[call]}</b>{adjustNote(day, call) ? ' · ' + adjustNote(day, call) : ''}</p>}
       {(() => {
         // What is on today, if you changed it (a run you picked for today wins over the plan's).
         const picked = effectiveRoutineIds(S, todayISO()).map(id => runForRoutine(P, id, todayISO())).find(Boolean)
@@ -185,28 +180,6 @@ function JarvisSwitches({ S, P }) {
     }}>🔊 Hear Hayden</button>
     <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Hayden keeps it short and uses the phone's voice, which talks over your music</small></span>
       <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
-  </div>
-}
-
-/** Three taps each morning; Hayden eases the day off when you are wrecked (lib/police/checkin.js). */
-function CheckIn({ P, day }) {
-  const setP = usePolice()
-  const [c, setC] = useState({})
-  const pickOne = (key, v) => {
-    const next = { ...c, [key]: v }
-    setC(next)
-    if (CHECKIN_QUESTIONS.every(q => next[q.key])) {
-      primeSpeech()
-      setP(p => ({ checkins: addCheckin(p.checkins, todayISO(), next) }))
-      say(checkinLine(next, day))
-    }
-  }
-  return <div className="card pf-checkin">
-    <h3>☀️ Morning check-in</h3>
-    {CHECKIN_QUESTIONS.map(q => <div key={q.key} className="pf-ci-row">
-      <span>{q.label}</span>
-      <div>{q.opts.map(([sym, word], i) => <button key={word} className={c[q.key] === i + 1 ? 'on' : ''} onClick={() => pickOne(q.key, i + 1)} aria-label={`${q.label}: ${word}`} title={word}>{sym}</button>)}</div>
-    </div>)}
   </div>
 }
 

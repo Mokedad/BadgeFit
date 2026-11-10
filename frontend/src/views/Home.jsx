@@ -3,7 +3,7 @@ import BadgeLogo from '../components/BadgeLogo.jsx'
 import { todayChoiceSheet } from '../workout-controls.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW, setsDoneActive } from '../lib/history.js'
+import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW } from '../lib/history.js'
 import { streakInfo } from '../lib/streak.js'
 import { StreakFlame, StreakMeta, StreakParty } from '../components/Streak.jsx'
 import { fmtNum, fmtDate, todayISO, isoOf, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
@@ -180,7 +180,7 @@ export default function Home() {
       <span className="police-home-m"><b className="bf-word">Badge<span>Fit</span></b><span>{S.police?.start ? 'Hayden has your briefing. Tap in.' : 'Fitness standards, 12-week plan, nutrition and your coach'}</span></span>
       <Icon name="chevronRight" />
     </button>
-    {S.police?.start && <EventCountdown P={S.police}>{bfWeek && <>{weekNav}{weekLeft}</>}</EventCountdown>}
+    {S.police?.start && <EventCountdown P={S.police}>{bfWeek && weekNav}</EventCountdown>}
 
     <div className="card">
       {/* A running programme (lib/programmes.js) wrote this week's plan: where it stands, one tap from its screen. */}
