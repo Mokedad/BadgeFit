@@ -197,7 +197,8 @@ export default function Home() {
           routine name behind a green Start tag and read as still outstanding (issue #4).
           An in-progress session still wins — that one is happening right now. Tapping the
           row keeps working, so a second session in one day is a tap away, just not urged. */}
-      <div className="today-row" data-tour="today" {...tappable(onToday)}>
+      {/* Done for today: shown as complete and not tappable, so a finished session is not started again. */}
+      <div className={'today-row' + (doneToday && !S.active ? ' is-done' : '')} data-tour="today" {...(doneToday && !S.active ? { 'aria-disabled': true } : tappable(onToday))}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
           <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : doneToday ? 'var(--surface-3)' : routine ? 'var(--acc)' : 'var(--surface-3)',
             // the rest day's moon on the grey square: white on #e3e3e8 vanished in the light theme

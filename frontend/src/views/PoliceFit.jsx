@@ -117,8 +117,11 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
         const run = picked || runForDay(day)
         // Run done today: the day is complete (it is saved as the day's workout too), whatever else was trained.
         const ran = (P.runLog || []).filter(r => r.at === todayISO()).at(-1)
-        if (run && ran) return <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ran)} · {ran.min} min done</span><button className="pf-again" onClick={() => startRun(run)}>Run again</button></div>
+        if (run && ran) return <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ran)} · {ran.min} min done</span></div>
         if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
+        // Done today: complete, not offered again.
+        const doneW = !S.active && S.workouts.filter(w => w.d === todayISO() && !w.runLogId).at(-1)
+        if (day?.kind === 'gym' && doneW) return <div className="pf-ran"><b>✅ Today complete</b><span>{doneW.name || 'Workout'} done</span></div>
         if (day?.kind === 'gym') return <button className="pf-go" onClick={() => {
           // Straight into today's session: one tap, no second Start on Home.
           if (S.active) { nav('/workout'); return }
@@ -423,7 +426,7 @@ function RunTab({ S, P, startRun }) {
       <span className="pf-sub">Today's run</span>
       <h3>{catOf(todayRun.cat).emoji} {todayRun.name}</h3>
       <p className="pf-sub">{todayRun.why} · ~{runMinutes(todayRun)} min</p>
-      {ranToday ? <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span><button className="pf-again" onClick={() => startRun(todayRun)}>Run again</button></div>
+      {ranToday ? <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span></div>
         : <button className="pf-go" onClick={() => startRun(todayRun)}>▶ Start guided run</button>}
     </div>}
     <div className="pf-strip pf-strip3">

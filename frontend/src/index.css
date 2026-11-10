@@ -3318,3 +3318,5 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ev-wk .wkleft{margin-top:6px}
 .ev-wk>.row.between{margin-bottom:2px!important}
 .card>.today-row:first-child{margin-top:0}
+.today-row.is-done{cursor:default}
+.today-row.is-done:active{background:var(--surface-2)}

@@ -48,7 +48,11 @@ export default function TabBar({ onStart }) {
     if (!S.active) {
       // A weekday can hold several routines; start the combined session if any of them has
       // exercises, otherwise fall through to the picker.
-      if (effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(effectiveRoutineIds(S, todayISO())); return }
+      // BadgeFit: today's plan already done is not started again; Start opens the picker instead.
+      const ids = effectiveRoutineIds(S, todayISO())
+      const doneIds = new Set(S.workouts.filter(w => w.d === todayISO()).flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
+      const doneToday = !!S.police?.level && ids.length > 0 && ids.every(id => doneIds.has(id))
+      if (!doneToday && effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(ids); return }
     }
     nav('/workout')
   }
