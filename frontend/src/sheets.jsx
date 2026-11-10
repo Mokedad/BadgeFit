@@ -2923,7 +2923,7 @@ function DayOverride({ iso, close }) {
     <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
     <div className="grow"><div className="tt">{r.name}</div><div className="ss">{pinnedOn[r.id] && pinnedOn[r.id] !== iso ? fmtDate(pinnedOn[r.id], true) : exCount(r.ex.length)}</div></div>
     {effIds.includes(r.id) && <Icon name="check" className="accent" />}</div>
-  return <>
+  return <div className={st.police?.level ? 'bf-compact' : undefined}>
     <h3>{fmtDate(iso, true)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyNames.length ? deriveSessionName(weeklyNames) : t('Rest')}{changed && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
     {missed && <div style={{ marginBottom: 14 }}><Button variant="primary" icon="checkCircle" onClick={logIt}>{t('Log this workout')}</Button></div>}
@@ -2950,7 +2950,7 @@ function DayOverride({ iso, close }) {
       update(s => { id = ensureRunRoutine(s, runId) })
       if (id) set(id)
     }} />}
-  </>
+  </div>
 }
 export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso={iso} close={close} />)
 
@@ -3000,7 +3000,7 @@ function RunPicks({ isOn: on, onPick }) {
       const cat = RUN_CATEGORIES.find(c => c.id === r.cat)
       return <div key={r.id} className="item menu-item" aria-pressed={on(r.id)} {...tappable(() => onPick(r.id))}>
         <span className="lrow-i" style={{ background: 'var(--surface-3)', fontSize: 18 }}>{cat?.emoji || '🏃'}</span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min · guided run with Hayden</div></div>
+        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min</div></div>
         <span className={'menu-on' + (on(r.id) ? ' is-on' : '')}><Icon name="check" /></span>
       </div>
     })}</div>
@@ -3021,8 +3021,11 @@ function DayAssign({ day, close }) {
     if (next.length) s.week[day] = next; else delete s.week[day]
   })
   const rest = () => { update(s => { delete s.week[day] }); close() }
-  return <>
-    <h3 style={{ marginBottom: 2 }}>{t(DAYN[day])}</h3>
+  const bf = !!st.police?.level
+  // BadgeFit: a tighter list, and Done is a plain tick at the top and the bottom.
+  const tick = <button type="button" className="bf-tick" onClick={close} aria-label={t('Done')}><Icon name="check" /></button>
+  return <div className={bf ? 'bf-compact' : undefined}>
+    {bf ? <div className="bf-head"><h3 style={{ marginBottom: 2 }}>{t(DAYN[day])}</h3>{tick}</div> : <h3 style={{ marginBottom: 2 }}>{t(DAYN[day])}</h3>}
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Pick one routine, or more to train them together.')}</div>
     <div className="list menu-list">
       <div className="item menu-item" {...tappable(rest)}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div><span className={'menu-on' + (!cur.length ? ' is-on' : '')}><Icon name="check" /></span></div>
@@ -3042,8 +3045,8 @@ function DayAssign({ day, close }) {
       if (next.length) s.week[day] = next; else delete s.week[day]
     })} />}
     <div style={{ height: 12 }} />
-    <Button variant="primary" onClick={close}>{t('Done')}</Button>
-  </>
+    {bf ? <div className="bf-foot">{tick}</div> : <Button variant="primary" onClick={close}>{t('Done')}</Button>}
+  </div>
 }
 export const dayAssignSheet = day => ui().openSheet(close => <DayAssign day={day} close={close} />)
 

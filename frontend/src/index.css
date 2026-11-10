@@ -3342,3 +3342,14 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .done-today b{font-weight:600}
 .done-today small{color:var(--label-2);margin-inline-start:auto;white-space:nowrap}
 .done-today .ok{color:var(--green);font-weight:800}
+/* BadgeFit day pickers (sheets.jsx DayAssign / DayOverride): one-line rows, a tick for Done. */
+.bf-compact .list{gap:5px}
+.bf-compact .list .item{padding:6px 12px;min-height:44px;gap:10px}
+.bf-compact .list .item .lrow-i{width:28px;height:28px;font-size:14px!important}
+.bf-compact .list .item .grow{display:flex;align-items:baseline;gap:8px;min-width:0}
+.bf-compact .list .item .tt{font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bf-compact .list .item .ss{font-size:12.5px;white-space:nowrap;flex:none}
+.bf-compact h4.sec{margin:10px 0 6px!important}
+.bf-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bf-foot{display:flex;justify-content:center;padding-bottom:4px}
+.bf-tick{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:#34c759;color:#fff;display:grid;place-items:center;font-size:22px;--icon-stroke:2.6;box-shadow:0 4px 12px -4px rgba(52,199,89,.6)}
