@@ -115,6 +115,9 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
         // What is on today, if you changed it (a run you picked for today wins over the plan's).
         const picked = effectiveRoutineIds(S, todayISO()).map(id => runForRoutine(P, id, todayISO())).find(Boolean)
         const run = picked || runForDay(day)
+        // Run done today: the day is complete (it is saved as the day's workout too), whatever else was trained.
+        const ran = (P.runLog || []).filter(r => r.at === todayISO()).at(-1)
+        if (run && ran) return <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ran)} · {ran.min} min done</span><button className="pf-again" onClick={() => startRun(run)}>Run again</button></div>
         if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
         if (day?.kind === 'gym') return <button className="pf-go" onClick={() => {
           // Straight into today's session: one tap, no second Start on Home.
@@ -412,6 +415,7 @@ function RunTab({ S, P, startRun }) {
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayRun = runForDay(plan?.days.find(d => d.day === new Date().getDay()))
   const done = runsThisWeek(P.runLog, todayISO())
+  const ranToday = (P.runLog || []).filter(r => r.at === todayISO()).at(-1)
   const list = cat === 'all' ? RUNS : RUNS.filter(r => r.cat === cat)
   const catOf = id => CATEGORIES.find(c => c.id === id)
   return <>
@@ -419,7 +423,8 @@ function RunTab({ S, P, startRun }) {
       <span className="pf-sub">Today's run</span>
       <h3>{catOf(todayRun.cat).emoji} {todayRun.name}</h3>
       <p className="pf-sub">{todayRun.why} · ~{runMinutes(todayRun)} min</p>
-      <button className="pf-go" onClick={() => startRun(todayRun)}>▶ Start guided run</button>
+      {ranToday ? <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span><button className="pf-again" onClick={() => startRun(todayRun)}>Run again</button></div>
+        : <button className="pf-go" onClick={() => startRun(todayRun)}>▶ Start guided run</button>}
     </div>}
     <div className="pf-strip pf-strip3">
       <div><b>{done.length}</b><span>runs this week</span></div>
@@ -840,6 +845,8 @@ function Food({ S, P }) {
     <p className="pf-sub pf-pad">{DISCLAIMER}</p>
   </>
 }
+
+const ranName = r => runById(r.run)?.name || 'Run'
 
 export default function PoliceFit() {
   const nav = useNavigate()

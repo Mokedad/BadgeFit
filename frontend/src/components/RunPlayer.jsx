@@ -145,7 +145,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!paused) { pausedAt.current = Date.now(); setPaused(true) }
     setResult(res)
     setDone(true)
-    savedId.current = onLog({ run: run.id, min: res.min, completed, pct: res.pct })
+    savedId.current = onLog({ run: run.id, min: res.min, planned: res.planned, completed, pct: res.pct })
     try { wake.current?.release() } catch { /* gone */ }
     sayAloud(res.line, { music: musicMode }).catch(() => {})
     try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
