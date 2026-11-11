@@ -23,7 +23,9 @@ export default function RecoveryHint({ S }) {
     const bodyweightKg = bw && bw.w > 0 ? (S.unit === 'lb' ? bw.w * LB_TO_KG : bw.w) : undefined
     return recoveryHint(S, { now, today, fatigue: fatigueOf(S.workouts, now, { bodyweightKg, unit: S.unit }) })
   }, [S.workouts, S.recoveryHint, S.recoveryHintDay, S.active, S.week, S.dayPlan, S.queue, S.routines, S.unit, today, hour]) // eslint-disable-line react-hooks/exhaustive-deps
-  const text = hintText(hint, today)
+  // On a rest day the rest-day card (RestDayCard.jsx) says this and more, so this one steps aside.
+  const restCard = hint?.kind === 'rest' && S.restDay !== false && S.restDayHide !== today
+  const text = restCard ? null : hintText(hint, today)
   if (!text) return null
   const dismiss = () => useStore.getState().update(s => { s.recoveryHintDay = today })
   return <div className="card recovery-hint" data-hint={hint.kind}>

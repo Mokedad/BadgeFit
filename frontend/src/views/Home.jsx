@@ -28,6 +28,7 @@ import { programmeChip } from '../lib/programmes.js'
 import { SeasonDeco } from '../components/Seasonal.jsx'
 import { WrappedHomeCard } from '../components/WrappedEntry.jsx'
 import RecoveryHint from '../components/RecoveryHint.jsx'
+import RestDayCard from '../components/RestDayCard.jsx'
 import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 
@@ -202,6 +203,9 @@ export default function Home() {
 
     {/* What has rested and what is still recovering, kindly (lib/recovery-hint.js). */}
     {on('health') && <RecoveryHint S={S} />}
+
+    {/* A planned rest day: what to eat, and how to move if you want to (lib/rest-day.js). */}
+    {on('health') && <RestDayCard S={S} />}
 
     {/* This month's three challenges and how far you are (lib/challenges.js). */}
     <ChallengesCard S={S} />

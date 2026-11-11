@@ -14,6 +14,7 @@ import { isoOf, todayISO } from './format.js'
 import { effectiveRoutineIds } from './history.js'
 import { NUDGE_COPY, lineIndex, nudgeFor, nudgeMinute, toneOf } from './nudge.js'
 import { excusedOn } from './day-notes.js'
+import { buildFuelNotifications, FUEL_ID_BASE, FUEL_WINDOW_DAYS } from './rest-day.js'
 import { stateJson } from './state-json.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
@@ -243,16 +244,19 @@ export async function syncReminder(S, interactive = false) {
       ...LEGACY_REMINDER_IDS,
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
+      ...Array.from({ length: FUEL_WINDOW_DAYS }, (_, d) => ({ id: FUEL_ID_BASE + d })),
     ] }).catch(() => {})
     const r = S.reminder
     // The background check (lib/nudge-check.js) follows what is scheduled: nothing, nothing to check.
     const check = notifications => import('./nudge-check.js').then(m => m.armNudgeCheck(S, notifications)).catch(() => {})
-    if (!r?.on) { await check([]); return true }
+    // The breakfast fuel tip (lib/rest-day.js) has its own switch, so it schedules with the reminder off too.
+    if (!r?.on && !S.fuelNotify?.on) { await check([]); return true }
     let perm = await LocalNotifications.checkPermissions()
     if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
     if (perm.display !== 'granted') { await check([]); return false }
     const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
-    if (notifications.length) await LocalNotifications.schedule({ notifications })
+    const fuel = buildFuelNotifications(S, new Date(), { excused: d => excusedOn(S, d) })
+    if (notifications.length || fuel.length) await LocalNotifications.schedule({ notifications: [...notifications, ...fuel] })
     await check(notifications)
     return true
   } catch (e) { return false }

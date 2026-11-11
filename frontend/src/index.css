@@ -434,6 +434,12 @@ h4.sec{
 .card-head>.chev{flex:none}
 .card-head+*{margin-top:10px}
 .card-head-indent{padding-inline-start:39px}
+/* the rest-day card (components/RestDayCard.jsx): two short lists under the header */
+.rest-day-h{margin-top:10px;margin-bottom:4px}
+.rest-day-h:first-child{margin-top:0}
+.rest-day-list{margin:0;padding-inline-start:18px;font-size:15px;line-height:1.4}
+.rest-day-list li+li{margin-top:4px}
+.rest-day-list b{font-weight:600}
 .card-head+.streak-meta-line{margin-top:2px}
 .card-head+.ch-mini,.card-head+.streak-party{margin-top:8px}
 .bw-head{flex-wrap:wrap;row-gap:8px}

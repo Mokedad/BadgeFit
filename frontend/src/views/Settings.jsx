@@ -32,6 +32,7 @@ import { t, tn, LANGS, INSTR_LANGS, EXERCISE_NAME_LANGS, baseLang, dateLocale } 
 import { effectiveLang } from '../lib/default-lang.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, isAndroid, shareExport, shareExportBlob, syncReminder } from '../lib/mobile.js'
+import { FUEL_DEFAULT_TIME } from '../lib/rest-day.js'
 import { NUDGE_COPY, NUDGE_TONES, toneOf } from '../lib/nudge.js'
 import { referencedFiles } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
@@ -1007,6 +1008,11 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           subtitle={t('A small hint on Home about what has rested and what is still recovering.')}>
           <Switch aria-label={t('Recovery tips')} checked={S.recoveryHint !== false} onChange={v => update(s => { s.recoveryHint = v })} />
         </Row>}
+        {/* The rest-day card (lib/rest-day.js): food ideas and light movement on a planned rest day. */}
+        {on('health') && <Row icon="moon" iconTint="var(--purple)" title={t('Rest day tips')}
+          subtitle={t('On a rest day, a card on Home with what to eat and how to move.')}>
+          <Switch aria-label={t('Rest day tips')} checked={S.restDay !== false} onChange={v => update(s => { s.restDay = v })} />
+        </Row>}
         {/* Three goals a month on Home, sized to how you train (lib/challenges.js). Off: no card,
             no Stats progress; badges already earned stay on the shelf. */}
         {/* Monday's Your week and the 1st's Your month (lib/recap.js). On unless switched off. */}
@@ -1465,9 +1471,33 @@ function MobileReminderCard({ S, update, toast }) {
         </Row>
       )}
       {S.reminder?.on && <NudgeRows S={S} setReminder={setReminder} />}
+      <FuelNotifyRows S={S} update={update} toast={toast} />
       <WrappedNotifyRow S={S} update={update} />
     </Section>
   )
+}
+
+// The morning fuel tip (lib/rest-day.js buildFuelNotifications): at breakfast time, a food idea
+// on a rest day or a pre-workout meal tip on a training day. The phone schedules it itself.
+function FuelNotifyRows({ S, update, toast }) {
+  const f = S.fuelNotify || {}
+  const set = patch => update(s => { s.fuelNotify = { on: false, time: FUEL_DEFAULT_TIME, ...(s.fuelNotify || {}), ...patch } })
+  const toggle = async () => {
+    if (!f.on) {
+      const ok = await syncReminder({ ...S, fuelNotify: { time: FUEL_DEFAULT_TIME, ...f, on: true } }, true)
+      if (!ok) { toast(t('Could not change notification settings')); return }
+    }
+    set({ on: !f.on })
+  }
+  return <>
+    <Row icon="sun" iconTint="var(--yellow)" title={t('Breakfast fuel tips')}
+      subtitle={t('Rest days: what to eat. Training days: what to eat before you train.')}>
+      <Switch checked={!!f.on} onChange={toggle} aria-label={t('Breakfast fuel tips')} />
+    </Row>
+    {f.on && <Row icon="clock" iconTint="var(--purple)" title={t('Fuel tip time')}>
+      <input type="time" className="timef" value={f.time || FUEL_DEFAULT_TIME} onChange={e => set({ time: e.target.value })} />
+    </Row>}
+  </>
 }
 
 // Your year in openGym (lib/wrapped.js): one notification on Dec 1, on unless switched off here.
