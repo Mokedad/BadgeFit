@@ -87,12 +87,29 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!started || paused || done) return
     const t = setInterval(() => {
       const n = Date.now(); setNow(n)
-      if (seg?.sec != null && (n - segStart.current) / 1000 >= seg.sec) go(idx + 1)
+      if (seg?.sec != null && (n - segStart.current) / 1000 >= seg.sec) {
+        // Back from another app (the phone stops the page meanwhile): jump to where the run is
+        // now, past every timed step that went by, with one call instead of one for each.
+        const sk = seekRun(run, (n - runStart.current) / 1000)
+        const timedBetween = segs.slice(idx, sk.idx).every(x => x.sec != null)
+        const total = segs.reduce((a, x) => a + segSeconds(x), 0)
+        if (timedBetween && segs.every(x => x.sec != null) && (n - runStart.current) / 1000 >= total) { cue(audio, '', 'cool', musicMode); finish(true); return }
+        if (timedBetween && sk.idx > idx && sk.offset > 2) {
+          setIdx(sk.idx); segStart.current = n - sk.offset * 1000
+          for (const mm of checkInMinutes(planned)) if (mm < (n - runStart.current) / 60000) checked.current.add(mm)
+          cue(audio, say(segs[sk.idx]), segs[sk.idx].kind, musicMode)
+          return
+        }
+        go(idx + 1)
+      }
       // The check-ins, by minutes run (a pause moves runStart, so it does not count).
       const min = (n - runStart.current) / 60000
-      const due = checkInMinutes(planned).find(m => min >= m && !checked.current.has(m))
+      // Back after a while away: the check-ins missed meanwhile are passed over, and only the
+      // latest is said, if it is still fresh (within a minute).
+      const dues = checkInMinutes(planned).filter(m => min >= m && !checked.current.has(m))
+      for (const m of dues) checked.current.add(m)
+      const due = dues.length && min - dues[dues.length - 1] < 1 ? dues[dues.length - 1] : null
       if (due != null) {
-        checked.current.add(due)
         if (!stats.current) stats.current = statLines({ run, runLog, today: todayISO(), minutesSoFar: 0 })
         // Not on top of a step change: a step that just started has said its piece.
         if ((n - segStart.current) / 1000 > 4) coach(checkInLine({ cat: run.cat, minute: due, seed: seed.current, stats: stats.current, said: said.current, totalMin: planned }), 'check')
@@ -131,10 +148,10 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (seg && !paused) cue(audio, `${KIND[seg.kind]}. ${seg.label}.`, seg.kind, musicMode)
   }
 
-  // Leaving mid-run pauses it and keeps it in a bar at the bottom, like music: ▶ carries on, ✕ ends.
+  // Leaving mid-run keeps it running in a bar at the bottom, like music (⏸ pauses, ✕ ends). The
+  // clock is wall time, so it carries on while you look at Home or another app.
   const leave = () => {
     if (!started || done || !onMinimize) { onClose(); return }
-    if (!paused) togglePause()
     onMinimize()
   }
   // The end, finished or stopped early: saved at once, so it counts in the stats whatever happens
@@ -202,7 +219,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
 
   return <div className={'rp rp-' + (seg?.kind || 'warm') + (paused ? ' paused' : '')} role="dialog" aria-label={run.name}>
     <div className="rp-top">
-      <button className="rp-x" onClick={leave} aria-label={started ? 'Pause and minimise' : 'Close'} title={started ? 'Pause and minimise' : 'Close'}>{started ? '⌄' : '✕'}</button>
+      <button className="rp-x" onClick={leave} aria-label={started ? 'Minimise, the run keeps going' : 'Close'} title={started ? 'Minimise, the run keeps going' : 'Close'}>{started ? '⌄' : '✕'}</button>
       <span>{run.name}</span>
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
     </div>

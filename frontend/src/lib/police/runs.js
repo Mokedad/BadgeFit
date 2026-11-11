@@ -20,6 +20,7 @@ export const CATEGORIES = [
   { id: 'tempo', name: 'Tempo', emoji: '🟡', about: 'Comfortably hard and steady. Pushes back the point where you fade.' },
   { id: 'beep', name: 'Beep prep', emoji: '📣', about: 'Shuttles and turns at test pace. Practise the test itself.' },
   { id: 'recovery', name: 'Recovery', emoji: '🔵', about: 'Very easy movement that helps you recover between hard days.' },
+  { id: 'walk', name: 'Walks', emoji: '🚶', about: 'Walking for recovery and rest days: loosens the legs and adds easy minutes without fatigue.' },
 ]
 
 const m = n => n * 60
@@ -67,6 +68,11 @@ export const RUNS = [
   // --- recovery
   { id: 'recovery-walk', cat: 'recovery', name: 'Incline walk, 30 min', km: 'treadmill 10-14%', why: 'Burns fat and loosens the legs without adding fatigue.', segments: [work(m(30), 'Brisk incline walk', 'z1')] },
   { id: 'recovery-jog', cat: 'recovery', name: 'Recovery jog, 20 min', km: 'about 3 km', why: 'Slower than easy. If in doubt, slower again.', segments: [work(m(20), 'Very easy jog', 'z1')] },
+  // --- walks: recovery and rest days
+  { id: 'walk-20', cat: 'walk', name: 'Easy walk, 20 min', km: 'about 2 km', why: 'A rest-day walk: gets the blood moving and the legs loose.', segments: [work(m(20), 'Easy walk', 'z1')] },
+  { id: 'walk-30', cat: 'walk', name: 'Brisk walk, 30 min', km: 'about 3 km', why: 'Brisk enough to breathe a little harder, easy enough to recover from.', segments: [work(m(5), 'Easy walk to warm up', 'z1'), work(m(20), 'Brisk walk, long strides', 'z1'), work(m(5), 'Easy walk to finish', 'z1')] },
+  { id: 'walk-45', cat: 'walk', name: 'Long walk, 45 min', km: 'about 4-5 km', why: 'Lots of easy minutes for the aerobic base, with no pounding.', segments: [work(m(45), 'Steady walk', 'z1')] },
+  { id: 'walk-pickups', cat: 'walk', name: 'Walk with pick-ups, 30 min', km: 'about 3 km', why: 'Easy walking with short brisk bursts. Recovery that still wakes the legs up.', segments: [work(m(5), 'Easy walk', 'z1'), ...rounds(5, [work(60, 'Brisk walk, quick feet', 'z2'), work(m(3), 'Easy walk', 'z1')]), work(m(5), 'Easy walk to finish', 'z1')] },
 ]
 
 export const runById = id => RUNS.find(r => r.id === id) || null

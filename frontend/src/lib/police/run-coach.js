@@ -46,6 +46,12 @@ const BY_CAT = {
     'Low at the turn, explode out of it.',
     'This is exactly what test day feels like. Get used to it.',
   ],
+  walk: [
+    'Nice steady walk. Shoulders down, arms swinging.',
+    'This is recovery that counts. Keep it brisk, not hard.',
+    'Breathe easy. You should be able to chat the whole way.',
+    'Walking days build the base that carries you through test day.',
+  ],
   recovery: [
     'Easy does it. Recovery is training too.',
     'Let the legs flush out. Tomorrow you go hard again.',
@@ -70,6 +76,7 @@ const INTENSE = {
   beep: ['Line to line, go!', 'On the beep. Turn fast!'],
   base: ['Pick it up a touch now. Stay smooth.'],
   recovery: ['Bit of pace now, nothing crazy.'],
+  walk: ['Pick the pace up a touch now. Brisk, long strides.'],
 }
 
 const pickFrom = (list, seed) => list[Math.abs(Math.floor(seed)) % list.length]

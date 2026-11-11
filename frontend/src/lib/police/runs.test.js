@@ -60,3 +60,16 @@ describe('the run timeline', () => {
     expect(seekRun(run, 1e6).idx).toBe(run.segments.length - 1)
   })
 })
+
+describe('walks', () => {
+  it('has a Walks category with timed walks for recovery and rest days', async () => {
+    const { RUNS, CATEGORIES, runMinutes } = await import('./runs.js')
+    expect(CATEGORIES.some(c => c.id === 'walk')).toBe(true)
+    const walks = RUNS.filter(r => r.cat === 'walk')
+    expect(walks.length).toBeGreaterThanOrEqual(3)
+    for (const w of walks) {
+      expect(w.segments.every(s => s.sec > 0)).toBe(true)
+      expect(runMinutes(w)).toBeGreaterThanOrEqual(20)
+    }
+  })
+})
