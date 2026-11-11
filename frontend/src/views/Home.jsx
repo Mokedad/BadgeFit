@@ -174,7 +174,7 @@ export default function Home() {
   // once per visit, instead of an empty training log.
   const config = useStore(st => st.config)
   const coachModeHere = useStore(st => st.coachLocal?.mode)
-  const coachHere = !!S.police?.level && !S.active && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode: coachModeHere })
+  const coachHere = !!S.police?.level && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode: coachModeHere })
   useEffect(() => {
     if (config?.passkeys !== false || S.police?.level) return
     try { if (sessionStorage.getItem('badgefit_welcomed')) return; sessionStorage.setItem('badgefit_welcomed', '1') } catch { /* private mode */ }
@@ -186,7 +186,9 @@ export default function Home() {
     <div className="hdr">
       <SeasonDeco spot="header-bats" />
       <div><h1>{user ? t('Hi {0}', user.name) : BRAND.name}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <div className="hdr-btns">
+      <div className="hdr-btns hdr-actions">
+        {/* BadgeFit: the Coach (Hayden), as on Plan, on the same plan. */}
+        {coachHere && <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/coach')}>{t('Coach')}</Button>}
         <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
       </div>
     </div>
@@ -258,11 +260,6 @@ export default function Home() {
           and your other routines) is only reachable on a day with nothing planned. The one other
           way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
-      {/* BadgeFit: the Coach (Hayden) one tap from today, on the same plan: review the week,
-          change it, or ask anything about it. */}
-      {coachHere && <button type="button" className="coach-strand" onClick={() => nav('/coach')}>
-        <span aria-hidden="true">✨</span><span><b>Coach</b><small>{doneToday ? 'How did today go? Plan tomorrow with Hayden' : 'Review or change this week with Hayden'}</small></span><Icon name="chevronRight" />
-      </button>}
       {!S.active && (!S.police?.level || doneToday) && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/workout')}>
           {doneToday && S.police?.level ? 'Add an extra workout' : t('Choose a different workout')}
