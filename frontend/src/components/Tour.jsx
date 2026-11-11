@@ -29,6 +29,7 @@ import Icon from './Icon.jsx'
 import { PRESETS, presetOf, applyPreset } from '../lib/modules.js'
 import { presetCopy } from '../lib/modules-copy.js'
 import './Tour.css'
+import BadgeFitIntro from './BadgeFitIntro.jsx'
 
 // What each stop says. Literal t() calls, so check-source-strings sees every one.
 const COPY = {
@@ -612,9 +613,13 @@ function Run({ at, flow = 'tour' }) {
   </div>
 }
 
+const isBadgeFit = () => { const st = useStore.getState(); return st.config?.passkeys === false || !!st.S?.police?.level }
+
 export default function Tour() {
   const st = useTour()
   if (!st) return null
   if (st.kind === 'run') return <Run key={'run-' + (st.flow || 'tour')} at={st.at} flow={st.flow || 'tour'} />
+  // BadgeFit: five swipe slides in place of the first-run question and the long tour.
+  if (st.kind === 'offer' && isBadgeFit()) return <BadgeFitIntro />
   return <Question kind={st.kind} at={st.at} />
 }

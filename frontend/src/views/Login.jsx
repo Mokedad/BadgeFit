@@ -13,6 +13,7 @@ import { passwordOn, PasswordRegisterForm, openPasswordSignIn, openPasswordRegis
 import { appBase } from '../lib/api.js'
 import { MOBILE } from '../lib/mobile.js'
 import { BRAND } from '../lib/police/brand.js'
+import BadgeLogo from '../components/BadgeLogo.jsx'
 import '../police.css'
 import { openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { openLostAccess } from '../components/LostAccess.jsx'
@@ -93,9 +94,10 @@ function SimpleLogin({ config }) {
     if (why) { useUI.getState().toast(SOCIAL_FAIL[why] || SOCIAL_FAIL.failed); history.replaceState(null, '', location.pathname + location.hash) }
   }, [])
   const go = p => { location.href = appBase().replace(/\/$/, '') + '/api/auth/' + p }
-  return <div className="narrow login-simple">
-    <div className="ls-shield" aria-hidden="true">🛡️</div>
-    <h1>{BRAND.name}</h1>
+  // The same navy and gold as the BadgeFit card on Home: the shield, Badge in white, Fit in gold.
+  return <div className="login-simple-bg"><div className="narrow login-simple">
+    <div className="ls-shield"><BadgeLogo size={92} /></div>
+    <h1 className="bf-word">Badge<span>Fit</span></h1>
     <p className="ls-tag">{BRAND.tagline}</p>
     {social.includes('apple') && <button className="ls-btn ls-apple" onClick={() => go('apple')}><svg className="ls-apple-i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4.2 7.8 3.3 9.5c-1.9 3.3-.5 8.1 1.4 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3-.1 0-2.9-1.1-3-4.8ZM13.8 4.9c.7-.9 1.3-2.2 1.1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.5Z"/></svg> Continue with Apple</button>}
     {social.includes('google') && <button className="ls-btn ls-google" onClick={() => go('google')}><span className="ls-g" aria-hidden="true">G</span> Continue with Google</button>}
@@ -104,7 +106,7 @@ function SimpleLogin({ config }) {
     <button className="ls-btn" onClick={() => openPasswordSignIn()}>I already have an account</button>
     <button className="ls-link" onClick={openLostAccess}>Forgot your password?</button>
     <p className="ls-fine">Your training, your data. Free to start.</p>
-  </div>
+  </div></div>
 }
 
 export default function Login() {
