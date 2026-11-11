@@ -595,3 +595,12 @@
 .bfi-dots i.on{width:22px;border-radius:5px;background:#ffc629}
 .bfi-next{border:0;border-radius:999px;padding:11px 24px;font:inherit;font-weight:700;background:#ffc629;color:#0d1b33}
 .pf .pf-today-acts{display:flex;flex-direction:column;gap:10px}
+/* Run lock mode (components/RunPlayer.jsx): black, touch-proof, the time still showing. */
+.rp-lock{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px auto 0;border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;background:rgba(255,255,255,.16);color:#fff}
+.rp-lock small{font-weight:500;opacity:.75}
+.rp-locked{position:fixed;inset:0;z-index:200;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rp-locked-k{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:#ffc629;opacity:.8}
+.rp-locked-t{font-size:72px;font-weight:800;letter-spacing:-.02em;opacity:.55}
+.rp-locked-l{font-size:17px;opacity:.5;max-width:300px;text-align:center}
+.rp-locked-u{position:absolute;bottom:calc(var(--sab,0px) + 48px);display:flex;align-items:center;gap:10px;font-size:15px;opacity:.6}
+.rp-locked-ring{width:26px;height:26px;border-radius:50%;background:conic-gradient(#ffc629 calc(var(--p,0) * 360deg),rgba(255,255,255,.2) 0)}

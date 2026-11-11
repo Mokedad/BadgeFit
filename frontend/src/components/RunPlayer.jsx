@@ -39,8 +39,21 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
   const [paused, setPaused] = useState(false)
+  // Lock mode: a black screen that ignores touches (a run in a pocket or a hand), kept on so
+  // Hayden keeps talking (a web page goes quiet once the phone locks). Hold to unlock.
+  const [locked, setLocked] = useState(false)
+  const [hold, setHold] = useState(0)
+  const holdT = useRef(null)
   const [now, setNow] = useState(Date.now())
   const [done, setDone] = useState(false)
+  // The run ending shows its result, not a black screen; and the screen comes back on after a
+  // trip away (the phone drops the keep-awake when the page is hidden).
+  useEffect(() => { if (done) setLocked(false) }, [done]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const back = () => { if (document.visibilityState === 'visible' && started && !done) { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } } }
+    document.addEventListener('visibilitychange', back)
+    return () => { document.removeEventListener('visibilitychange', back); clearInterval(holdT.current) }
+  }, [started, done]) // eslint-disable-line react-hooks/exhaustive-deps
   const [result, setResult] = useState(null) // runResult(): what was run, saved the moment it ends
   const savedId = useRef(null)
   const track = useRef(null), dragging = useRef(false)
@@ -154,6 +167,18 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!started || done || !onMinimize) { onClose(); return }
     onMinimize()
   }
+  const keepAwake = () => { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } }
+  const lock = () => { setLocked(true); keepAwake(); try { navigator.vibrate?.(30) } catch { /* none */ } }
+  const stopHold = () => { clearInterval(holdT.current); holdT.current = null; setHold(0) }
+  const startHold = () => {
+    stopHold()
+    const t0 = Date.now()
+    holdT.current = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / 1200)
+      setHold(p)
+      if (p >= 1) { stopHold(); setLocked(false); try { navigator.vibrate?.([30, 40, 30]) } catch { /* none */ } }
+    }, 40)
+  }
   // The end, finished or stopped early: saved at once, so it counts in the stats whatever happens
   // next, then the congratulations (lib/police/run-result.js).
   const finish = completed => {
@@ -252,7 +277,16 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
         <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>
         <span><button onClick={() => go(idx + 1)} aria-label={idx >= segs.length - 1 ? 'Finish the run' : 'Skip this step'}>⏭</button><small>{idx >= segs.length - 1 ? 'Finish' : 'Skip'}</small></span>
       </div>
+      <button className="rp-lock" onClick={lock}>🔒 Lock screen <small>Hayden keeps talking</small></button>
       <button className="rp-end" onClick={end}>■ End run here</button>
+    </div>}
+    {locked && <div className="rp-locked" role="dialog" aria-label="Screen locked"
+      onPointerDown={e => { e.preventDefault(); startHold() }} onPointerUp={stopHold} onPointerCancel={stopHold} onPointerLeave={stopHold}
+      onContextMenu={e => e.preventDefault()}>
+      <div className="rp-locked-k">{seg ? KIND[seg.kind] : ''}</div>
+      <div className="rp-locked-t">{left != null ? fmt(left) : fmt(elapsed)}</div>
+      <div className="rp-locked-l">{seg?.label}</div>
+      <div className="rp-locked-u"><span className="rp-locked-ring" style={{ '--p': hold }} />🔒 Hold anywhere to unlock</div>
     </div>}
   </div>
 }
