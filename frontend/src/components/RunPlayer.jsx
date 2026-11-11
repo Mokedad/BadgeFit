@@ -34,7 +34,10 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, minimized = false, onMinimize, onRestore }) {
+  // Read through a ref: the timers' callbacks see a switch made mid-run.
+  const musicRef = useRef(musicMode)
+  musicRef.current = musicMode
   const segs = run.segments
   const [idx, setIdx] = useState(0)
   const [started, setStarted] = useState(false)
@@ -69,7 +72,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!text) return
     said.current.add(text)
     setBubble({ text, at: Date.now() })
-    sayAloud(text, { music: musicMode }).catch(() => {}) // the voice, not the step-text `say` below
+    sayAloud(text, { music: musicRef.current }).catch(() => {}) // the voice, not the step-text `say` below
     try { navigator.vibrate?.(kind === 'work' ? [80, 60, 80] : 60) } catch { /* none */ }
   }
   const seg = segs[idx]
@@ -79,11 +82,11 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
 
   const say = s => `${KIND[s.kind]}. ${s.label}${s.sec ? ', ' + (s.sec >= 60 ? Math.round(s.sec / 60) + ' minutes' : s.sec + ' seconds') : ''}.`
   const go = i => {
-    if (i >= segs.length) { cue(audio, '', 'cool', musicMode); finish(true); return }
+    if (i >= segs.length) { cue(audio, '', 'cool', musicRef.current); finish(true); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
     // A hard part starting gets Hayden's lift on top of the step itself.
     const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
-    cue(audio, say(segs[i]) + lift, segs[i].kind, musicMode)
+    cue(audio, say(segs[i]) + lift, segs[i].kind, musicRef.current)
     if (lift) setBubble({ text: lift.trim(), at: Date.now() })
   }
   const start = () => {
@@ -106,11 +109,11 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
         const sk = seekRun(run, (n - runStart.current) / 1000)
         const timedBetween = segs.slice(idx, sk.idx).every(x => x.sec != null)
         const total = segs.reduce((a, x) => a + segSeconds(x), 0)
-        if (timedBetween && segs.every(x => x.sec != null) && (n - runStart.current) / 1000 >= total) { cue(audio, '', 'cool', musicMode); finish(true); return }
+        if (timedBetween && segs.every(x => x.sec != null) && (n - runStart.current) / 1000 >= total) { cue(audio, '', 'cool', musicRef.current); finish(true); return }
         if (timedBetween && sk.idx > idx && sk.offset > 2) {
           setIdx(sk.idx); segStart.current = n - sk.offset * 1000
           for (const mm of checkInMinutes(planned)) if (mm < (n - runStart.current) / 60000) checked.current.add(mm)
-          cue(audio, say(segs[sk.idx]), segs[sk.idx].kind, musicMode)
+          cue(audio, say(segs[sk.idx]), segs[sk.idx].kind, musicRef.current)
           return
         }
         go(idx + 1)
@@ -158,7 +161,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!dragging.current) return
     dragging.current = false
     try { navigator.vibrate?.(30) } catch { /* none */ }
-    if (seg && !paused) cue(audio, `${KIND[seg.kind]}. ${seg.label}.`, seg.kind, musicMode)
+    if (seg && !paused) cue(audio, `${KIND[seg.kind]}. ${seg.label}.`, seg.kind, musicRef.current)
   }
 
   // Leaving mid-run keeps it running in a bar at the bottom, like music (⏸ pauses, ✕ ends). The
@@ -189,7 +192,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     setDone(true)
     savedId.current = onLog({ run: run.id, min: res.min, planned: res.planned, completed, pct: res.pct })
     try { wake.current?.release() } catch { /* gone */ }
-    sayAloud(res.line, { music: musicMode }).catch(() => {})
+    sayAloud(res.line, { music: musicRef.current }).catch(() => {})
     try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
     onRestore?.()
   }
@@ -246,6 +249,8 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     <div className="rp-top">
       <button className="rp-x" onClick={leave} aria-label={started ? 'Minimise, the run keeps going' : 'Close'} title={started ? 'Minimise, the run keeps going' : 'Close'}>{started ? '⌄' : '✕'}</button>
       <span>{run.name}</span>
+      {onMusic && <button type="button" className={'rp-music' + (musicMode ? ' on' : '')} onClick={() => onMusic(!musicMode)} aria-pressed={musicMode}
+        title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}>🎵 {musicMode ? 'On' : 'Off'}</button>}
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
     </div>
     {/* The runner crosses the track as the run goes, start to finish; drag him to move the time. */}
@@ -263,7 +268,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       <h2>{run.name}</h2>
       <p className="rp-sub">{run.why}</p>
       <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Turn on Music mode on the Hayden card.'}</p>
+      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Tap 🎵 at the top to turn on Music mode.'}</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>

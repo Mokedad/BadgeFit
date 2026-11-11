@@ -46,7 +46,7 @@ export default function RunHost() {
     }
   })
   return <Suspense fallback={null}><div className="pf">
-    <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode}
+    <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode} onMusic={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), musicMode: on } })}
       minimized={minimized} onMinimize={() => useRun.getState().minimize()} onRestore={() => useRun.getState().restore()}
       onClose={() => useRun.getState().close()} onLog={log} onUpdate={update} onUnlog={unlog} />
   </div></Suspense>
