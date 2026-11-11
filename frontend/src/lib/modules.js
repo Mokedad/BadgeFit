@@ -69,6 +69,9 @@ const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Whether module `id` is on for this profile. Unknown ids are on (a newer client's module). */
 export function isOn(S, id) {
+  // BadgeFit: the Coach is Hayden, the heart of the app, so a member always has it, whatever
+  // preset was picked (a "Simple" pick used to take Hayden's chat and the Coach away).
+  if (id === 'coach' && S?.police?.level) return true
   const v = isMap(S?.modules) ? S.modules[id] : undefined
   if (typeof v === 'boolean') return v
   // Before 1.4.4 the check-in had its own switch in Look & Home; it decides until Modules does.

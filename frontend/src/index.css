@@ -3353,3 +3353,10 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .bf-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .bf-foot{display:flex;justify-content:center;padding-bottom:4px}
 .bf-tick{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:#34c759;color:#fff;display:grid;place-items:center;font-size:22px;--icon-stroke:2.6;box-shadow:0 4px 12px -4px rgba(52,199,89,.6)}
+/* BadgeFit Home: the Coach (Hayden) under today, on the same plan. */
+.coach-strand{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:10px 14px;border:0;border-radius:var(--r);text-align:start;font:inherit;color:#fff;background:#183463;background:linear-gradient(135deg,#183463,#0d1b33)}
+.coach-strand>span:first-child{font-size:20px}
+.coach-strand>span:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.coach-strand b{font-size:15px}
+.coach-strand small{color:rgba(255,255,255,.75);font-size:13px}
+.coach-strand .icn{color:#ffc629}

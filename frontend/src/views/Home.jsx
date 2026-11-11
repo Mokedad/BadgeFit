@@ -36,6 +36,9 @@ import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf } from '../lib/police/programme.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
+import { coachAvailable } from '../lib/coach.js'
+import { DEMO } from '../lib/demo.js'
+import { MOBILE } from '../lib/mobile.js'
 import TodaySwipe from '../components/TodaySwipe.jsx'
 import { useUI } from '../store/useUI.js'
 import { REST } from '../lib/rotation.js'
@@ -170,6 +173,8 @@ export default function Home() {
   // A BadgeFit server (passkeys off): someone not set up yet goes straight to the BadgeFit welcome,
   // once per visit, instead of an empty training log.
   const config = useStore(st => st.config)
+  const coachModeHere = useStore(st => st.coachLocal?.mode)
+  const coachHere = !!S.police?.level && !S.active && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode: coachModeHere })
   useEffect(() => {
     if (config?.passkeys !== false || S.police?.level) return
     try { if (sessionStorage.getItem('badgefit_welcomed')) return; sessionStorage.setItem('badgefit_welcomed', '1') } catch { /* private mode */ }
@@ -253,6 +258,11 @@ export default function Home() {
           and your other routines) is only reachable on a day with nothing planned. The one other
           way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
+      {/* BadgeFit: the Coach (Hayden) one tap from today, on the same plan: review the week,
+          change it, or ask anything about it. */}
+      {coachHere && <button type="button" className="coach-strand" onClick={() => nav('/coach')}>
+        <span aria-hidden="true">✨</span><span><b>Coach</b><small>{doneToday ? 'How did today go? Plan tomorrow with Hayden' : 'Review or change this week with Hayden'}</small></span><Icon name="chevronRight" />
+      </button>}
       {!S.active && (!S.police?.level || doneToday) && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/workout')}>
           {doneToday && S.police?.level ? 'Add an extra workout' : t('Choose a different workout')}
