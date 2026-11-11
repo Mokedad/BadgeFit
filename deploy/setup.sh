@@ -106,7 +106,7 @@ cat <<EOF
 
   Next:
    1. Open https://$APP_DOMAIN and create YOUR profile first: the first one becomes the admin.
-   2. Jarvis: Settings → Admin dashboard → AI Coach → choose a provider and paste its API key.
+   2. Hayden: Settings → Admin dashboard → AI Coach → choose a provider and paste its API key.
    3. On your phone: open the app address in Safari/Chrome → Share → Add to Home Screen.
 
   Logs:    cd $DIR/deploy && docker compose logs -f
