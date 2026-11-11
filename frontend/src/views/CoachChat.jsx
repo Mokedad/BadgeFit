@@ -35,7 +35,9 @@ import { insightsFor, sessionInsights } from '../lib/coach-insights.js'
 import { useCoachStatus, requestReview, requestDebrief, requestPlan, refinePlan, askCoach, resolvePending, cohortStats, setCohortShare, jobErrorText, awaitedJob, settleAwaited, JOB_ERRORS, ensureAiConsent, isDeclined } from '../lib/coach-api.js'
 import { AiConsentSection } from '../components/CoachConsentSheet.jsx'
 import { useCoachGate } from '../lib/use-coach-gate.js'
-import { confirmSheet } from '../sheets.jsx'
+import { confirmSheet, exercisePicker } from '../sheets.jsx'
+import SwipeRow from '../components/SwipeRow.jsx'
+import { isCardio } from '../lib/exercises.js'
 import Icon from '../components/Icon.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import LineChart from '../components/LineChart.jsx'
@@ -328,7 +330,15 @@ function Typing({ S, kind, coachLocal, config }) {
 /* ---------------------------------- the plan ---------------------------------- */
 
 function PlanCard({ p, S, update, toast, nav, refresh }) {
-  const b = p.bundle
+  // Your own edits on the Coach's plan before it goes in: swipe an exercise away, + to add one.
+  // Kept here until Import; a new revision from the Coach starts from its own version again.
+  const [edited, setEdited] = useState(null)
+  useEffect(() => { setEdited(null) }, [p.id, p.iteration])
+  const b = edited || p.bundle
+  const editEx = (ri, fn) => setEdited(prev => {
+    const base = prev || p.bundle
+    return { ...base, routines: base.routines.map((x, i) => (i === ri ? { ...x, ex: fn(x.ex) } : x)) }
+  })
   const [tab, setTab] = useState(0)
   const [schedule, setSchedule] = useState(true)
   const r = b.routines[Math.min(tab, b.routines.length - 1)]
@@ -338,7 +348,7 @@ function PlanCard({ p, S, update, toast, nav, refresh }) {
     try {
       let n = 0
       update(s => {
-        const res = applyCreatedPlan(s, p, { schedule })
+        const res = applyCreatedPlan(s, edited ? { ...p, bundle: edited } : p, { schedule })
         n = res?.routines?.length || b.routines.length
         appendChat(s, { role: 'coach', kind: 'applied', ref: res.logId, text: res.rotation
           ? t('Imported! {0} routines are in your plan and your rotation starts over with them. See you at the next session.', n)
@@ -376,7 +386,12 @@ function PlanCard({ p, S, update, toast, nav, refresh }) {
         {b.routines.map((x, i) => <button key={x.id || i} className={'pcard-tab' + (i === tab ? ' on' : '')} onClick={() => setTab(i)}><Icon name={glyphOf(x.emoji)} />{x.name}</button>)}
       </div>}
 
-      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)} />}
+      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)}
+        onRemove={i => editEx(Math.min(tab, b.routines.length - 1), ex => ex.filter((_, j) => j !== i))}
+        onAdd={() => { const picker = exercisePicker(x => {
+          editEx(Math.min(tab, b.routines.length - 1), ex => [...ex, isCardio(x.id) ? { id: x.id, sets: 1, mode: 'cardio', min: 20, speed: 8 } : { id: x.id, sets: 3, mode: 'reps', reps: 10 }])
+          picker.close()
+        }, { title: t('Add exercise') }) }} />}
 
       <div className="pcard-row">
         {/* In rotation mode the plan goes into the loop, which is what Home reads (#778). */}
@@ -400,13 +415,19 @@ const WeekStrip = ({ days, ws }) => <div className="pcard-week">
   {weekOrder(ws).map(d => <div key={d} className={'pcard-wd' + (days.has(d) ? ' on' : '')}>{t(DAYS[d])}</div>)}
 </div>
 
-const RoutineBlock = ({ r, unit, speedUnit }) => <div className="pcard-rt">
+// `onRemove(i)` / `onAdd()` (the plan card): each exercise swipes away (Remove), and + adds one.
+// The last exercise of a routine stays: a routine needs at least one.
+const RoutineBlock = ({ r, unit, speedUnit, onRemove, onAdd }) => <div className="pcard-rt">
   <div className="pcard-rt-h"><b><Icon name={glyphOf(r.emoji)} />{r.name}</b><span>{tn('{0} exercise', '{0} exercises', r.ex.length)}</span></div>
   {!!r.why && <div className="pcard-why">{r.why}</div>}
-  {r.ex.map((e, i) => <div key={i} className="pcard-ex">
-    <div className="pcard-ex-r"><span className="pcard-ex-n">{exName(e.id)}</span><span className="pcard-ex-l">{exLine(e, unit, speedUnit)}</span></div>
-    {!!e.why && <div className="pcard-ex-w">{e.why}</div>}
-  </div>)}
+  {r.ex.map((e, i) => {
+    const body = <div className="pcard-ex">
+      <div className="pcard-ex-r"><span className="pcard-ex-n">{exName(e.id)}</span><span className="pcard-ex-l">{exLine(e, unit, speedUnit)}</span></div>
+      {!!e.why && <div className="pcard-ex-w">{e.why}</div>}
+    </div>
+    return onRemove ? <SwipeRow key={e.id + ':' + i} className="pcard-swipe" canDelete={r.ex.length > 1} onDelete={() => onRemove(i)} deleteLabel={t('Remove')}>{body}</SwipeRow> : <div key={i}>{body}</div>
+  })}
+  {onAdd && <button type="button" className="pcard-add" onClick={onAdd}><Icon name="plus" />{t('Add exercise')}</button>}
 </div>
 
 /* ---------------------------------- a review ---------------------------------- */
@@ -680,7 +701,12 @@ function ProposalDetail({ entry, S }) {
       {b.routines.length > 1 && <div className="pcard-tabs" style={{ paddingInline: 0 }}>
         {b.routines.map((x, i) => <button key={x.id || i} className={'pcard-tab' + (i === tab ? ' on' : '')} onClick={() => setTab(i)}><Icon name={glyphOf(x.emoji)} />{x.name}</button>)}
       </div>}
-      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)} />}
+      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)}
+        onRemove={i => editEx(Math.min(tab, b.routines.length - 1), ex => ex.filter((_, j) => j !== i))}
+        onAdd={() => { const picker = exercisePicker(x => {
+          editEx(Math.min(tab, b.routines.length - 1), ex => [...ex, isCardio(x.id) ? { id: x.id, sets: 1, mode: 'cardio', min: 20, speed: 8 } : { id: x.id, sets: 3, mode: 'reps', reps: 10 }])
+          picker.close()
+        }, { title: t('Add exercise') }) }} />}
       <p className="pcard-sum" style={{ fontSize: 'var(--fs-footnote)' }}>{entry.rotation ? t('Your rotation was set to this plan.') : entry.scheduled ? t('Your week was set to this schedule.') : t('Imported without changing your week.')}</p>
     </>}
     {kind === 'create' && !b && <p className="pcard-sum">{t('This plan was imported before the app kept proposals; only its summary is left.')}</p>}

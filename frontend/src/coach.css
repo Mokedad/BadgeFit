@@ -309,3 +309,5 @@
 .adapt-ended{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .pcard-chg-m{margin-top:4px;line-height:1.4}
 .adapt-reasons .chip{text-transform:none}
+/* The plan card's exercises (views/CoachChat.jsx RoutineBlock): swipe one away, + to add one. */
+.pcard-add{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:6px;padding:10px;border:1.5px dashed var(--sep);border-radius:12px;background:none;color:var(--acc-ink,var(--acc));font:inherit;font-weight:600}
