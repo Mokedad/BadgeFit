@@ -19,7 +19,10 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtDate, fmtNum, DAYS, weekOrder, weekStartOf, isoOf } from '../lib/format.js'
-import { exLine } from '../lib/history.js'
+import { exLine, pickedExerciseConfig } from '../lib/history.js'
+import { exOr } from '../lib/exercises.js'
+import { exerciseNameText } from '../lib/format.js'
+import { Thumb } from '../components/Media.jsx'
 import { speedUnitOf } from '../lib/speed.js'
 import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
@@ -35,7 +38,7 @@ import { insightsFor, sessionInsights } from '../lib/coach-insights.js'
 import { useCoachStatus, requestReview, requestDebrief, requestPlan, refinePlan, askCoach, resolvePending, cohortStats, setCohortShare, jobErrorText, awaitedJob, settleAwaited, JOB_ERRORS, ensureAiConsent, isDeclined } from '../lib/coach-api.js'
 import { AiConsentSection } from '../components/CoachConsentSheet.jsx'
 import { useCoachGate } from '../lib/use-coach-gate.js'
-import { confirmSheet } from '../sheets.jsx'
+import { confirmSheet, exercisePicker, exConfigSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import LineChart from '../components/LineChart.jsx'
@@ -328,7 +331,15 @@ function Typing({ S, kind, coachLocal, config }) {
 /* ---------------------------------- the plan ---------------------------------- */
 
 function PlanCard({ p, S, update, toast, nav, refresh }) {
-  const b = p.bundle
+  // The plan can be changed before it is imported, with the same exercise picker as Home and the
+  // routine editor (pictures included): add an exercise, or take one out. The edits live on this
+  // card only; asking the Coach to revise starts again from its new plan.
+  const [edited, setEdited] = useState(null)
+  const b = edited && edited.id === p.id ? edited.bundle : p.bundle
+  const editRoutine = (i, fn) => setEdited(() => {
+    const bundle = { ...b, routines: b.routines.map((x, k) => k === i ? { ...x, ex: fn([...x.ex]) } : x) }
+    return { id: p.id, bundle }
+  })
   const [tab, setTab] = useState(0)
   const [schedule, setSchedule] = useState(true)
   const r = b.routines[Math.min(tab, b.routines.length - 1)]
@@ -338,7 +349,7 @@ function PlanCard({ p, S, update, toast, nav, refresh }) {
     try {
       let n = 0
       update(s => {
-        const res = applyCreatedPlan(s, p, { schedule })
+        const res = applyCreatedPlan(s, b === p.bundle ? p : { ...p, bundle: b }, { schedule })
         n = res?.routines?.length || b.routines.length
         appendChat(s, { role: 'coach', kind: 'applied', ref: res.logId, text: res.rotation
           ? t('Imported! {0} routines are in your plan and your rotation starts over with them. See you at the next session.', n)
@@ -376,7 +387,8 @@ function PlanCard({ p, S, update, toast, nav, refresh }) {
         {b.routines.map((x, i) => <button key={x.id || i} className={'pcard-tab' + (i === tab ? ' on' : '')} onClick={() => setTab(i)}><Icon name={glyphOf(x.emoji)} />{x.name}</button>)}
       </div>}
 
-      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)} />}
+      {r && <RoutineBlock r={r} unit={S.unit} speedUnit={speedUnitOf(S)}
+        onEdit={fn => editRoutine(Math.min(tab, b.routines.length - 1), fn)} toast={toast} />}
 
       <div className="pcard-row">
         {/* In rotation mode the plan goes into the loop, which is what Home reads (#778). */}
@@ -400,14 +412,38 @@ const WeekStrip = ({ days, ws }) => <div className="pcard-week">
   {weekOrder(ws).map(d => <div key={d} className={'pcard-wd' + (days.has(d) ? ' on' : '')}>{t(DAYS[d])}</div>)}
 </div>
 
-const RoutineBlock = ({ r, unit, speedUnit }) => <div className="pcard-rt">
-  <div className="pcard-rt-h"><b><Icon name={glyphOf(r.emoji)} />{r.name}</b><span>{tn('{0} exercise', '{0} exercises', r.ex.length)}</span></div>
-  {!!r.why && <div className="pcard-why">{r.why}</div>}
-  {r.ex.map((e, i) => <div key={i} className="pcard-ex">
-    <div className="pcard-ex-r"><span className="pcard-ex-n">{exName(e.id)}</span><span className="pcard-ex-l">{exLine(e, unit, speedUnit)}</span></div>
-    {!!e.why && <div className="pcard-ex-w">{e.why}</div>}
-  </div>)}
-</div>
+// A routine of a Coach plan: each exercise with its picture, like the routine editor. With
+// `onEdit` (the plan card before import) exercises can be added with the same picker as Home
+// and taken out; without it (history) it is read-only.
+function RoutineBlock({ r, unit, speedUnit, onEdit, toast }) {
+  const add = () => exercisePicker((ex, quick) => {
+    if (quick) {
+      onEdit(x => [...x, { id: ex.id, ...pickedExerciseConfig(ex.id) }])
+      toast?.(t('“{0}” added to {1}', exerciseNameText(ex), r.name))
+    } else {
+      exConfigSheet(ex, null, cfg => onEdit(x => [...x, { id: ex.id, ...cfg }]), null, r, null, null, undefined, {})
+    }
+  })
+  return <div className="pcard-rt">
+    <div className="pcard-rt-h"><b><Icon name={glyphOf(r.emoji)} />{r.name}</b><span>{tn('{0} exercise', '{0} exercises', r.ex.length)}</span></div>
+    {!!r.why && <div className="pcard-why">{r.why}</div>}
+    {r.ex.map((e, i) => {
+      const ex = exOr(e.id)
+      return <div key={i} className="pcard-ex pcard-ex-pic">
+        {ex.missing ? <span className="thumb pcard-ex-nothumb" aria-hidden="true"><Icon name="dumbbell" /></span> : <Thumb ex={ex} />}
+        <div className="grow">
+          <div className="pcard-ex-r"><span className="pcard-ex-n">{exName(e.id)}</span><span className="pcard-ex-l">{exLine(e, unit, speedUnit)}</span></div>
+          {!!e.why && <div className="pcard-ex-w">{e.why}</div>}
+        </div>
+        {onEdit && r.ex.length > 1 && <button type="button" className="iconbtn" aria-label={t('Remove “{0}”', exName(e.id))}
+          onClick={() => onEdit(x => x.filter((_, k) => k !== i))}><Icon name="xmark" /></button>}
+      </div>
+    })}
+    {onEdit && <div className="pcard-ex-add">
+      <Button size="sm" variant="tinted" icon="plus" onClick={add}>{t('Add exercise')}</Button>
+    </div>}
+  </div>
+}
 
 /* ---------------------------------- a review ---------------------------------- */
 

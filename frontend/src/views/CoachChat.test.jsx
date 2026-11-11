@@ -48,7 +48,8 @@ vi.mock('../lib/coach-api.js', () => ({
   awaitedJob: () => null,
   settleAwaited: vi.fn(),
 }))
-vi.mock('../sheets.jsx', () => ({ startFlow: vi.fn(), confirmSheet: vi.fn() }))
+// The plan card adds exercises with the same picker as Home: the mock picks 0003 as a quick add.
+vi.mock('../sheets.jsx', () => ({ startFlow: vi.fn(), confirmSheet: vi.fn(), exConfigSheet: vi.fn(), exercisePicker: vi.fn(cb => cb({ id: '0003', n: 'test exercise' }, true)) }))
 vi.mock('../lib/api.js', () => ({
   api: vi.fn(() => Promise.resolve({})),
   IS_APPLE: false, IS_ANDROID: false, BIO: 'biometrics',
@@ -121,6 +122,18 @@ describe('the Coach chat', () => {
     expect(container.textContent).toContain('because')
     await click([...container.querySelectorAll('.pcard-tab')][1])
     expect(container.querySelector('.pcard-rt-h b').textContent).toContain('Full body B')
+  })
+
+  it('adds an exercise with the Home picker and removes one before import, with pictures on each row', async () => {
+    await mount({ id: 'p1', kind: 'create', bundle: bundle(everyDay) })
+    expect(container.querySelectorAll('.pcard-ex-pic').length).toBe(1)
+    await click(byText(/^Add exercise$/))
+    expect(container.querySelectorAll('.pcard-ex-pic').length).toBe(2)
+    await click([...container.querySelectorAll('.pcard-ex-pic button[aria-label^="Remove"]')].at(-1))
+    expect(container.querySelectorAll('.pcard-ex-pic').length).toBe(1)
+    await click(byText(/^Add exercise$/))
+    await click(byText(/Import this plan/))
+    expect(mocks.S.routines[0].ex.map(e => e.id)).toEqual(['0001', '0003'])
   })
 
   it('imports the plan through the store, records it in the thread, and leaves today startable', async () => {

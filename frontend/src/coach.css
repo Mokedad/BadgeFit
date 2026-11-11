@@ -134,6 +134,10 @@
 .pcard-ex-r{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .pcard-ex-n{font-size:var(--fs-callout);font-weight:500;letter-spacing:-.01em;text-transform:capitalize}
 .pcard-ex-l{font-size:14px;color:var(--label-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pcard-ex-pic{display:flex;gap:12px;align-items:center}
+.pcard-ex-pic .thumb{width:44px;height:44px}
+.pcard-ex-nothumb{display:grid;place-items:center;color:var(--label-3);background:var(--fill-3,#eee)}
+.pcard-ex-add{padding-top:10px}
 .pcard-ex-w{font-size:var(--fs-footnote);color:var(--label-2);line-height:1.42;margin-top:3px}
 .pcard-week{display:flex;gap:5px;padding:10px 18px 4px}
 .pcard-wd{flex:1;text-align:center;font-size:var(--fs-caption2);font-weight:600;padding:7px 0;border-radius:var(--r-sm);background:var(--surface-2);color:var(--label-3)}
