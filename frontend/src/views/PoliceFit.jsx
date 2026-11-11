@@ -106,22 +106,28 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
               : `No test date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {day && <DayCard d={day} today />}
       {(() => {
-        // What is on today, if you changed it (a run you picked for today wins over the plan's).
-        const picked = effectiveRoutineIds(S, todayISO()).map(id => runForRoutine(P, id, todayISO())).find(Boolean)
+        // What is on today: a run, a gym session, or both (a run picked for a gym day adds to it).
+        const iso = todayISO()
+        const ids = effectiveRoutineIds(S, iso)
+        const picked = ids.map(id => runForRoutine(P, id, iso)).find(Boolean)
         const run = picked || runForDay(day)
-        // Run done today: the day is complete (it is saved as the day's workout too), whatever else was trained.
-        const ran = (P.runLog || []).filter(r => r.at === todayISO()).at(-1)
-        if (run && ran) return <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ran)} · {ran.min} min done</span></div>
-        if (run) return <button className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>
-        // Done today: complete, not offered again.
-        const doneW = !S.active && S.workouts.filter(w => w.d === todayISO() && !w.runLogId).at(-1)
-        if (day?.kind === 'gym' && doneW) return <div className="pf-ran"><b>✅ Today complete</b><span>{doneW.name || 'Workout'} done</span></div>
-        if (day?.kind === 'gym') return <button className="pf-go" onClick={() => {
-          // Straight into today's session: one tap, no second Start on Home.
-          if (S.active) { nav('/workout'); return }
-          const ids = effectiveRoutineIds(S, todayISO())
-          if (ids.length) startFlow(ids); else nav('/home')
-        }}>{S.active ? '🏋️ Back to your workout' : '🏋️ Start workout'}</button>
+        const gymIds = ids.filter(id => !runForRoutine(P, id, iso))
+        const hasGym = gymIds.length > 0 || (day?.kind === 'gym' && !picked)
+        // Done today: complete, not offered again (each part on its own).
+        const ran = (P.runLog || []).filter(r => r.at === iso).at(-1)
+        const doneW = !S.active && S.workouts.filter(w => w.d === iso && !w.runLogId).at(-1)
+        const runPart = run && (ran
+          ? <div className="pf-ran" key="r"><b>✅ Run done</b><span>{ranName(ran)} · {ran.min} min</span></div>
+          : <button key="r" className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>)
+        const gymPart = hasGym && (doneW
+          ? <div className="pf-ran" key="g"><b>✅ Workout done</b><span>{doneW.name || 'Workout'}</span></div>
+          : <button key="g" className="pf-go" onClick={() => {
+            // Straight into today's gym session: one tap, no second Start on Home.
+            if (S.active) { nav('/workout'); return }
+            if (gymIds.length) startFlow(gymIds); else nav('/home')
+          }}>{S.active ? '🏋️ Back to your workout' : '🏋️ Start workout'}</button>)
+        if ((!run || ran) && (!hasGym || doneW) && (ran || doneW)) return <div className="pf-ran"><b>✅ Today complete</b><span>{[ran && `${ranName(ran)} · ${ran.min} min`, doneW && (doneW.name || 'Workout')].filter(Boolean).join(' · ')}</span></div>
+        if (runPart || gymPart) return <div className="pf-today-acts">{gymPart}{runPart}</div>
         if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>🧪 Start test day</button>
         return null
       })()}

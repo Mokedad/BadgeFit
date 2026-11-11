@@ -594,3 +594,4 @@
 .bfi-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:width .2s}
 .bfi-dots i.on{width:22px;border-radius:5px;background:#ffc629}
 .bfi-next{border:0;border-radius:999px;padding:11px 24px;font:inherit;font-weight:700;background:#ffc629;color:#0d1b33}
+.pf .pf-today-acts{display:flex;flex-direction:column;gap:10px}
