@@ -15,6 +15,7 @@ import { effectiveRoutineIds } from './history.js'
 import { NUDGE_COPY, lineIndex, nudgeFor, nudgeMinute, toneOf } from './nudge.js'
 import { excusedOn } from './day-notes.js'
 import { buildFuelNotifications, FUEL_ID_BASE, FUEL_WINDOW_DAYS } from './rest-day.js'
+import { buildTestDayNotification, TEST_DAY_ID } from './pct.js'
 import { stateJson } from './state-json.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
@@ -245,6 +246,7 @@ export async function syncReminder(S, interactive = false) {
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
       ...Array.from({ length: FUEL_WINDOW_DAYS }, (_, d) => ({ id: FUEL_ID_BASE + d })),
+      { id: TEST_DAY_ID },
     ] }).catch(() => {})
     const r = S.reminder
     // The background check (lib/nudge-check.js) follows what is scheduled: nothing, nothing to check.
@@ -255,7 +257,11 @@ export async function syncReminder(S, interactive = false) {
     if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
     if (perm.display !== 'granted') { await check([]); return false }
     const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
-    const fuel = buildFuelNotifications(S, new Date(), { excused: d => excusedOn(S, d) })
+    const fuel = [
+      ...buildFuelNotifications(S, new Date(), { excused: d => excusedOn(S, d) }),
+      // The fitness test day (lib/pct.js), at the breakfast tip's time or the reminder's.
+      ...buildTestDayNotification(S, new Date(), S.fuelNotify?.on ? S.fuelNotify.time : r?.time),
+    ]
     if (notifications.length || fuel.length) await LocalNotifications.schedule({ notifications: [...notifications, ...fuel] })
     await check(notifications)
     return true

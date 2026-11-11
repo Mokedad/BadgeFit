@@ -440,6 +440,22 @@ h4.sec{
 .rest-day-list{margin:0;padding-inline-start:18px;font-size:15px;line-height:1.4}
 .rest-day-list li+li{margin-top:4px}
 .rest-day-list b{font-weight:600}
+/* the police fitness test (views/FitnessTest.jsx) */
+.pct-next{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.pct-pass{color:var(--green);font-weight:600;font-size:14px}
+.pct-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:var(--hair) solid var(--sep)}
+.pct-ic{flex:none;width:22px;display:grid;place-items:center;color:var(--label-3)}
+.pct-row[data-pass="1"] .pct-ic{color:var(--green)}
+.pct-row[data-pass="0"] .pct-ic{color:var(--orange)}
+.pct-name{display:block;font-weight:500}
+.pct-sub{display:block;font-size:13px;color:var(--label-2)}
+.pct-row>.grow{flex:1;min-width:0}
+.pct-have{margin-inline-start:auto;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.pct-form{display:flex;flex-direction:column;gap:8px}
+.pct-field{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pct-field>span{display:flex;flex-direction:column}
+.pct-field small{font-size:12px;color:var(--label-2)}
+.pct-field input{max-width:120px}
 .card-head+.streak-meta-line{margin-top:2px}
 .card-head+.ch-mini,.card-head+.streak-party{margin-top:8px}
 .bw-head{flex-wrap:wrap;row-gap:8px}

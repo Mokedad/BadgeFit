@@ -861,6 +861,8 @@ export default function Stats() {
       value={(S.measurements || []).length ? fmtDate(S.measurements[S.measurements.length - 1].d, true) : null}
       onClick={() => nav('/measurements')} />,
     bodyOn && (workouts.length > 0 || dayPhotosOf(S).length > 0) && <Row key="p" title={t('Progress photos')} accessory="chevron" className="stats-link" onClick={() => nav('/progress-photos')} />,
+    // The police fitness test (views/FitnessTest.jsx), once it is set up; before that, Home invites.
+    !!S.fitnessTest && <Row key="pct" title={t('Fitness test')} subtitle={t('Your results against the standard, and what to work on.')} accessory="chevron" className="stats-link" onClick={() => nav('/fitness-test')} />,
     workouts.length > 0 && <Row key="b" title={t('Structural balance')} subtitle={t('See which lift is holding back the rest.')} accessory="chevron" className="stats-link" onClick={() => nav('/structural-balance')} />,
     ...wrapped.map(y => <Row key={y} title={t('Your year')} value={y === thisYear ? t('So far') : String(y)} accessory="chevron"
       className="stats-link" onClick={() => openWrapped(y)} />),

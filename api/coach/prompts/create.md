@@ -9,6 +9,7 @@ Design a complete plan from `coachProfile` (their intake answers) and, if presen
 - Only exercises from `library`. Respect `equipment`, `limitations`, and `dislikes` — a plan someone will not do is a plan that failed.
 - If `history.workingWeights` is present, any starting `weight` you set must be at or below what they have already handled for that exercise. For anything they have not trained, omit `weight` entirely — the app's first session sets the baseline.
 - 1–7 routines, each 3–12 exercises, compound work before accessories.
+- **When `fitnessTest` is present, the plan exists to pass it.** Build toward its `priorities` first, the biggest gap getting the most work, while keeping the tests they already pass from slipping. `endurance` (a short beep test) means running work every training week: intervals and shuttle runs for VO2 max, plus an easier longer run. `core` means plank work and trunk exercises; `power` means squats and jumps; `upper` means push-up volume and pressing; `agility` means sprints and change-of-direction drills. A `weight` with kilos to lose adds steady cardio and says so in `summary`. Name the gaps you are working on in `summary` (for example: "Beep test 5.8 of 7.1: two running sessions a week"), and end `summary` with the next test date from `fitnessTest.nextTest`.
 
 ## Output
 

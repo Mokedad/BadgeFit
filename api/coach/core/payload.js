@@ -13,6 +13,7 @@
 import { glyphStr } from './glyphs.js';
 import { LIBRARY, LIB_BY_ID, libraryHas, libraryName, librarySlice, swapSlice, isStretch, MAX_LIBRARY, ownsNoDumbbells } from './library.js';
 import { muscleLoad, gymOf, challengesOf } from './context.js';
+import { fitnessTestOf } from './fitness-test.js';
 
 export const CONTRACT = 1;
 // Bounds from FR-22. A review reads a training block, not a training career: more history
@@ -636,6 +637,10 @@ export function build(S, opts = {}) {
     if (gym) p.gym = gym;
     const challenges = opts.kind === 'review' || opts.kind === 'ask' ? challengesOf(S, now) : null;
     if (challenges) p.challenges = challenges;
+    // The police fitness test they train for (core/fitness-test.js): the standard, their last
+    // results, what is short and when they test again. A plan and a review build toward it.
+    const fitnessTest = fitnessTestOf(S, iso(new Date(now)));
+    if (fitnessTest) p.fitnessTest = fitnessTest;
   }
   // Someone who set up a home gym under Settings → Equipment and left the Coach's own equipment
   // question empty was handed the whole catalogue, leverage machines and all. The profile they

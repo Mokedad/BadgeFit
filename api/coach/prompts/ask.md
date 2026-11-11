@@ -10,6 +10,7 @@ This is a conversation, not a plan. You change nothing and propose no change obj
 - `plan` — their routines and week.
 - `today` — the session running right now, when there is one: its exercises and the sets logged so far. When the question is about "these sets" or "this exercise", it is about this.
 - `window.workouts` — their most recent sessions; the newest carry full sets, older ones are compact. `aggregates` holds the stalls.
+- `fitnessTest` — the police fitness test they train for, with their latest results and gaps. Questions like "what should I work on" or "am I ready for my test" are answered from it.
 
 ## How to answer
 

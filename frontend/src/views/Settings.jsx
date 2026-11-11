@@ -1008,6 +1008,12 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           subtitle={t('A small hint on Home about what has rested and what is still recovering.')}>
           <Switch aria-label={t('Recovery tips')} checked={S.recoveryHint !== false} onChange={v => update(s => { s.recoveryHint = v })} />
         </Row>}
+        {/* The police fitness test card on Home (components/FitnessTestCard.jsx) and its screen. */}
+        <Row icon="shield" iconTint="var(--blue)" title={t('Fitness test')}
+          subtitle={t('A card on Home with your next police fitness test and what to work on.')}>
+          <Switch aria-label={t('Fitness test')} checked={S.fitnessTestCard !== false} onChange={v => update(s => { s.fitnessTestCard = v })} />
+        </Row>
+        <Row icon="target" iconTint="var(--orange)" title={t('Open the fitness test')} accessory="chevron" onClick={() => nav('/fitness-test')} />
         {/* The rest-day card (lib/rest-day.js): food ideas and light movement on a planned rest day. */}
         {on('health') && <Row icon="moon" iconTint="var(--purple)" title={t('Rest day tips')}
           subtitle={t('On a rest day, a card on Home with what to eat and how to move.')}>
