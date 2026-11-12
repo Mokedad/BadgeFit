@@ -3,6 +3,7 @@ import { t } from './i18n-core.js'
 import { MOBILE } from './mobile.js'
 import { appBase } from './app-base.js'
 import { nativeFetch } from './capacitor-fetch.js'
+import { BRAND } from './police/brand.js'
 
 export const IS_APPLE = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)
 export const IS_ANDROID = /Android/.test(navigator.userAgent)
@@ -38,6 +39,33 @@ export const remoteAuth = () => (remoteBase && remoteToken ? { base: remoteBase,
 
 export { appBase }
 
+// BadgeFit guests (no account): Hayden's questions and voice still reach the BadgeFit server, on an
+// id this device made for itself, counted there against a small daily allowance
+// (api/coach/routes.js guardOrGuest). Only the Coach's routes, and only while nobody is signed in
+// on a paired phone; a signed-in session wins on the server anyway.
+const GUEST_KEY = 'badgefit_guest_id'
+export function guestId() {
+  try {
+    let g = localStorage.getItem(GUEST_KEY)
+    if (!g || !/^[A-Za-z0-9_-]{16,48}$/.test(g)) {
+      const a = new Uint8Array(18); crypto.getRandomValues(a)
+      g = Array.from(a, b => b.toString(16).padStart(2, '0')).join('')
+      localStorage.setItem(GUEST_KEY, g)
+    }
+    return g
+  } catch { return '' }
+}
+const GUEST_BASE = 'https://' + BRAND.server
+const coachPath = path => String(path).startsWith('/api/coach/')
+/** Where a request goes and what it carries, or null when this phone has nowhere to send it. */
+function target(path) {
+  if (remoteBase) return { url: remoteBase + path, headers: remoteHeaders() }
+  const g = coachPath(path) ? guestId() : ''
+  const guest = g ? { 'X-Guest-Id': g } : {}
+  if (MOBILE) return g ? { url: GUEST_BASE + path, headers: guest } : null
+  return { url: appBase().replace(/\/$/, '') + path, headers: guest }
+}
+
 // How long one request may take before it counts as no answer at all. A black-holed connection
 // (captive portal, half-open socket, a phone between two networks) never settles on its own, and
 // the store runs one push and one pull at a time: a single hung request used to hold every later
@@ -63,10 +91,11 @@ function refusal(status, body) {
  */
 /** apiPostBlob with the reason when there is no file: { blob } or { status, error }. */
 export async function apiPostBlobInfo(path, body, ms = 35000) {
-  if (MOBILE && !remoteBase) return { status: 0, error: 'This phone is not connected to a server.' }
-  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  const to = target(path)
+  if (!to) return { status: 0, error: 'This phone is not connected to a server.' }
+  const url = to.url
   try {
-    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, remoteHeaders()), body: JSON.stringify(body), signal: AbortSignal.timeout?.(ms) })
+    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, to.headers), body: JSON.stringify(body), signal: AbortSignal.timeout?.(ms) })
     if (r.ok) return { blob: await r.blob() }
     const data = await r.json().catch(() => null)
     return { status: r.status, error: data?.error || ('HTTP ' + r.status) }
@@ -74,12 +103,13 @@ export async function apiPostBlobInfo(path, body, ms = 35000) {
 }
 
 export async function apiPostBlob(path, body, ms = 35000) {
-  if (MOBILE && !remoteBase) return null
-  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  const to = target(path)
+  if (!to) return null
+  const url = to.url
   const ctl = typeof AbortController === 'function' ? new AbortController() : null
   const timer = ctl ? setTimeout(() => ctl.abort(), ms) : null
   try {
-    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, remoteHeaders()), body: JSON.stringify(body), ...(ctl ? { signal: ctl.signal } : {}) })
+    const r = await fetch(url, { method: 'POST', credentials: 'include', headers: Object.assign({ 'Content-Type': 'application/json' }, to.headers), body: JSON.stringify(body), ...(ctl ? { signal: ctl.signal } : {}) })
     if (!r.ok) return null
     return await r.blob()
   } catch { return null } finally { clearTimeout(timer) }
@@ -92,11 +122,12 @@ export async function api(path, opts) {
   // server, which answers ANY path, PUT included, with index.html and a 200, so a push "landed"
   // there and the change was marked as synced while the server never saw it. status 0, not
   // undefined: this is not "offline", and the store must not show it as such.
-  if (MOBILE && !remoteBase) throw failure(t('This phone is not connected to a server.'), 'not-paired', 0)
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, init.headers, remoteHeaders())
+  const to = target(path)
+  if (!to) throw failure(t('This phone is not connected to a server.'), 'not-paired', 0)
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, init.headers, to.headers)
   // A paired phone has an absolute base of its own; everyone else is relative to where the app
   // is served, so a subpath deployment reaches its own API instead of the proxy's root.
-  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  const url = to.url
   const ms = timeout != null ? timeout : (init.method || 'GET').toUpperCase() === 'GET' ? TIMEOUT_GET_MS : TIMEOUT_MS
   return request(url, Object.assign({}, init, { headers }), ms)
 }

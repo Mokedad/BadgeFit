@@ -132,6 +132,8 @@ export default function JarvisLive() {
       if (isDeclined(e)) { setPhase('idle'); return }
       // The coach switched off on this server is the admin's to fix: say so once, quietly.
       if (e?.data?.code === 'off') useUI.getState().toast(OFF_TEXT)
+      // A guest out of questions for today still gets Hayden's answer from the plan, below.
+      if (e?.data?.code === 'cap' && !useStore.getState().user) useUI.getState().toast('That is today\'s free questions with Hayden. Sign up to keep asking.')
     }
     if (closed.current) return
     // The AI could not answer (the day's allowance, the service down, no signal): Hayden answers

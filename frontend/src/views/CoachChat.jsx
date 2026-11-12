@@ -65,7 +65,10 @@ export default function CoachChat() {
 
   const gate = useCoachGate()
   const ok = gate.ok
-  const ready = ok && hasConsent(S) && !!S.coach?.profile
+  // A BadgeFit guest (no account) asks questions only: no intake, no plans, nothing kept on the
+  // server. Plans and reviews come with an account.
+  const guest = !user && !DEMO && coachMode !== 'byok'
+  const ready = ok && (guest || (hasConsent(S) && !!S.coach?.profile))
   // Not before the store has loaded: a cold start straight on #/coach would otherwise read an
   // empty state, decide there is no consent, and bounce a consenting user into the intake. Nor
   // before the server said for this session whether it has a Coach (lib/use-coach-gate.js).
@@ -136,7 +139,7 @@ export default function CoachChat() {
       // answer that there is no workout to look at, which is how people got stuck. Anything else
       // is a question, answered in words (`ask`): "how long should I rest?" is not a request to
       // review the whole plan. A review is the chip and the menu's, as it always was.
-      if (pending?.kind === 'create' || !(S.routines || []).length) await refinePlan(msg)
+      if (!guest && (pending?.kind === 'create' || !(S.routines || []).length)) await refinePlan(msg)
       else await askCoach(msg)
       update(s => appendChat(s, { role: 'user', kind: 'text', text: msg }))
       setText('')
@@ -146,7 +149,7 @@ export default function CoachChat() {
       // A server that refuses the job says so in English, with its class beside it: the class
       // picks the translated line. One with no line here ('shared') keeps the server's words.
       // "Not now" on the data-sharing question is an answer, not a failure: the text stays put.
-      if (!isDeclined(e)) toast(JOB_ERRORS[e.data?.code] || e.message || t('Could not ask the Coach'))
+      if (!isDeclined(e)) toast(guest && e.data?.code === 'cap' ? 'That is today’s 15 free questions. Sign up to keep asking.' : JOB_ERRORS[e.data?.code] || e.message || t('Could not ask the Coach'))
     }
     setBusy(false)
   }
@@ -224,11 +227,11 @@ export default function CoachChat() {
         <h1>{t('Coach')}</h1>
         <div className={'chat-st' + (job ? ' live' : '')}>{status}</div>
       </div>
-      <button className="iconbtn" onClick={menu} aria-label={t('More')}><Icon name="more" /></button>
+      {!guest && <button className="iconbtn" onClick={menu} aria-label={t('More')}><Icon name="more" /></button>}
     </div>
 
     <div className="msgs">
-      <Bubble role="coach">{t('Hi, I’m your Coach. I build your plan from your answers and adjust it from what you actually log. Nothing changes until you say so.')}</Bubble>
+      <Bubble role="coach">{guest ? 'Hi, I’m your Coach. Ask me anything about training for your PCT. As a guest you get 15 questions a day. Sign up free and I build your plan, review your sessions and keep your training saved.' : t('Hi, I’m your Coach. I build your plan from your answers and adjust it from what you actually log. Nothing changes until you say so.')}</Bubble>
 
       {(coach.chat || []).map(m => <Message key={m.id} m={m} S={S} profile={coach.profile} openSheet={openSheet} />)}
 
@@ -247,7 +250,7 @@ export default function CoachChat() {
     </div>
 
     <div className="composer">
-      {idle && !busy && <div className="chips-row">
+      {idle && !busy && !guest && <div className="chips-row">
         <button className="qchip" onClick={askReview}><Icon name="sparkles" />{t('Review my training')}</button>
         {!!lastWorkout && <button className="qchip" onClick={askDebrief}><Icon name="checkCircle" />{t('Last workout')}</button>}
         {!!(S.routines || []).length && <button className="qchip" onClick={pickRoutine}><Icon name="wrench" />{t('Improve a routine')}</button>}

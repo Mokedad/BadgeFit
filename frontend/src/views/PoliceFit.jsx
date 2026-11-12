@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { DEMO } from '../lib/demo.js'
 import { todayISO, localTZ } from '../lib/format.js'
 import { lastBW, effectiveRoutineIds } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
@@ -336,10 +337,14 @@ function PlanChoice({ S, P }) {
   </div>
 }
 
+/** The Intermediate plan is for members: a guest gets the simple plan. */
+const membersOnly = () => useUI.getState().toast('Sign up free to unlock the Intermediate plan')
+
 function Setup({ S, P }) {
   const update = useStore(s => s.update)
   const setP = usePolice()
-  const [level, setLevel] = useState(P.level || 'beginner')
+  const guest = !useStore(s => s.user) && !DEMO
+  const [level, setLevel] = useState(guest ? 'beginner' : P.level || 'beginner')
   const [date, setDate] = useState(P.testDate || '')
   const [kg, setKg] = useState(P.weightKg ?? null)
   const build = () => {
@@ -351,7 +356,7 @@ function Setup({ S, P }) {
     <p className="pf-q">1. How fit are you now?</p>
     <div className="pf-choice">
       <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>🌱 New to training</b><small>Gym or running is new, or it has been a while</small></button>
-      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => setLevel('intermediate')}><b>💪 I train regularly</b><small>Training for 6 months or more</small></button>
+      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? '🔒' : '💪'} I train regularly</b><small>{guest ? 'Sign up free to unlock this plan' : 'Training for 6 months or more'}</small></button>
     </div>
     <p className="pf-q">2. When is your PCT? <small>(skip if not booked)</small></p>
     <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="PCT date" />
@@ -518,7 +523,8 @@ function phaseRows(level, L) {
 
 function Plan({ S, P }) {
   const setP = usePolice()
-  const level = P.level || 'beginner'
+  const guest = !useStore(s => s.user) && !DEMO
+  const level = guest ? 'beginner' : P.level || 'beginner'
   const pw = planWeekOf(P, todayISO())
   const current = pw.week || 1
   const [week, setWeek] = useState(Math.min(current, pw.last))
@@ -526,7 +532,7 @@ function Plan({ S, P }) {
   const z2 = zone2(P.age)
   return <>
     <PlanChoice S={S} P={P} />
-    <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => setP({ level: l })} />
+    <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => guest && l !== 'beginner' ? membersOnly() : setP({ level: l })} />
     <div className="card">
       <div className="pf-2">
         <label>Your age<NumberField value={P.age ?? null} nullable decimal={false} onChange={a => setP({ age: a })} /></label>

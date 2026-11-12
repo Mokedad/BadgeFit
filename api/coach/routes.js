@@ -39,6 +39,47 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     if (!cfgStore.isEnabled() || !cfgStore.isConnected()) { json(res, 503, { error: USER_ERROR.off, code: 'off' }); return null; }
     return user;
   };
+  /** BadgeFit: a guest (no account) may ask Hayden and hear him, a few times a day. The app sends
+   *  an id it made for itself (X-Guest-Id); the count is kept per id, and per address as well so
+   *  a new id is not a new allowance. Only the routes that say `guest` take one. */
+  const GUEST_IP_FACTOR = 3;
+  const guestByIp = new Map(); // address → { date, count }
+  const guestUser = req => {
+    const gid = String(req.headers['x-guest-id'] || '');
+    return /^[A-Za-z0-9_-]{16,48}$/.test(gid) ? { id: 'guest-' + gid, guest: true } : null;
+  };
+  const guardOrGuest = (req, res) => {
+    if (readSession(req)) return guard(req, res);
+    const g = guestUser(req);
+    if (!g) { json(res, 401, { error: 'not signed in' }); return null; }
+    if (!cfgStore.isEnabled() || !cfgStore.isConnected()) { json(res, 503, { error: USER_ERROR.off, code: 'off' }); return null; }
+    return g;
+  };
+  /** Counts a guest's question against their address; false when the address is over for the day. */
+  const guestIpOk = req => {
+    const limit = (cfgStore.load().caps?.guestAskDaily ?? 15) * GUEST_IP_FACTOR;
+    const ip = String(req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket?.remoteAddress || 'unknown');
+    const d = new Date().toISOString().slice(0, 10);
+    const rec = guestByIp.get(ip);
+    const count = rec && rec.date === d ? rec.count : 0;
+    if (count >= limit) return false;
+    if (guestByIp.size > 20000) guestByIp.clear();
+    guestByIp.set(ip, { date: d, count: count + 1 });
+    return true;
+  };
+  /** A guest's spoken lines in Hayden's natural voice: four per question allowed a day, per id
+   *  and (three times that) per address. Past it the app falls back to the phone's own voice. */
+  const guestSpeech = new Map(); // id or address → { date, count }
+  const guestSpeakOk = (req, user) => {
+    const per = (cfgStore.load().caps?.guestAskDaily ?? 15) * 4;
+    const ip = 'ip:' + String(req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket?.remoteAddress || 'unknown');
+    const d = new Date().toISOString().slice(0, 10);
+    const used = k => { const r = guestSpeech.get(k); return r && r.date === d ? r.count : 0; };
+    if (used(user.id) >= per || used(ip) >= per * GUEST_IP_FACTOR) return false;
+    if (guestSpeech.size > 40000) guestSpeech.clear();
+    for (const k of [user.id, ip]) guestSpeech.set(k, { date: d, count: used(k) + 1 });
+    return true;
+  };
   const failEnqueue = (res, e) => {
     if (e instanceof jobs.CoachError) return json(res, HTTP_FOR[e.code] || 400, { error: USER_ERROR[e.code] || e.message, code: e.code });
     throw e;
@@ -52,7 +93,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     // that reads it sits behind a session anyway, and on an invite-only instance which provider
     // this box is wired to is nobody's business who has not been let in.
     'GET /api/coach/disclosure': async (req, res) => {
-      if (!readSession(req)) return json(res, 401, { error: 'not signed in' });
+      if (!readSession(req) && !guestUser(req)) return json(res, 401, { error: 'not signed in' });
       const cfg = cfgStore.load();
       json(res, 200, {
         provider: cfg.provider,
@@ -67,7 +108,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     },
 
     'GET /api/coach/status': async (req, res) => {
-      const user = guard(req, res); if (!user) return;
+      const user = guardOrGuest(req, res); if (!user) return;
       // The chat composer's maxLength rides on this poll rather than a one-off fetch, so an
       // admin raising or lowering the limit reaches an open chat within one poll cycle.
       json(res, 200, { ...jobs.status(user.id), maxMessageLen: cfgStore.load().maxMessageLen });
@@ -120,8 +161,9 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     // Hayden's voice (BadgeFit, coach/tts.js): one short line in, a WAV out. Signed in and the
     // Coach on, like every route here; only the words to be spoken leave, never training data.
     'POST /api/coach/speak': async (req, res) => {
-      const user = guard(req, res); if (!user) return;
+      const user = guardOrGuest(req, res); if (!user) return;
       const body = await readBody(req);
+      if (user.guest && !guestSpeakOk(req, user)) return json(res, 429, { error: 'daily limit reached', code: 'cap' });
       const r = await speaker.speak(user.id, body && body.text);
       if (!r.ok) return json(res, r.status, { error: r.error, code: r.status === 501 ? 'unsupported' : r.status === 429 ? 'cap' : 'voice' });
       res.writeHead(200, { 'content-type': 'audio/wav', 'content-length': r.wav.length, 'cache-control': 'private, max-age=86400' });
@@ -129,10 +171,11 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     },
 
     'POST /api/coach/ask': async (req, res) => {
-      const user = guard(req, res); if (!user) return;
+      const user = guardOrGuest(req, res); if (!user) return;
       const body = await readBody(req);
       const text = typeof body.text === 'string' ? body.text.trim() : '';
       if (!text) return json(res, 400, { error: 'a question is required', code: 'invalid' });
+      if (user.guest && !guestIpOk(req)) return json(res, 429, { error: USER_ERROR.cap || 'daily limit reached', code: 'cap' });
       try {
         const job = jobs.enqueue(user.id, {
           kind: 'ask',
@@ -184,7 +227,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     },
 
     'POST /api/coach/pending/resolve': async (req, res) => {
-      const user = guard(req, res); if (!user) return;
+      const user = guardOrGuest(req, res); if (!user) return;
       const body = await readBody(req);
       json(res, 200, jobs.resolvePending(user.id, {
         accepted: Array.isArray(body.accepted) ? body.accepted : [],

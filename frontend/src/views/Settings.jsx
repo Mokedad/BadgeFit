@@ -61,7 +61,7 @@ import { DeleteAccountRow } from '../components/DeleteAccount.jsx'
 import { warmupAutoOf } from '../lib/warmup-ramp.js'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC, profileRule } from '../lib/progression.js'
-import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
+import { PAGES, ROOT_GROUPS, HEALTH_PAGES, badgefitGuest, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
 import { platformNow } from '../lib/platform-now.js'
 import { pathBefore } from '../lib/nav.js'
 import WatchSettingsPage from './WatchSettings.jsx'
@@ -95,6 +95,16 @@ let lastQuery = { q: '', key: null }
 
 // The route: /settings and /settings/<page>. An unknown page, or one this device does not have
 // (the Coach page off the phone app), goes back to the root.
+// Whether this is a BadgeFit app: its server (passkeys off), a profile on the BadgeFit plan, or the
+// BadgeFit phone app. Then the owner's pages are the admin's only (settings-pages.js ADMIN_PAGES).
+// Not under test: the suite checks the settings as openGym lays them out.
+const BADGEFIT_APP = MOBILE && import.meta.env?.MODE !== 'test'
+function useBadgeFit() {
+  const passkeysOff = useStore(s => s.config?.passkeys === false)
+  const member = useStore(s => !!s.S.police?.level)
+  return BADGEFIT_APP || passkeysOff || member
+}
+
 export function SettingsRoute() {
   const { page } = useParams()
   const loc = useLocation()
@@ -103,8 +113,8 @@ export function SettingsRoute() {
   // (Unknown counts as yes inside the phone app: the page itself then says there is no watch.)
   // The modules (lib/modules.js): a page of a module that is off goes back to the root too.
   const modules = useStore(s => s.S.modules), checkIn = useStore(s => s.S.checkIn)
-  const ctx = { user: useStore(s => s.user), mobile: MOBILE, ios: MOBILE && platformNow() !== 'android', android: MOBILE && platformNow() !== 'ios', mod: id => isOn({ modules, checkIn }, id) }
-  if (page && (!PAGES[page] || !pageVisible(PAGES[page].parent || page, ctx) || !pageVisible(page, ctx))) return <Navigate to="/settings" replace />
+  const ctx = { badgefit: useBadgeFit(), demo: DEMO, user: useStore(s => s.user), mobile: MOBILE, ios: MOBILE && platformNow() !== 'android', android: MOBILE && platformNow() !== 'ios', mod: id => isOn({ modules, checkIn }, id) }
+  if (page && (!PAGES[page] || !pageVisible(ctx.badgefit && HEALTH_PAGES.has(page) ? page : PAGES[page].parent || page, ctx) || !pageVisible(page, ctx))) return <Navigate to="/settings" replace />
   if (page === 'coach') return <Navigate to="/coach/setup" replace />
   return <Settings key={page || 'root'} page={page || null} find={loc.state?.find || null} via={loc.state?.via || null} entryKey={loc.key} />
 }
@@ -461,8 +471,9 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   /* ---------------- what the pages and the search need to know about this device ---------------- */
   const nfcOK = useNfcSupported()
   const canVibrate = vibrateSupported()
+  const badgefit = useBadgeFit()
   const ctx = {
-    user, mobile: MOBILE, android, ios: MOBILE && ios, appIcons: MOBILE && !!platformNow(), demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
+    badgefit, user, mobile: MOBILE, android, ios: MOBILE && ios, appIcons: MOBILE && !!platformNow(), demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
     sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false,
     profiles: (S.equipProfiles || []).length > 0, nameLang: EXERCISE_NAME_LANGS.includes(baseLang(lang)),
     pushOK: !MOBILE && pushSupported(), reminderOn: !!S.reminder?.on, nudge: !!S.reminder?.nudge,
@@ -1297,29 +1308,44 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
   // Only while the server offers the Coach (the flag every Coach screen reads): on a box without
   // it the admin dashboard has no Coach card to land on.
   const config = useStore(s => s.config)
+  // BadgeFit guest: no greyed-out rows, only what a guest can use, and the way to an account.
+  const guest = badgefitGuest(ctx)
+  const toSignIn = () => {
+    if (MOBILE) useStore.setState({ needsMobileOnboarding: true })
+    else useStore.getState().setGuest(false)
+    nav('/home')
+  }
+  const groups = ctx.badgefit ? [...ROOT_GROUPS.slice(0, -1), ['apple-health', 'health-connect'], ROOT_GROUPS.at(-1)] : ROOT_GROUPS
   const adminCoach = !MOBILE && !DEMO && !!user?.admin && coachAvailable(config, user) && (!ctx.mod || ctx.mod('coach'))
   return <div className="narrow">
     <div className="sp-nav">
       <button className="sp-back" data-back="/home" onClick={home} aria-label={t('Home')}><Icon name="chevronLeft" /><span>{t('Home')}</span></button>
     </div>
     <h1 className="sp-root-title">{t('Settings')}</h1>
-    <div className="sp-search">
+    {!guest && <div className="sp-search">
       <SearchField value={q} onChange={e => set(e.target.value)} onClear={() => set('')}
         placeholder={t('Search…')} aria-label={t('Search settings')} inputMode="search" enterKeyHint="search" autoComplete="off" />
-    </div>
+    </div>}
     {hits ? (hits.length ? <Section title={tn('{0} result', '{0} results', hits.length)}>
       {hits.slice(0, 40).map(h => (
         <Row key={h.page + ':' + h.title} icon={h.icon} iconTint={h.tint} title={h.label} subtitle={h.trail} accessory="chevron" onClick={() => go(h)} />
       ))}
     </Section> : <div className="sp-empty">{t('No setting matches “{0}”.', q.trim())}</div>) : <>
-      <Section>
+      {guest ? <Section footer="Guests get the simple plan and 15 questions a day with Hayden. Nothing is saved to an account.">
+        <div className="lrow sp-acct">
+          <span className="sp-avatar" aria-hidden="true"><Icon name="personCircle" /></span>
+          <span className="lrow-m"><span className="lrow-t">Guest</span><span className="lrow-s">Sign up free to save your training and unlock every plan.</span></span>
+        </div>
+        <Row icon="plusCircle" iconTint="var(--acc)" title="Sign up or sign in" accessory="chevron" onClick={toSignIn} />
+        <Row icon="signOut" iconTint="var(--red)" title="Log out" danger onClick={toSignIn} />
+      </Section> : <Section>
         <button className="lrow tap sp-acct" data-tour="settings-account" onClick={() => open('account')}>
           <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>
           <span className="lrow-m"><span className="lrow-t">{acct.title}</span><span className="lrow-s">{acct.sub}</span></span>
           <Icon name="chevronRight" className="lrow-c" />
         </button>
-      </Section>
-      {ROOT_GROUPS.map(g => g.filter(id => pageVisible(id, ctx))).filter(g => g.length).map(g => (
+      </Section>}
+      {groups.map(g => g.filter(id => pageVisible(id, ctx) && !(guest && id === 'account'))).filter(g => g.length).map(g => (
         <Section key={g[0]}>
           {g.map(id => <Row key={id} icon={PAGES[id].icon} iconTint={PAGES[id].tint} title={t(PAGES[id].title)}
             value={preview[id]?.() || null} accessory="chevron" onClick={() => open(id)} className="sp-root-row" tour={'settings-' + id} />)}
@@ -1330,7 +1356,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
             value={t('Admin')} accessory="chevron" onClick={() => nav('/admin', { state: { section: 'coach' } })} className="sp-root-row" />}
         </Section>
       ))}
-      <div className="dim small sp-version">openGym v{__APP_VERSION__}</div>
+      <div className="dim small sp-version">{ctx.badgefit ? 'BadgeFit' : 'openGym'} v{__APP_VERSION__}</div>
     </>}
   </div>
 }

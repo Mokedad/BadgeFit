@@ -52,7 +52,20 @@ export const ROOT_GROUPS = [['modules'], ['workout', 'alerts', 'reminders'], ['p
  * the phone's own notifications; the Coach page is the phone's Coach setup (the web app's Coach
  * runs on the server, set up by its admin).
  */
+// BadgeFit: the pages that are the owner's to set, not a member's or a guest's (too much for
+// someone who came to train): the look, the Coach's setup, integrations, data and backup.
+export const ADMIN_PAGES = new Set(['look', 'coach', 'integrations', 'data', 'themes'])
+// The phone's health store has its own row on the BadgeFit root (Integrations, its parent, is the
+// owner's), and it is the one thing a guest may set up besides reading About.
+export const HEALTH_PAGES = new Set(['apple-health', 'health-connect'])
+const GUEST_PAGES = new Set(['apple-health', 'health-connect', 'about', 'account'])
+/** BadgeFit, no account: the settings a guest gets are the health connection and About. */
+export const badgefitGuest = ctx => !!ctx.badgefit && !ctx.user && !ctx.demo
+
 export function pageVisible(page, ctx) {
+  // `ctx.badgefit`: this is a BadgeFit app (views/Settings.jsx works it out).
+  if (ctx.badgefit && ADMIN_PAGES.has(page) && !ctx.user?.admin) return false
+  if (badgefitGuest(ctx) && !GUEST_PAGES.has(page)) return false
   // A page of a module that is off (ctx.mod answers isOn for this profile; absent: all on).
   if (PAGES[page]?.mod && ctx.mod && !ctx.mod(PAGES[page].mod)) return false
   if (page === 'reminders') return !!(ctx.user || ctx.mobile)

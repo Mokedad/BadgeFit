@@ -106,6 +106,14 @@ export function readState(uid) {
   catch { return null; }
 }
 
+/* ---------- guests (BadgeFit) ----------
+   Someone using the app without an account may ask Hayden a few questions a day. A guest has no
+   profile on the server: nothing of theirs is stored but today's count, and the question's
+   context (today's session, the BadgeFit brief) arrives with the question. */
+export const isGuestUid = uid => typeof uid === 'string' && uid.startsWith('guest-');
+const guestState = () => ({ unit: 'kg', routines: [], workouts: [], bodyweight: [], week: {}, dayPlan: {}, coach: { consent: { agreedAt: 1 } } });
+const stateOf = uid => (isGuestUid(uid) ? guestState() : readState(uid));
+
 /* ---------- caps ---------- */
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -127,7 +135,7 @@ export function askCapState(uid) {
   const caps = cfgStore.load().caps || {};
   const rec = readUser(uid);
   const used = rec.askDaily?.date === todayISO() ? rec.askDaily.count : 0;
-  return { used, limit: caps.askDaily ?? 100 };
+  return { used, limit: isGuestUid(uid) ? (caps.guestAskDaily ?? 15) : (caps.askDaily ?? 100) };
 }
 function bumpAskDaily(uid) {
   const rec = readUser(uid);
@@ -211,7 +219,9 @@ export function enqueue(uid, opts) {
   if (!cfgStore.isEnabled() || !cfgStore.isConnected()) throw new CoachError('off', 'the Coach is not set up on this instance');
   if (inflight.has(uid)) throw new CoachError('busy', 'the Coach is already thinking about your training');
 
-  const S = readState(uid);
+  // A guest asks questions only: plans, reviews and changes need a profile to work on.
+  if (isGuestUid(uid) && !(opts && opts.kind === 'ask')) throw new CoachError('off', 'sign up to use this');
+  const S = stateOf(uid);
   // Consent is enforced here, server-side, not by the screen that collects it: a UI-only gate
   // is not a gate (FR-08/13).
   if (!S?.coach?.consent?.agreedAt) throw new CoachError('consent', 'the Coach needs your go-ahead first');
@@ -340,7 +350,7 @@ export function setProposalHook(fn) { onProposal = fn; }
 async function execute(job) {
   patchUser(job.uid, { current: { id: job.id, kind: job.kind, state: 'running', startedAt: job.startedAt } });
 
-  const S = readState(job.uid);
+  const S = stateOf(job.uid);
   if (!S) return finish(job, { outcome: 'failed', errorClass: 'nostate' });
   // Checked again here, not only at enqueue: a job can wait behind two others, and consent
   // withdrawn or the Coach switched off in the meantime means no payload leaves for it.

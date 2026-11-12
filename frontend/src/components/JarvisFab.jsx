@@ -6,6 +6,8 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { useStore } from '../store/useStore.js'
 import { isOn } from '../lib/modules.js'
+import { guestCoach } from '../lib/coach.js'
+import { MOBILE } from '../lib/mobile.js'
 import { useJarvis, tapJarvis } from '../store/useJarvis.js'
 
 const JarvisLive = lazy(() => import('./JarvisLive.jsx'))
@@ -16,8 +18,10 @@ export const openJarvis = () => tapJarvis()
 export default function JarvisFab() {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
+  const config = useStore(s => s.config)
   const active = useJarvis(s => s.active)
-  const on = !!user && !!S.police?.level && isOn(S, 'coach')
+  // A guest has Hayden too: a few questions a day, nothing kept on the server (lib/coach.js).
+  const on = (!!user || guestCoach(config, user, MOBILE)) && !!S.police?.level && isOn(S, 'coach')
   useEffect(() => { if (!on && active) useJarvis.getState().end() }, [on, active])
   if (!on || !active) return null
   return <Suspense fallback={null}><div className="pf"><JarvisLive /></div></Suspense>

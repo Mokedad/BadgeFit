@@ -14,6 +14,9 @@ your ear while you run or lift.
 - **Hear it**: a typed or spoken message is read out by Hayden ("Message from Sarah: you've got
   this"); a recording plays as it is. Either waits for a gap between Hayden's own cues, never
   over a step change or a countdown.
+- **In every mode, Simple included**: cheers are heard during a run, a walk or a gym session
+  whichever "how much app" was chosen. Simple hides the community screens, not the voices: the
+  cheer arrives through Hayden, with nothing extra on the screen.
 - **Mute**: a button on the run and workout screens blocks incoming cheers for that session, and
   a setting keeps them off by default.
 
@@ -40,3 +43,12 @@ your ear while you run or lift.
 ## Order
 
 After the iPhone app is on TestFlight and the PCT is done. Roughly 3 to 4 days of work.
+
+## After 1.2 (idea for 1.3): Instagram on the bubble
+
+- A member adds their Instagram name to their profile; their bubble and profile show it, and a
+  tap opens their Instagram. Just a link the member types: no Instagram login, so no Meta app
+  review and nothing of theirs is read.
+- A share card after a run or a session (distance, time, the route, the BadgeFit shield), sized
+  for an Instagram story, sent through the phone's own share sheet.
+- Off by default; only people in the member's circle see the name.

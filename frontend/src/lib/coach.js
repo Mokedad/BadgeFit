@@ -63,9 +63,15 @@ const coachOf = s => (s.coach = s.coach || emptyCoach())
 // paired to a self-hosted server is an ordinary signed-in profile and takes the web rule; a
 // phone that brought its own API key runs the Coach itself (lib/coach-local.js). Nothing
 // chosen means nothing shown — the same "invisible unless configured" promise the web keeps.
+//
+// BadgeFit guests: with no account, Hayden still answers a few questions a day from the BadgeFit
+// server (api/coach/routes.js guestUser). On the web the server says so in its public config
+// (`guest_coach`); the BadgeFit phone app always has its server (lib/api.js GUEST_BASE).
+const BADGEFIT_APP = import.meta.env?.MODE !== 'test'
+export const guestCoach = (config, user, mobile) => !user && (mobile ? BADGEFIT_APP : !!config?.guest_coach)
 export const coachAvailable = (config, user, { demo, mobile, coachMode } = {}) =>
-  mobile ? (coachMode === 'byok' || !!(config?.coach?.enabled && user))
-    : demo ? true : !!(config?.coach?.enabled && user)
+  mobile ? (coachMode === 'byok' || !!(config?.coach?.enabled && user) || guestCoach(config, user, true))
+    : demo ? true : (!!(config?.coach?.enabled && user) || guestCoach(config, user, false))
 
 // What each data category means, in the user's words. Rendered from the same list the payload
 // builder uses (api/coach/core/categories.js), so the screen cannot promise less than leaves.

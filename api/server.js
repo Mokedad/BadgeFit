@@ -2249,6 +2249,9 @@ const routes = {
       // block is how the app knows this server does not take photos and videos at all.
       ...(MEDIA_ON ? { media: mediaConfig(MEDIA_LIMITS) } : {}),
       ...(readSession(req) ? { coach: coachConfig.publicConfig() } : {}),
+      // BadgeFit: a guest may ask Hayden a few questions a day (coach/routes.js). Only the fact
+      // that he is here is public; which provider answers stays behind the session, as above.
+      ...(ALLOW_GUEST && coachConfig.publicConfig() ? { guest_coach: true } : {}),
       // Which integrations this server offers (only to a session, like the Coach block). Absent
       // with INTEGRATIONS unset, which is how the app knows to show the server cards as off.
       ...(readSession(req) && integrations.publicConfig() ? { integrations: integrations.publicConfig() } : {})
@@ -3245,7 +3248,7 @@ const server = http.createServer(async (req, res) => {
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
       // The CF-Access-* pair: a phone's Cloudflare Access service token (frontend lib/cf-access.js),
       // for an Access application that passes OPTIONS through to the origin.
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, CF-Access-Client-Id, CF-Access-Client-Secret',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, CF-Access-Client-Id, CF-Access-Client-Secret, X-Guest-Id',
       'Access-Control-Max-Age': '86400',
       ...(pna ? { 'Access-Control-Allow-Private-Network': 'true' } : {})
     });

@@ -544,3 +544,23 @@ describe('the equipment page with two gyms', () => {
     act(() => r.unmount()); h.remove()
   })
 })
+
+describe('BadgeFit: the owner\'s pages are the admin\'s only', () => {
+  it('a member and a guest do not get Look, the Coach setup, Integrations or Data', async () => {
+    const { pageVisible, ADMIN_PAGES } = await import('./settings-pages.js')
+    for (const page of ['look', 'integrations', 'data', 'coach', 'themes']) {
+      expect(ADMIN_PAGES.has(page)).toBe(true)
+      expect(pageVisible(page, { badgefit: true, mobile: true })).toBe(false)                       // guest
+      expect(pageVisible(page, { badgefit: true, mobile: true, user: { name: 'A' } })).toBe(false)  // member
+    }
+    expect(pageVisible('look', { badgefit: true, user: { admin: true } })).toBe(true)
+    expect(pageVisible('data', { badgefit: true, user: { admin: true } })).toBe(true)
+    expect(pageVisible('workout', { badgefit: true, user: { name: 'A' } })).toBe(true)
+    // A guest: the health connection and About, nothing greyed out, nothing else.
+    for (const page of ['workout', 'alerts', 'plan', 'units', 'equipment', 'modules']) expect(pageVisible(page, { badgefit: true, mobile: true })).toBe(false)
+    expect(pageVisible('about', { badgefit: true, mobile: true })).toBe(true)
+    expect(pageVisible('apple-health', { badgefit: true, mobile: true, ios: true })).toBe(true)
+    expect(pageVisible('apple-health', { badgefit: true, mobile: true, ios: true, user: { name: 'A' } })).toBe(true)
+    expect(pageVisible('look', {})).toBe(true)   // not a BadgeFit app: as before
+  })
+})

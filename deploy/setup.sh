@@ -53,6 +53,10 @@ if [ ! -f .env ]; then
 fi
 # Settings added in later versions, appended to an older .env with their defaults.
 grep -q '^PASSKEYS=' .env || echo 'PASSKEYS=0' >> .env
+# Guests may open the app without an account: the simple plan, and Hayden for a few questions a
+# day. Nothing of a guest's is stored on the server.
+sed -i 's|^ALLOW_GUEST=0$|ALLOW_GUEST=1|' .env
+grep -q '^ALLOW_GUEST=' .env || echo 'ALLOW_GUEST=1' >> .env
 for k in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET APPLE_SERVICES_ID APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY; do
   grep -q "^$k=" .env || echo "$k=" >> .env
 done
