@@ -73,7 +73,9 @@ for d in "$SITE_DOMAIN" "$APP_DOMAIN"; do
 done
 
 say "Website"
-rm -rf site && cp -r ../badgefit-site site
+# Refilled in place, never removed: Caddy has this folder mounted, and a folder deleted and made
+# again is a different one to the running container, which then serves an empty site (a 404).
+mkdir -p site && find site -mindepth 1 -delete && cp -r ../badgefit-site/. site/
 APP_URL="https://$APP_DOMAIN/"
 sed -i -e "s|APP_URL|$APP_URL|g" -e "s|SOURCE_URL|${REPO%.git}|g" site/index.html
 for k in INSTAGRAM_URL TIKTOK_URL YOUTUBE_URL; do
@@ -91,6 +93,8 @@ fi
 
 say "Building and starting (the first build takes a few minutes)"
 docker compose --env-file .env up -d --build
+# A Caddy still holding the old, deleted site folder (from before the fix above) is restarted once.
+docker compose --env-file .env exec -T caddy test -f /srv/site/index.html 2>/dev/null || docker compose --env-file .env restart caddy
 docker image prune -f >/dev/null
 
 say "Nightly backup at 03:17"
