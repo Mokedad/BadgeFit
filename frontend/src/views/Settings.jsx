@@ -430,10 +430,12 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   const running = () => S.active ? ' ' + t('You have a workout running. It waits on this device until you’re back on this account.') : ''
   const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: r => { nav('/home'); if (r.stashed) toast(kept); else if (after) toast(after) } })
   const disconnect = () => confirmSheet({
-    title: t('Disconnect from your server?'),
-    message: t('This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.') + running(),
-    confirmText: t('Disconnect'), danger: true,
-    onConfirm: () => leave('disconnect', t('Disconnected. Back to local-only')),
+    title: badgefit ? 'Log out?' : t('Disconnect from your server?'),
+    message: (badgefit ? 'Your training stays saved in your account. Sign in again any time to get it back on this phone.' : t('This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.')) + running(),
+    confirmText: badgefit ? 'Log out' : t('Disconnect'), danger: true,
+    // BadgeFit: logged out lands on the sign-in screen, not in a guest copy of the app.
+    onConfirm: () => Promise.resolve(leave('disconnect', badgefit ? 'Logged out' : t('Disconnected. Back to local-only')))
+      .then(() => { if (badgefit && MOBILE && !useStore.getState().user) useStore.setState({ needsMobileOnboarding: true }) }),
   })
   const signOutHere = () => confirmSheet({
     title: t('Sign out?'),
@@ -472,6 +474,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   const nfcOK = useNfcSupported()
   const canVibrate = vibrateSupported()
   const badgefit = useBadgeFit()
+  const plain = badgefit && !user?.admin
   const ctx = {
     badgefit, user, mobile: MOBILE, android, ios: MOBILE && ios, appIcons: MOBILE && !!platformNow(), demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
     sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false,
@@ -1197,6 +1200,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
       </div>
     </>,
 
+    // BadgeFit: pairing codes, device links, passkeys and the account id are the owner's to see.
+    // A member's Account page is their name, sync, password and Log out.
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
@@ -1204,9 +1209,9 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         {MOBILE && <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {/* A code to sign in on a computer (#551), behind the same proof as in a browser. */}
-          <DeviceLinkRow state={passkeys.st} />
-          <AccountIdRow id={user.id} />
-          <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} danger onClick={disconnect} />
+          {!plain && <DeviceLinkRow state={passkeys.st} />}
+          {!plain && <AccountIdRow id={user.id} />}
+          <Row icon="signOut" iconTint="var(--red)" title={badgefit ? 'Log out' : t('Disconnect')} danger onClick={disconnect} />
         </>}
       </ServerSyncSection>}
 
@@ -1227,14 +1232,14 @@ export default function Settings({ page = null, find = null, via = null, entryKe
             onClick={() => window.open(REPO, '_blank', 'noopener')} />
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-          <PasskeysRow state={passkeys.st} changed={credsChanged} />
-          <DeviceLinkRow state={passkeys.st} />
-          <Row icon="qr" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the openGym app on your phone to this account.')} accessory="chevron"
-            onClick={() => useUI.getState().openSheet(close => <PairSheet close={close} />)} />
+          {!plain && <PasskeysRow state={passkeys.st} changed={credsChanged} />}
+          {!plain && <DeviceLinkRow state={passkeys.st} />}
+          {!plain && <Row icon="qr" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the openGym app on your phone to this account.')} accessory="chevron"
+            onClick={() => useUI.getState().openSheet(close => <PairSheet close={close} />)} />}
           {pwOn && <PasswordRow version={credsV} />}
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />
           <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
-          <AccountIdRow id={user.id} />
+          {!plain && <AccountIdRow id={user.id} />}
         </> : webauthnOK() ? <>
           <Row icon="plusCircle" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
           <Row icon="fingerprint" iconTint="var(--blue)" title={t('Sign in with passkey')} accessory="chevron" onClick={passkeySignIn} />

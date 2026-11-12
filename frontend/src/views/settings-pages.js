@@ -58,7 +58,7 @@ export const ADMIN_PAGES = new Set(['look', 'coach', 'integrations', 'data', 'th
 // The phone's health store has its own row on the BadgeFit root (Integrations, its parent, is the
 // owner's), and it is the one thing a guest may set up besides reading About.
 export const HEALTH_PAGES = new Set(['apple-health', 'health-connect'])
-const GUEST_PAGES = new Set(['apple-health', 'health-connect', 'about', 'account'])
+const GUEST_PAGES = new Set(['apple-health', 'health-connect', 'about'])
 /** BadgeFit, no account: the settings a guest gets are the health connection and About. */
 export const badgefitGuest = ctx => !!ctx.badgefit && !ctx.user && !ctx.demo
 
