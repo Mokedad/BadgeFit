@@ -1,0 +1,53 @@
+# BadgeFit to TestFlight (.github/workflows/badgefit-testflight.yml copies this into
+# frontend/ios/App/fastlane/ on the Mac runner). App Store signing made for the run with the App
+# Store Connect API key: a distribution certificate and an App Store profile, so no registered
+# device is needed (Xcode's automatic signing asks for one). The certificate is revoked again at
+# the end, so runs do not pile certificates up against Apple's limit; a build already uploaded
+# stays valid.
+default_platform(:ios)
+
+BUNDLE_ID = 'au.com.badgefit.app'
+
+platform :ios do
+  lane :testflight_build do
+    key = app_store_connect_api_key(
+      key_id: ENV.fetch('ASC_KEY_ID'),
+      issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+      key_filepath: ENV.fetch('ASC_KEY_FILE'),
+      in_house: false
+    )
+    setup_ci # a temporary keychain for the certificate
+    cert_id = nil
+    begin
+      get_certificates(api_key: key, development: false, generate_apple_certs: true, output_path: 'build/signing')
+      cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
+      get_provisioning_profile(api_key: key, app_identifier: BUNDLE_ID, cert_id: cert_id,
+                               force: true, output_path: 'build/signing', filename: 'BadgeFit_AppStore.mobileprovision')
+      profile = lane_context[SharedValues::SIGH_NAME]
+      update_code_signing_settings(
+        use_automatic_signing: false, path: 'App.xcodeproj', targets: ['App'],
+        team_id: ENV.fetch('APPLE_TEAM_ID'), bundle_identifier: BUNDLE_ID,
+        code_sign_identity: 'Apple Distribution', profile_name: profile
+      )
+      build_app(
+        workspace: 'App.xcworkspace', scheme: 'App', configuration: 'Release',
+        export_method: 'app-store', output_directory: 'build', output_name: 'BadgeFit.ipa',
+        export_options: { provisioningProfiles: { BUNDLE_ID => profile }, uploadSymbols: true },
+        buildlog_path: 'build', xcargs: "DEVELOPMENT_TEAM=#{ENV.fetch('APPLE_TEAM_ID')}"
+      )
+      upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true)
+    ensure
+      if cert_id
+        begin
+          Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+            key_id: ENV.fetch('ASC_KEY_ID'), issuer_id: ENV.fetch('ASC_ISSUER_ID'), filepath: ENV.fetch('ASC_KEY_FILE'))
+          c = Spaceship::ConnectAPI::Certificate.all.find { |x| x.id == cert_id }
+          c&.delete!
+          UI.message('the run\'s certificate is revoked')
+        rescue StandardError => e
+          UI.important("could not revoke the run's certificate: #{e.message}")
+        end
+      end
+    end
+  end
+end
