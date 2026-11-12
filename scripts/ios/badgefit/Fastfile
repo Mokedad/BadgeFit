@@ -19,10 +19,37 @@ platform :ios do
     setup_ci # a temporary keychain for the certificate
     cert_id = nil
     begin
-      get_certificates(api_key: key, development: false, generate_apple_certs: true, output_path: 'build/signing')
-      cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
+      require 'openssl'
+      require 'base64'
+      require 'fileutils'
+      Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+        key_id: ENV.fetch('ASC_KEY_ID'), issuer_id: ENV.fetch('ASC_ISSUER_ID'), filepath: ENV.fetch('ASC_KEY_FILE'))
+      dist = Spaceship::ConnectAPI::Certificate::CertificateType::DISTRIBUTION
+      # Certificates left by a run that died before its clean-up: this account signs only here,
+      # and a build already uploaded does not need its certificate any more.
+      Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: dist }).each do |old|
+        UI.message("revoking a left-over distribution certificate (#{old.id})")
+        old.delete!
+      end
+      # A fresh key and certificate for this run, into the temporary keychain.
+      sign_dir = File.join(File.expand_path('..', Dir.pwd), 'build', 'signing') # the lane runs in fastlane/
+      FileUtils.mkdir_p(sign_dir)
+      pkey = OpenSSL::PKey::RSA.new(2048)
+      csr = OpenSSL::X509::Request.new
+      csr.version = 0
+      csr.subject = OpenSSL::X509::Name.parse('/CN=BadgeFit CI/C=AU')
+      csr.public_key = pkey.public_key
+      csr.sign(pkey, OpenSSL::Digest.new('SHA256'))
+      made = Spaceship::ConnectAPI::Certificate.create(certificate_type: dist, csr_content: csr.to_pem)
+      cert_id = made.id
+      File.write(File.join(sign_dir, 'dist.key'), pkey.to_pem)
+      File.binwrite(File.join(sign_dir, 'dist.cer'), Base64.decode64(made.certificate_content))
+      kc = 'fastlane_tmp_keychain'
+      import_certificate(certificate_path: File.join(sign_dir, 'dist.key'), keychain_name: kc, keychain_password: '', log_output: true)
+      import_certificate(certificate_path: File.join(sign_dir, 'dist.cer'), keychain_name: kc, keychain_password: '', log_output: true)
+      sh('security find-identity -v -p codesigning | tail -3')
       get_provisioning_profile(api_key: key, app_identifier: BUNDLE_ID, cert_id: cert_id,
-                               force: true, output_path: 'build/signing', filename: 'BadgeFit_AppStore.mobileprovision')
+                               force: true, output_path: sign_dir, filename: 'BadgeFit_AppStore.mobileprovision')
       profile = lane_context[SharedValues::SIGH_NAME]
       update_code_signing_settings(
         use_automatic_signing: false, path: 'App.xcodeproj', targets: ['App'],
@@ -39,8 +66,6 @@ platform :ios do
     ensure
       if cert_id
         begin
-          Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
-            key_id: ENV.fetch('ASC_KEY_ID'), issuer_id: ENV.fetch('ASC_ISSUER_ID'), filepath: ENV.fetch('ASC_KEY_FILE'))
           c = Spaceship::ConnectAPI::Certificate.all.find { |x| x.id == cert_id }
           c&.delete!
           UI.message('the run\'s certificate is revoked')
