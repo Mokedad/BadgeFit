@@ -1324,6 +1324,9 @@ function passwordAttempt(req, res, k) {
 // `act` names the change being confirmed ('email', 'password-set', 'passkey-remove', …): a failed
 // proof is logged as `auth.proof.fail` for that change, not as a failed sign-in — the owner was
 // signed in all along, and "Password sign-in failed" sent an admin looking for the wrong thing.
+// When each profile last signed in through Google or Apple (in memory: a restart only asks again).
+const socialFresh = new Map();
+const SOCIAL_FRESH_MS = 10 * 60000;
 async function proveOwner(req, res, user, body, act) {
   if (body.credential) {
     if (await passkeyStepUp(user, body)) return 'passkey';
@@ -1331,8 +1334,13 @@ async function proveOwner(req, res, user, body, act) {
     json(res, 403, { error: 'the passkey could not be verified', code: 'passkey' });
     return null;
   }
+  // A profile that signs in with Google or Apple has neither a passkey nor a password to show
+  // again: signing in with that provider in the last few minutes is its proof (socialFinish
+  // notes the time). Without it the answer says so, and the screen offers the sign-in again.
+  if (user.social && Object.keys(user.social).length && Date.now() - (socialFresh.get(user.id) || 0) < SOCIAL_FRESH_MS) return 'social';
   if (!passwordWayIn(user)) {
-    json(res, 403, { error: 'confirm with your passkey first', code: 'passkey-required' });
+    if (user.social && Object.keys(user.social).length) json(res, 403, { error: 'sign in with Google or Apple again to confirm', code: 'social-required' });
+    else json(res, 403, { error: 'confirm with your passkey first', code: 'passkey-required' });
     return null;
   }
   const current = typeof body.current === 'string' ? body.current : '';
@@ -2173,6 +2181,7 @@ async function socialFinish(p, req, res, { code, state, user: appleUser, error }
     saveDb();
     isNew = true;
   }
+  socialFresh.set(user.id, Date.now());
   audit(req, isNew ? 'auth.register.ok' : 'auth.login.ok', { user, msg: p });
   redirect(res, appHome(isNew ? '?welcome=1#/police' : '#/police'), [...sessionCookie(user), clear]);
 }

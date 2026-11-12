@@ -101,6 +101,11 @@ const History = lazyView(() => import('./views/History.jsx'))
 const Library = lazyView(() => import('./views/Library.jsx'))
 const Muscles = lazyView(() => import('./views/Muscles.jsx'))
 const PoliceFit = lazyView(() => import('./views/PoliceFit.jsx'))
+const LinkApp = lazyView(() => import('./views/LinkApp.jsx'))
+// BadgeFit: the phone app sent the browser here to link it (views/LinkApp.jsx). Kept through the
+// sign-in, which comes back on another screen.
+const LINK_FLAG = 'badgefit_link_app'
+try { if (/^#\/link-app/.test(window.location.hash)) sessionStorage.setItem(LINK_FLAG, '1') } catch { /* private mode */ }
 const Community = lazyView(() => import('./views/Community.jsx'))
 const SettingsRoute = lazyView(() => import('./views/Settings.jsx').then(m => ({ default: m.SettingsRoute })))
 // The app tour's overlay (components/Tour.jsx): fetched when it opens, never before.
@@ -312,6 +317,11 @@ function Shell() {
   const tour = useTour()
   const tourAsked = useRef(false)
   const setupDone = authed && ready && !needsMobileOnboarding && !permSteps
+  // Signed in with the app waiting to be linked: on to the link page, whatever screen sign-in chose.
+  useEffect(() => {
+    if (!user || MOBILE) return
+    try { if (sessionStorage.getItem(LINK_FLAG) && !/^#\/link-app/.test(window.location.hash)) window.location.hash = '#/link-app' } catch { /* private mode */ }
+  }, [user, loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   // A tapped NFC sticker (components/Nfc.jsx): one that opened the app waits for the setup.
   useNfcTagLinks(setupDone)
   // A friend's routine link (components/RoutineShare.jsx): the same wait for the setup.
@@ -357,6 +367,7 @@ function Shell() {
       <Route path="/library" element={<Library />} />
       <Route path="/muscles" element={<Muscles />} />
       <Route path="/police" element={<PoliceFit />} />
+      <Route path="/link-app" element={<LinkApp />} />
       <Route path="/community" element={<Community />} />
       <Route path="/structural-balance" element={<StructuralBalance />} />
       {isOn(S, 'body') && <Route path="/progress-photos" element={<ProgressPhotos />} />}

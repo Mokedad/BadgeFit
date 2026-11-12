@@ -144,16 +144,38 @@ export function ConnectSheet({ close, initialUrl = '', again = false }) {
 // the dumbbell. The code comes from the website: sign in there (Google, Apple or a password),
 // then Settings → Account → Pair the mobile app.
 function BadgeFitOnboarding() {
-  const { chooseLocalMode } = useStore()
+  const { chooseLocalMode, connectToServer } = useStore()
+  const [busy, setBusy] = useState(false)
+  // Sign in on the website (Google, Apple or a password), which hands the code back through a
+  // badgefit://pair?code=... link (views/LinkApp.jsx): nothing to type.
+  const signIn = () => { window.open(`https://${BRAND.server}/#/link-app`, '_blank', 'noopener') }
+  useEffect(() => {
+    let off = null, gone = false
+    const got = async url => {
+      const m = /^badgefit:\/\/pair\/?\?(?:.*&)?code=([A-Za-z0-9]+)/.exec(String(url || ''))
+      if (!m || gone) return
+      setBusy(true)
+      try { await connectToServer(BRAND.server, m[1].toUpperCase(), askAddDeviceData); useUI.getState().toast('Signed in') }
+      catch (e) { useUI.getState().toast(e?.message || 'Could not link the app. Try again.') }
+      finally { if (!gone) setBusy(false) }
+    }
+    import('@capacitor/app').then(({ App }) => {
+      App.getLaunchUrl?.().then(r => { if (r?.url) got(r.url) }).catch(() => {})
+      Promise.resolve(App.addListener('appUrlOpen', e => { if (e?.url) got(e.url) })).then(h => { if (gone) h?.remove?.(); else off = h })
+    }).catch(() => {})
+    return () => { gone = true; off?.remove?.() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
   return <div className="narrow" style={wrap}>
     <div style={{ display: 'flex', justifyContent: 'center' }}><BadgeLogo size={84} /></div>
     <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
-    <Button variant="primary" icon="cloud" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} initialUrl={BRAND.server} />)}>Connect my BadgeFit account</Button>
+    <Button variant="primary" onClick={signIn} disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
     <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
-      In Safari, open {BRAND.server} and sign in. Then Settings → Account → “Pair the mobile app” shows a code to enter here. Your plan, workouts and Hayden come with you.
+      Opens {BRAND.server} to sign in with Google, Apple or your password, then brings you straight back. Your plan, workouts and Hayden come with you.
     </div>
+    <div style={{ height: 14 }} />
+    <Button variant="ghost" className="dim" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} initialUrl={BRAND.server} />)}>Enter a code instead</Button>
     <div style={{ height: 22 }} />
     <Button variant="ghost" className="dim" onClick={() => chooseLocalMode()}>Use without an account</Button>
   </div>

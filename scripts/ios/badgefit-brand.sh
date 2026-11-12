@@ -23,6 +23,8 @@ PLIST="$APP/App/Info.plist"
 ENT="$APP/App/App.entitlements"
 sed -i '' 's/openGym/BadgeFit/g' "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName BadgeFit" "$PLIST"
+# badgefit:// links: the website hands the app its sign-in this way (views/LinkApp.jsx).
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes: string badgefit" "$PLIST"
 # Links to the BadgeFit app domain open in the app.
 sed -i '' 's/applinks:opengym\.ch/applinks:app.badgefit.com.au/' "$ENT"
 # No widgets or watch app in this build, so nothing shares the App Group yet: left out, so the
