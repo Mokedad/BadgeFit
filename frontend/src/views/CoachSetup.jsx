@@ -21,6 +21,7 @@ import { coachLimits, clampCoachLimit, COACH_LIMITS } from '../lib/coach-device.
 import { HTTP_PROVIDERS, HTTP_PROVIDER_IDS, baseUrlFor, validateBaseUrl, phoneMayCall } from '../../../api/coach/core/providers.js'
 import { DATA_CATEGORIES } from '../../../api/coach/core/categories.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
+import { BADGEFIT_APP, toSignIn } from '../lib/police/guest.js'
 import { AiConsentSection } from '../components/CoachConsentSheet.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, Button, TextField } from '../components/ui.jsx'
@@ -83,7 +84,7 @@ export default function CoachSetup() {
   const serverHasCoach = !!(user && config?.coach?.enabled)
 
   const useServer = async () => {
-    if (!user) return openSheet(close => <ConnectSheet close={close} />)
+    if (!user) return BADGEFIT_APP ? toSignIn() : openSheet(close => <ConnectSheet close={close} />)
     await setCoachLocal({ mode: 'server' })
     toast(t('The Coach is on'))
     nav('/coach')

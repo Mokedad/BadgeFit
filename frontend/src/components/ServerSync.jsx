@@ -14,6 +14,7 @@ import { DEMO } from '../lib/demo.js'
 import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
 import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
+import { BADGEFIT_APP, toSignIn } from '../lib/police/guest.js'
 import { Section, Row, Button } from './ui.jsx'
 
 const ui = () => useUI.getState()
@@ -117,10 +118,13 @@ export async function syncNowWithToast() {
 // A phone whose server refuses it, or that an earlier version unpaired: the connect sheet, with
 // the address it had where it still has one. The same account merges what the phone kept.
 export function pairAgain() {
+  // BadgeFit has no pairing codes: signing in again on the first screen links the phone.
+  if (BADGEFIT_APP) { toSignIn(); return }
   const server = useStore.getState().sync?.server || ''
   ui().openSheet(close => <ConnectSheet close={close} initialUrl={server} again />)
 }
 export function connectServer() {
+  if (BADGEFIT_APP) { toSignIn(); return }
   ui().openSheet(close => <ConnectSheet close={close} />)
 }
 

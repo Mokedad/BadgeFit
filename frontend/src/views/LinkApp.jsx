@@ -27,9 +27,11 @@ export default function LinkApp() {
       // Straight back into the app; the button below is there when the browser asks first.
       setTimeout(() => { try { window.location.href = appLink(r.code) } catch { /* the button does it */ } }, 300)
     } catch (e) {
-      if (e?.code === 'social-required') setNeed('social')
-      else if (e?.code === 'current-required') setNeed('password')
-      else if (e?.code === 'current-wrong') { setNeed('password'); setErr('That password is not right.') }
+      // The server's reason rides in the answer's body (lib/api.js puts it on e.data).
+      const why = e?.data?.code || e?.code
+      if (why === 'social-required') setNeed('social')
+      else if (why === 'current-required') setNeed('password')
+      else if (why === 'current-wrong') { setNeed('password'); setErr('That password is not right.') }
       else { setNeed('other'); setErr(e?.message || 'Could not make a code. Try again.') }
     }
   }

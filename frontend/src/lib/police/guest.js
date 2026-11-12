@@ -8,6 +8,8 @@ import { setBrand } from '../i18n-core.js'
 import { BRAND } from './brand.js'
 
 const APP = MOBILE && import.meta.env?.MODE !== 'test'
+/** The BadgeFit phone app (it has no pairing codes: every way to an account is the sign-in screen). */
+export const BADGEFIT_APP = APP
 // The app's name in every translated line: the phone app from the start, the website once its
 // server says it is BadgeFit's.
 if (APP) setBrand(BRAND.name)

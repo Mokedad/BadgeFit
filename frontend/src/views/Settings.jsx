@@ -1201,7 +1201,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
       </div>
     </>,
 
-    // BadgeFit: pairing codes, device links, passkeys and the account id are the owner's to see.
+    // BadgeFit: no pairing or device codes anywhere (the app signs in on its own sheet); passkeys
+    // and the account id are the owner's to see.
     // A member's Account page is their name, sync, password and Log out.
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
@@ -1210,7 +1211,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         {MOBILE && <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {/* A code to sign in on a computer (#551), behind the same proof as in a browser. */}
-          {!plain && <DeviceLinkRow state={passkeys.st} />}
+          {!badgefit && <DeviceLinkRow state={passkeys.st} />}
           {!plain && <AccountIdRow id={user.id} />}
           <Row icon="signOut" iconTint="var(--red)" title={badgefit ? 'Log out' : t('Disconnect')} danger onClick={disconnect} />
         </>}
@@ -1234,8 +1235,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
         </> : user ? <>
           {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           {!plain && <PasskeysRow state={passkeys.st} changed={credsChanged} />}
-          {!plain && <DeviceLinkRow state={passkeys.st} />}
-          {!plain && <Row icon="qr" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the openGym app on your phone to this account.')} accessory="chevron"
+          {!badgefit && <DeviceLinkRow state={passkeys.st} />}
+          {!badgefit && <Row icon="qr" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the openGym app on your phone to this account.')} accessory="chevron"
             onClick={() => useUI.getState().openSheet(close => <PairSheet close={close} />)} />}
           {pwOn && <PasswordRow version={credsV} />}
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />

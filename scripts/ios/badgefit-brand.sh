@@ -23,6 +23,8 @@ PLIST="$APP/App/Info.plist"
 ENT="$APP/App/App.entitlements"
 sed -i '' 's/openGym/BadgeFit/g' "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName BadgeFit" "$PLIST"
+# The name iOS uses in its own dialogs ("BadgeFit" Wants to Use ... to Sign In), not "App".
+/usr/libexec/PlistBuddy -c "Set :CFBundleName BadgeFit" "$PLIST"
 # badgefit:// links: the website hands the app its sign-in this way (views/LinkApp.jsx).
 /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes: string badgefit" "$PLIST"
 # Hayden with the screen locked (RunCuesPlugin.swift): the app may play audio in the background.
