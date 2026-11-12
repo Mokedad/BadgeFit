@@ -3,11 +3,11 @@
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
-import { pocketCues, pocketSchedule, pocketClear, pocketHanded } from '../lib/police/pocket.js'
+import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
 import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
 import { emptyTrack, addFix, paceOf, fmtPace, kmOf, livePace, thinRoute, routePath } from '../lib/police/gps.js'
-import { say, say as sayAloud } from '../lib/police/voice.js'
+import { say, say as sayAloud, preloadSpeech, clipFor } from '../lib/police/voice.js'
 import { checkInMinutes, checkInLine, statLines, intenseLine } from '../lib/police/run-coach.js'
 import { runResult } from '../lib/police/run-result.js'
 import { todayISO } from '../lib/format.js'
@@ -123,6 +123,9 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     try { audio.current = new (window.AudioContext || window.webkitAudioContext)() } catch { audio.current = null }
     try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
     runStart.current = Date.now(); setStarted(true); go(0)
+    // Hayden's voice for the steps ahead, fetched now, one after another: said without a wait
+    // when each is due, and handed to the phone for when it is locked (lib/police/pocket.js).
+    ;(async () => { for (const text of new Set(pocketCues(run, 0, 0, say).map(c => c.text))) await preloadSpeech(text).catch(() => {}) })()
   }
   const togglePause = () => {
     if (paused) { segStart.current += Date.now() - pausedAt.current; runStart.current += Date.now() - pausedAt.current; setPaused(false) }
@@ -174,7 +177,8 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     const hand = () => {
       if (document.visibilityState !== 'hidden') { pocketClear(); return }
       const c = pocket.current
-      if (c.on) pocketSchedule(pocketCues(run, c.idx, (Date.now() - segStart.current) / 1000, say))
+      // With Hayden's own voice for every step whose clip is ready (fetched at Start, below).
+      if (c.on) withClips(pocketCues(run, c.idx, (Date.now() - segStart.current) / 1000, say), clipFor).then(pocketSchedule)
     }
     document.addEventListener('visibilitychange', hand)
     return () => { document.removeEventListener('visibilitychange', hand); pocketClear() }

@@ -5,7 +5,7 @@
 // app unpaired) the device's own speech reads it, with the most natural male voice
 // the device has. Never an imitation of any real person.
 //
-import { pocketSay } from './pocket.js'
+import { pocketSay, pocketPlay, pocketHush } from './pocket.js'
 import { apiPostBlob, apiPostBlobInfo } from '../api.js'
 import { spoken } from './spoken.js'
 import { MOBILE as NATIVE } from '../mobile.js'
@@ -84,9 +84,22 @@ async function sayNow(text, opts = {}) {
   // Hayden talks and brings it back up after, and plays with the silent switch on. A web page
   // cannot do that. It answers when the line starts, so the wait covers the time it takes.
   if (NATIVE) {
+    // One voice everywhere: Hayden's natural voice from the server, played by the phone itself
+    // (lib/police/pocket.js), so it sounds the same in a workout, on a run and behind the lock
+    // screen. The phone's own voice only when the server cannot give a clip (no signal).
+    if (Date.now() > serverOffUntil) {
+      const blob = preloaded.get(String(text)) || await apiPostBlob('/api/coach/speak', { text: String(text) }, 9000)
+      if (blob && blob.size > 100) {
+        const ms = await pocketPlay(blob)
+        if (ms > 0) {
+          opts.onStart?.()
+          await new Promise(r => { nativeStop = () => { pocketHush(); r(false) }; setTimeout(r, ms + 150) })
+          nativeStop = null
+          return true
+        }
+      } else serverOffUntil = Date.now() + 60000
+    }
     const { speakNative } = await import('../rest-alert.js')
-    // During a run or a gym session the pocket session says it: that one plays with the screen
-    // locked (lib/police/pocket.js).
     if (await pocketSay(String(text)) || await speakNative(String(text), { lang: 'en-US', rate: 1, onSilent: true })) {
       opts.onStart?.()
       await new Promise(r => { nativeStop = () => r(false); setTimeout(r, speakMs(text) * 0.7) })
@@ -206,12 +219,15 @@ export function unlockOnce() { if (!unlocked) primeSpeech() }
 
 // Lines fetched ahead of time (the beep test's "Level 7"), so they play the moment they are due.
 const preloaded = new Map()
+/** The clip already fetched for `text` (preloadSpeech), or null. */
+export const clipFor = text => preloaded.get(spoken(String(text))) || null
+
 /** Fetches the server's clip for `text` now, for a say() that must not wait. */
 export async function preloadSpeech(text) {
   const k = spoken(String(text))
   if (preloaded.has(k) || Date.now() <= serverOffUntil) return
   const blob = await apiPostBlob('/api/coach/speak', { text: k })
-  if (blob && blob.size > 100) { preloaded.set(k, blob); if (preloaded.size > 40) preloaded.delete(preloaded.keys().next().value) }
+  if (blob && blob.size > 100) { preloaded.set(k, blob); if (preloaded.size > 80) preloaded.delete(preloaded.keys().next().value) }
 }
 
 /**

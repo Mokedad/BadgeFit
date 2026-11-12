@@ -68,6 +68,39 @@ export async function pocketClear() {
 /** Whether the phone is saying the run's steps itself right now (the app keeps quiet). */
 export const pocketHanded = () => handed
 
+const b64 = blob => new Promise(res => {
+  try { const r = new FileReader(); r.onload = () => res(String(r.result || '').split(',')[1] || ''); r.onerror = () => res(''); r.readAsDataURL(blob) } catch { res('') }
+})
+
+/**
+ * Plays a clip of Hayden's natural voice (the server's, lib/police/voice.js) through the phone
+ * itself: over the music, which dips under it, with the screen locked and the silent switch on.
+ * The clip's length in ms once it has started, 0 when it could not be played here.
+ */
+export async function pocketPlay(blob) {
+  const p = await native()
+  if (!p || !blob) return 0
+  try { const audio = await b64(blob); if (!audio) return 0; return (await p.play({ audio }))?.ms || 0 } catch { return 0 }
+}
+
+/** Stops whatever the phone is saying for Hayden. */
+export async function pocketHush() { const p = plugin; try { await p?.hush() } catch { /* nothing playing */ } }
+
+/**
+ * The handed steps with Hayden's own voice attached where a clip is ready (`clipOf(text)` → Blob
+ * or null), within a size the bridge takes comfortably; the rest are said in the phone's voice.
+ */
+export async function withClips(cues, clipOf, budget = 6e6) {
+  const out = []
+  let used = 0
+  for (const c of cues) {
+    const blob = clipOf?.(c.text)
+    if (blob && used + blob.size <= budget) { const audio = await b64(blob); if (audio) { used += blob.size; out.push({ ...c, audio }); continue } }
+    out.push(c)
+  }
+  return out
+}
+
 /** Says one line through the pocket session (it survives the lock screen); false when not kept. */
 export async function pocketSay(text) {
   if (!keeping) return false

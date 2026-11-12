@@ -10,10 +10,13 @@ import AVFoundation
  *                       during a run, a walk or a gym session (needs the `audio` background mode)
  *   schedule({ cues })  [{ in: seconds from now, text }]: said by the phone itself at their times
  *   clear()             forgets the scheduled lines (the app is on screen and speaks for itself)
- *   say({ text })       one line now, through the same session
+ *   say({ text })       one line now, through the same session, in the phone's own voice
+ *   play({ audio })     one clip now (base64 WAV: Hayden's natural voice from the server), with
+ *                       the music turned down under it; answers { ms } when it starts
+ * A scheduled cue may carry `audio` too: the clip is played, the phone's voice only without one.
  */
 @objc(RunCuesPlugin)
-public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate {
+public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
     public let identifier = "RunCuesPlugin"
     public let jsName = "RunCues"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -21,10 +24,13 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         CAPPluginMethod(name: "schedule", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "say", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "play", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "hush", returnType: CAPPluginReturnPromise),
     ]
 
     private let speech = AVSpeechSynthesizer()
     private var keeper: AVAudioPlayer?
+    private var clip: AVAudioPlayer?
     private var watch: Timer?
     private var timers: [Timer] = []
     private var on = false
@@ -58,7 +64,7 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     }
 
     private func startKeeper() {
-        if AVAudioSession.sharedInstance().category != .playAndRecord { session(duck: speech.isSpeaking) }
+        if AVAudioSession.sharedInstance().category != .playAndRecord { session(duck: talking) }
         if keeper == nil {
             keeper = try? AVAudioPlayer(data: RunCuesPlugin.silence())
             keeper?.numberOfLoops = -1
@@ -84,6 +90,7 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
             } else {
                 self.dropCues()
                 self.speech.stopSpeaking(at: .immediate)
+                self.clip?.stop(); self.clip = nil
                 self.keeper?.stop(); self.keeper = nil
                 try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             }
@@ -102,9 +109,13 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
             self.dropCues()
             for cue in cues.prefix(80) {
                 guard let text = cue["text"] as? String, !text.isEmpty else { continue }
+                let audio = (cue["audio"] as? String).flatMap { Data(base64Encoded: $0) }
                 let after = (cue["in"] as? NSNumber)?.doubleValue ?? 0
                 guard after > 0 else { continue }
-                let t = Timer(timeInterval: after, repeats: false) { _ in self.speak(text) }
+                let t = Timer(timeInterval: after, repeats: false) { _ in
+                    if let audio = audio, self.playClip(audio) > 0 { return }
+                    self.speak(text)
+                }
                 RunLoop.main.add(t, forMode: .common)
                 self.timers.append(t)
             }
@@ -130,6 +141,44 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         }
     }
 
+    @objc func play(_ call: CAPPluginCall) {
+        guard let b64 = call.getString("audio"), let data = Data(base64Encoded: b64) else {
+            call.reject("no audio")
+            return
+        }
+        DispatchQueue.main.async {
+            let ms = self.playClip(data)
+            if ms > 0 { call.resolve(["ms": ms]) } else { call.reject("could not play") }
+        }
+    }
+
+    @objc func hush(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.clip?.stop(); self.clip = nil
+            self.speech.stopSpeaking(at: .immediate)
+            self.ended()
+            call.resolve()
+        }
+    }
+
+    private var talking: Bool { speech.isSpeaking || clip?.isPlaying == true }
+
+    /// Plays one clip over the music (turned down meanwhile); its length in ms, 0 when it cannot.
+    private func playClip(_ data: Data) -> Int {
+        guard let p = try? AVAudioPlayer(data: data) else { return 0 }
+        session(duck: true)
+        clip?.stop()
+        speech.stopSpeaking(at: .immediate)
+        clip = p
+        p.delegate = self
+        guard p.play() else { clip = nil; ended(); return 0 }
+        return max(1, Int(p.duration * 1000))
+    }
+
+    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        if player === clip { clip = nil; ended() }
+    }
+
     private func speak(_ text: String) {
         session(duck: true)
         let u = AVSpeechUtterance(string: text)
@@ -153,7 +202,7 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     /// Music back up once nothing is left to say; the silent session stays while a session is on.
     private func ended() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            guard !self.speech.isSpeaking else { return }
+            guard !self.talking else { return }
             if self.on { self.session(duck: false) } else {
                 try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             }

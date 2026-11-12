@@ -71,7 +71,7 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
    *  and (three times that) per address. Past it the app falls back to the phone's own voice. */
   const guestSpeech = new Map(); // id or address → { date, count }
   const guestSpeakOk = (req, user) => {
-    const per = (cfgStore.load().caps?.guestAskDaily ?? 15) * 4;
+    const per = (cfgStore.load().caps?.guestAskDaily ?? 15) * 10; // a run's steps and a session's cues, not only answers
     const ip = 'ip:' + String(req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket?.remoteAddress || 'unknown');
     const d = new Date().toISOString().slice(0, 10);
     const used = k => { const r = guestSpeech.get(k); return r && r.date === d ? r.count : 0; };
