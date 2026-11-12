@@ -41,6 +41,7 @@ import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
 import TodaySwipe from '../components/TodaySwipe.jsx'
 import { isBadgeFit, isBadgeFitGuest, toSignIn } from '../lib/police/guest.js'
+import { offerHealthOnce } from '../lib/police/health-ask.js'
 import { useUI } from '../store/useUI.js'
 import { REST } from '../lib/rotation.js'
 import { weeklyFocus } from '../lib/police/weekly-focus.js'
@@ -181,6 +182,12 @@ export default function Home() {
     try { if (sessionStorage.getItem('badgefit_welcomed')) return; sessionStorage.setItem('badgefit_welcomed', '1') } catch { /* private mode */ }
     nav('/police')
   }, [config?.passkeys]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The phone app offers Apple Health once the plan is set up (lib/police/health-ask.js).
+  useEffect(() => {
+    if (!S.police?.start) return
+    const tm = setTimeout(() => { import('../sheets.jsx').then(m => offerHealthOnce(useStore.getState().S, m.confirmSheet, useUI.getState().toast)).catch(() => {}) }, 2500)
+    return () => clearTimeout(tm)
+  }, [S.police?.start])
   const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
 
   return <div className="narrow">

@@ -1,3 +1,4 @@
+import { LENGTHS, trimEntries, sessionMinutes } from './lib/police/session-length.js'
 import { RUNS, CATEGORIES as RUN_CATEGORIES, runMinutes } from './lib/police/runs.js'
 import { ensureRunRoutine, runForRoutine } from './lib/police/run-routines.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
@@ -3498,14 +3499,39 @@ export function startFlow(routineIds) {
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   // Off in Settings → Workout, or with the Body module (Settings → Modules): straight into the session.
-  if (S().weighIn === false || !isOn(S(), 'body')) { beginWorkout(routineIds, null); return }
-  bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
+  const begin = len => {
+    if (S().weighIn === false || !isOn(S(), 'body')) { beginWorkout(routineIds, null, { len }); return }
+    bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw, { len }) })
+  }
+  // BadgeFit: how long have you got today? A long session can be cut to its main lifts for the
+  // day (lib/police/session-length.js); the plan itself stays as it is.
+  const full = P?.level ? buildCombinedEntries(S(), routineIds).entries : []
+  if (full.length > 3) {
+    const last = P.sessionLen || 'full'
+    menuSheet({
+      title: 'How long have you got?',
+      subtitle: 'Hayden cuts today down to the lifts that matter most. Your plan stays the same.',
+      items: LENGTHS.map(l => {
+        const cut = trimEntries(full, l.id)
+        return {
+          icon: l.id === 'quick' ? 'bolt' : l.id === 'standard' ? 'timer' : 'dumbbell', accent: l.id === last,
+          label: `${l.label} · about ${sessionMinutes(cut)} min`,
+          sub: `${cut.length} exercises${l.sets === Infinity ? ', every set' : ', 3 sets each'}`,
+          onClick: () => { update(s => { if (s.police) s.police.sessionLen = l.id }); begin(l.id) },
+        }
+      }),
+    })
+    return
+  }
+  begin(null)
 }
 // `opts` from the Apple Watch (lib/watch-sync.js): a session started there keeps the watch's id,
 // so the sets ticked on it find it, and its start time, however late the phone hears of it.
-export function beginWorkout(routineIds, bw, { id = null, start = null } = {}) {
+export function beginWorkout(routineIds, bw, { id = null, start = null, len = null } = {}) {
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  const built = buildCombinedEntries(st, routineIds)
+  const { routineIds: rids, routines } = built
+  const entries = len ? trimEntries(built.entries, len) : built.entries
   const startAt = Number.isFinite(start) && start > 0 ? start : Date.now()
   update(s => {
     s.active = {

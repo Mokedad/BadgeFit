@@ -108,7 +108,7 @@ function SimpleLogin({ config }) {
     {/* A look around first: the simple plan and a few questions a day with Hayden, nothing saved
         to an account (ALLOW_GUEST on the server). */}
     {guestAllowed(config) && <button className="ls-link" onClick={() => useStore.getState().setGuest(true)}>Try it as a guest</button>}
-    <p className="ls-fine">Your training, your data. Free to start.</p>
+    <p className="ls-fine">Your training, your data. Free to start. <a href="privacy.html" target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy</a></p>
   </div></div>
 }
 

@@ -22,6 +22,7 @@ import { workoutVolume } from './lib/history.js'
 import { setSystemBarsLight } from './lib/system-bars.js'
 import { initBackButton } from './lib/back.js'
 import { installEdgeSwipeBack, BACK_PREVIEW_EVENT } from './lib/edge-swipe-back.js'
+import { installTabSwipe } from './lib/tab-swipe.js'
 import { pageMotion } from './lib/page-motion.js'
 import { startWatchSync, bindWatchAppActions, patchSetIn, watchStatus, watchClaimed, onWatchClaim } from './lib/watch-sync.js'
 import { readWatchPrefs, readWatchStatus } from './lib/watch-settings.js'
@@ -316,6 +317,14 @@ function Shell() {
   const noTabs = inWorkout || loc.pathname === '/coach' || loc.pathname === '/link-app' || needsMobileOnboarding || permSteps
 
   const authed = user || isGuest
+  // Swipe left or right between the tabs, as well as tapping them (lib/tab-swipe.js). Not during
+  // a workout, the first-run screens or with something open over the page.
+  const swipeRef = useRef({})
+  swipeRef.current = { loc, ok: authed && !noTabs }
+  useEffect(() => installTabSwipe(
+    () => (swipeRef.current.ok && document.body.style.position !== 'fixed' ? swipeRef.current.loc : { pathname: '', search: '' }),
+    to => navigate(to.path + to.search, { replace: true })
+  ), []) // eslint-disable-line react-hooks/exhaustive-deps
   // The first setup is through (sign-in or "Use on this device", and the phone's permission
   // steps): "Want a 1-minute tour?" once, on a profile with nothing logged yet, or "Finish the
   // tour?" once after one was closed halfway (lib/tour.js). A moment after the screen settles,

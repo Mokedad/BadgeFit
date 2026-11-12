@@ -204,6 +204,7 @@ function BadgeFitOnboarding() {
     {/* Someone already in the app as a guest goes straight back to it; a first launch sets it up. */}
     <Button variant="ghost" className="dim" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>{returning ? 'Keep going as a guest' : 'Try it as a guest'}</Button>
     <div className="dim small" style={{ marginTop: 10, lineHeight: 1.5 }}>Guests get the simple plan and 15 questions a day with Hayden. Sign up any time from Home or Settings.</div>
+    <a className="dim small" style={{ marginTop: 18, textDecoration: 'underline' }} href={`https://${BRAND.server}/privacy.html`} target="_blank" rel="noopener">Privacy policy</a>
   </div>
 }
 
