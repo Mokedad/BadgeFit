@@ -1,9 +1,9 @@
 # BadgeFit to TestFlight (.github/workflows/badgefit-testflight.yml copies this into
 # frontend/ios/App/fastlane/ on the Mac runner). App Store signing made for the run with the App
 # Store Connect API key: a distribution certificate and an App Store profile, so no registered
-# device is needed (Xcode's automatic signing asks for one). The certificate is revoked again at
-# the end, so runs do not pile certificates up against Apple's limit; a build already uploaded
-# stays valid.
+# device is needed (Xcode's automatic signing asks for one). A run's certificate is revoked by the
+# next run, not by itself, so certificates do not pile up against Apple's limit and an uploaded
+# build keeps a valid signature while Apple processes it.
 default_platform(:ios)
 
 BUNDLE_ID = 'au.com.badgefit.app'
@@ -18,17 +18,28 @@ platform :ios do
     )
     setup_ci # a temporary keychain for the certificate
     cert_id = nil
-    begin
+    begin # (kept as a block: the signing steps read as one)
       require 'openssl'
       require 'base64'
       require 'fileutils'
       Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
         key_id: ENV.fetch('ASC_KEY_ID'), issuer_id: ENV.fetch('ASC_ISSUER_ID'), filepath: ENV.fetch('ASC_KEY_FILE'))
       dist = Spaceship::ConnectAPI::Certificate::CertificateType::DISTRIBUTION
-      # Certificates left by a run that died before its clean-up: this account signs only here,
-      # and a build already uploaded does not need its certificate any more.
-      Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: dist }).each do |old|
-        UI.message("revoking a left-over distribution certificate (#{old.id})")
+      # The certificates of earlier runs are revoked here, at the start of the next one, never at
+      # the end of their own: Apple checks an upload's signature while it processes the build,
+      # minutes after the upload, and a certificate revoked by then makes the build "Invalid
+      # Signature" (ITMS-90035, build 110). The newest is kept while it may still be in that
+      # check (made within the last 45 minutes); this account signs only here.
+      require 'time'
+      olds = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: dist })
+      made_at = ->(c) { (Time.parse(c.expiration_date.to_s) - 365 * 86_400 rescue Time.at(0)) }
+      olds = olds.sort_by { |c| made_at.call(c) }.reverse
+      olds.each_with_index do |old, i|
+        if i.zero? && Time.now - made_at.call(old) < 45 * 60
+          UI.message("keeping the last run's certificate (#{old.id}): its build may still be processing")
+          next
+        end
+        UI.message("revoking an earlier run's distribution certificate (#{old.id})")
         old.delete!
       end
       # A fresh key and certificate for this run, into the temporary keychain.
@@ -63,16 +74,6 @@ platform :ios do
         buildlog_path: 'build', xcargs: "DEVELOPMENT_TEAM=#{ENV.fetch('APPLE_TEAM_ID')}"
       )
       upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true)
-    ensure
-      if cert_id
-        begin
-          c = Spaceship::ConnectAPI::Certificate.all.find { |x| x.id == cert_id }
-          c&.delete!
-          UI.message('the run\'s certificate is revoked')
-        rescue StandardError => e
-          UI.important("could not revoke the run's certificate: #{e.message}")
-        end
-      end
     end
   end
 end
