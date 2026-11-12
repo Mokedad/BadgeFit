@@ -10,6 +10,8 @@ import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
 import { normalizeServerUrl } from '../lib/remote.js'
+import { BRAND } from '../lib/police/brand.js'
+import BadgeLogo from '../components/BadgeLogo.jsx'
 import { loadCfAccess, saveCfAccess } from '../lib/cf-access.js'
 import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 
@@ -138,8 +140,28 @@ export function ConnectSheet({ close, initialUrl = '', again = false }) {
   </div>
 }
 
+// BadgeFit's phone app: straight to its own server (lib/police/brand.js), the shield instead of
+// the dumbbell. The code comes from the website: sign in there (Google, Apple or a password),
+// then Settings → Account → Pair the mobile app.
+function BadgeFitOnboarding() {
+  const { chooseLocalMode } = useStore()
+  const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
+  return <div className="narrow" style={wrap}>
+    <div style={{ display: 'flex', justifyContent: 'center' }}><BadgeLogo size={84} /></div>
+    <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
+    <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
+    <Button variant="primary" icon="cloud" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} initialUrl={BRAND.server} />)}>Connect my BadgeFit account</Button>
+    <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
+      In Safari, open {BRAND.server} and sign in. Then Settings → Account → “Pair the mobile app” shows a code to enter here. Your plan, workouts and Hayden come with you.
+    </div>
+    <div style={{ height: 22 }} />
+    <Button variant="ghost" className="dim" onClick={() => chooseLocalMode()}>Use without an account</Button>
+  </div>
+}
+
 export default function MobileOnboarding() {
   const { chooseLocalMode } = useStore()
+  if (BRAND.server) return <BadgeFitOnboarding />
   const head = <>
     <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="dumbbell" /></div>
     <h1 className="t-large" style={{ fontWeight: 700, margin: '10px 0 4px' }}>openGym</h1>

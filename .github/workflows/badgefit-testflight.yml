@@ -1,0 +1,104 @@
+# BadgeFit for the iPhone, signed and sent to TestFlight from a GitHub Mac (no Mac needed).
+# Started by a push that changes scripts/ios/badgefit/BUILD (bump the number in it), or by hand.
+#
+# Signing is Xcode's automatic signing with an App Store Connect API key, kept in the repository
+# secrets: APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8. The key never appears in a log.
+# The app record (au.com.badgefit.app) has to exist in App Store Connect first.
+name: BadgeFit TestFlight
+
+on:
+  push:
+    branches: ['claude/police-fitness-app-6cw4hy']
+    paths: ['scripts/ios/badgefit/BUILD']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: badgefit-testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: The secrets are there
+        run: |
+          for v in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID; do [ -n "${!v}" ] || { echo "::error::the $v secret is missing"; exit 1; }; done
+      - run: npm ci
+        working-directory: frontend
+      # The phone build, copied into ios/App/App/public (pod install retried, as in ios.yml).
+      - name: Phone build
+        run: for i in 1 2 3; do npm run build:mobile && break; [ "$i" = 3 ] && exit 1; echo "::warning::build:mobile failed, retry $i"; sleep 30; done
+        working-directory: frontend
+      # Every build needs a number above the last; the run number plus 100 leaves room.
+      - name: Brand it BadgeFit
+        run: bash scripts/ios/badgefit-brand.sh "$(( GITHUB_RUN_NUMBER + 100 ))"
+      - name: The API key, in a file for xcodebuild
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          [ -n "$ASC_KEY_P8" ] || { echo "::error::the ASC_KEY_P8 secret is missing"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" || { echo "::error::ASC_KEY_P8 does not look like a .p8 key (it should start with -----BEGIN PRIVATE KEY-----)"; exit 1; }
+      - name: Archive, signed
+        working-directory: frontend/ios/App
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/BadgeFit.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic archive \
+            > build/archive.log 2>&1 || { grep -E "error:|Provisioning|provisioning|signing|ARCHIVE" build/archive.log | tail -60; exit 1; }
+          grep -E "ARCHIVE" build/archive.log | tail -3
+          test -d build/BadgeFit.xcarchive/Products/Applications/App.app
+      - name: Upload to TestFlight
+        working-directory: frontend/ios/App
+        run: |
+          set -o pipefail
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath build/BadgeFit.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -exportPath build/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            > build/export.log 2>&1 || { tail -60 build/export.log; exit 1; }
+          tail -5 build/export.log
+          echo "BadgeFit 1.0.0 ($(( GITHUB_RUN_NUMBER + 100 ))) sent to TestFlight. It shows in the TestFlight app after Apple's processing (10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Forget the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
+      - name: Keep the logs when it fails
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: badgefit-testflight-logs
+          path: frontend/ios/App/build/*.log
+          retention-days: 7

@@ -4,6 +4,8 @@
 // before launch.
 export const BRAND = {
   name: 'BadgeFit',
+  // The BadgeFit server the phone app connects to (views/MobileOnboarding.jsx).
+  server: 'app.badgefit.com.au',
   tagline: 'Train for the test. Earn the badge.',
   coach: 'Hayden',
 }
