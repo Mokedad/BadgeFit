@@ -607,3 +607,12 @@
 /* The run player's Music mode switch (top bar). */
 .rp-music{flex:none;border:0;border-radius:999px;padding:6px 11px;font:inherit;font-size:14px;font-weight:700;background:rgba(255,255,255,.16);color:#fff}
 .rp-music.on{background:#ffc629;color:#0d1b33}
+/* GPS on a run (components/RunPlayer.jsx): the live line, and the result's route and splits. */
+.rp-gps{font-size:17px;opacity:.95;font-variant-numeric:tabular-nums}
+.rp-gps b{font-size:22px}
+.rp-gpsdone{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+.rp-stats2{grid-template-columns:repeat(2,1fr)!important;max-width:260px}
+.rp-route{width:min(100%,320px);height:auto;border-radius:16px;background:rgba(255,255,255,.08)}
+.rp-route path{fill:none;stroke:#ffc629;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.rp-splits{list-style:none;margin:0;padding:0;width:min(100%,260px);display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.rp-splits li{display:flex;justify-content:space-between;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.08)}

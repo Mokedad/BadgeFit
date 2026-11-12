@@ -26,7 +26,10 @@ export default function RunHost() {
       const p = s.police || {}
       const at = todayISO()
       const row = { id, at, ...entry }
-      s.police = { ...p, runLog: [...(p.runLog || []), row].slice(-200) }
+      // The route is kept for the last 10 runs only: 200 routes would weigh the synced profile down.
+      const log = [...(p.runLog || []), row].slice(-200)
+      const keep = new Set(log.filter(r => r.route).slice(-10).map(r => r.id))
+      s.police = { ...p, runLog: log.map(r => (r.route && !keep.has(r.id) ? (({ route, ...rest }) => rest)(r) : r)) }
       let ids = []
       try { ids = runCredits(p, effectiveRoutineIds(s, at), entry.run, at) } catch { /* no plan */ }
       s.workouts = [...(s.workouts || []), stampWorkout(runWorkout({ run, entry: row, routineIds: ids }))]
@@ -46,7 +49,8 @@ export default function RunHost() {
     }
   })
   return <Suspense fallback={null}><div className="pf">
-    <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} musicMode={!!P.musicMode} onMusic={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), musicMode: on } })}
+    <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} gps={!!P.gpsRuns} onGps={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), gpsRuns: on } })}
+      musicMode={!!P.musicMode} onMusic={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), musicMode: on } })}
       minimized={minimized} onMinimize={() => useRun.getState().minimize()} onRestore={() => useRun.getState().restore()}
       onClose={() => useRun.getState().close()} onLog={log} onUpdate={update} onUnlog={unlog} />
   </div></Suspense>

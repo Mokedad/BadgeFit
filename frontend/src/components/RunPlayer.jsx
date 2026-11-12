@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
+import { emptyTrack, addFix, paceOf, fmtPace, kmOf, livePace, thinRoute, routePath } from '../lib/police/gps.js'
 import { say, say as sayAloud } from '../lib/police/voice.js'
 import { checkInMinutes, checkInLine, statLines, intenseLine } from '../lib/police/run-coach.js'
 import { runResult } from '../lib/police/run-result.js'
@@ -34,7 +35,7 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, gps = false, onGps, minimized = false, onMinimize, onRestore }) {
   // Read through a ref: the timers' callbacks see a switch made mid-run.
   const musicRef = useRef(musicMode)
   musicRef.current = musicMode
@@ -61,6 +62,12 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
   const savedId = useRef(null)
   const track = useRef(null), dragging = useRef(false)
   const [km, setKm] = useState(null)
+  // GPS, the way a running app tracks a run (lib/police/gps.js): distance, pace, a split and a
+  // word from Hayden each kilometre, and the route kept with the run. Off for a treadmill.
+  const gpsTrack = useRef(emptyTrack()), gpsWatch = useRef(null), pausedRef = useRef(false)
+  const [gpsM, setGpsM] = useState(0)
+  const [gpsState, setGpsState] = useState('off') // off | wait | on | denied
+  pausedRef.current = paused
   const segStart = useRef(0), pausedAt = useRef(0), runStart = useRef(0), audio = useRef(null), wake = useRef(null)
   // Hayden the coach (lib/police/run-coach.js): check-ins at 2, 5, 7, 10 min then every 5, a lift
   // when a hard part starts, each shown for a moment on screen too. Nothing said twice.
@@ -75,6 +82,26 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     sayAloud(text, { music: musicRef.current }).catch(() => {}) // the voice, not the step-text `say` below
     try { navigator.vibrate?.(kind === 'work' ? [80, 60, 80] : 60) } catch { /* none */ }
   }
+  const stopGps = () => { try { if (gpsWatch.current != null) navigator.geolocation.clearWatch(gpsWatch.current) } catch { /* gone */ } gpsWatch.current = null }
+  const startGps = () => {
+    if (gpsWatch.current != null || !navigator.geolocation) { if (!navigator.geolocation) setGpsState('denied'); return }
+    setGpsState(s => (s === 'on' ? s : 'wait'))
+    gpsWatch.current = navigator.geolocation.watchPosition(pos => {
+      const tr = gpsTrack.current, before = tr.splits.length
+      addFix(tr, { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: Date.now() }, { paused: pausedRef.current })
+      setGpsState('on'); setGpsM(tr.m)
+      // Each kilometre: Hayden calls it with the split, like a running watch.
+      if (tr.splits.length > before) {
+        const sp = tr.splits[tr.splits.length - 1]
+        coach(`Kilometre ${sp.km}. ${Math.floor(sp.sec / 60)} minutes ${sp.sec % 60}.`, 'check')
+      }
+    }, err => { if (err?.code === 1) { setGpsState('denied'); stopGps() } }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 })
+  }
+  // On while the run is going and GPS is switched on (a switch mid-run starts or stops it).
+  useEffect(() => {
+    if (started && !done && gps) startGps(); else { stopGps(); if (!gps) setGpsState('off') }
+    return stopGps
+  }, [started, done, gps]) // eslint-disable-line react-hooks/exhaustive-deps
   const seg = segs[idx]
   const elapsed = started ? ((paused ? pausedAt.current : now) - segStart.current) / 1000 : 0
   const left = seg?.sec != null ? seg.sec - elapsed : null
@@ -190,7 +217,10 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     if (!paused) { pausedAt.current = Date.now(); setPaused(true) }
     setResult(res)
     setDone(true)
-    savedId.current = onLog({ run: run.id, min: res.min, planned: res.planned, completed, pct: res.pct })
+    const tr = gpsTrack.current
+    const got = tr.m >= 50 ? { km: kmOf(tr.m), pace: Math.round(paceOf(tr.m, ranSec) || 0) || undefined, splits: tr.splits.slice(0, 60), route: thinRoute(tr.pts) } : {}
+    if (got.km) setKm(got.km)
+    savedId.current = onLog({ run: run.id, min: res.min, planned: res.planned, completed, pct: res.pct, ...got })
     try { wake.current?.release() } catch { /* gone */ }
     sayAloud(res.line, { music: musicRef.current }).catch(() => {})
     try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
@@ -239,6 +269,14 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
         <div><b>{result.weekRuns}</b><span>runs this week</span></div>
         <div><b>{result.weekMin}</b><span>min this week</span></div>
       </div>
+      {gpsTrack.current.m >= 50 && <div className="rp-gpsdone">
+        <div className="rp-stats rp-stats2">
+          <div><b>{kmOf(gpsTrack.current.m)}</b><span>km</span></div>
+          <div><b>{fmtPace(paceOf(gpsTrack.current.m, result.min * 60))}</b><span>min / km</span></div>
+        </div>
+        {routePath(thinRoute(gpsTrack.current.pts)) && <svg className="rp-route" viewBox="0 0 300 160" role="img" aria-label="Your route"><path d={routePath(thinRoute(gpsTrack.current.pts))} /></svg>}
+        {gpsTrack.current.splits.length > 0 && <ol className="rp-splits">{gpsTrack.current.splits.map(sp => <li key={sp.km}><span>km {sp.km}</span><b>{fmtPace(sp.sec)}</b></li>)}</ol>}
+      </div>}
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-main" onClick={onClose}>Done 🥳</button>
     </div>
@@ -251,6 +289,8 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       <span>{run.name}</span>
       {onMusic && <button type="button" className={'rp-music' + (musicMode ? ' on' : '')} onClick={() => onMusic(!musicMode)} aria-pressed={musicMode}
         title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}>🎵 {musicMode ? 'On' : 'Off'}</button>}
+      {onGps && <button type="button" className={'rp-music' + (gps ? ' on' : '')} onClick={() => onGps(!gps)} aria-pressed={gps}
+        title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}>📍 {gps ? 'On' : 'Off'}</button>}
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
     </div>
     {/* The runner crosses the track as the run goes, start to finish; drag him to move the time. */}
@@ -268,12 +308,15 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       <h2>{run.name}</h2>
       <p className="rp-sub">{run.why}</p>
       <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Tap 🎵 at the top to turn on Music mode.'}</p>
+      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Tap 🎵 at the top to turn on Music mode.'} Outdoors? Tap 📍 for distance, pace and your route.</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>
       <div className="rp-label">{seg.label}</div>
       <div className="rp-time" aria-live="off">{left != null ? fmt(left) : fmt(elapsed)}</div>
+      {gps && <div className="rp-gps">{gpsState === 'denied' ? '📍 Location is off for BadgeFit. Allow it in Settings to track distance.'
+        : gpsState !== 'on' ? '📍 Finding GPS…'
+        : <><b>{kmOf(gpsM).toFixed(2)}</b> km · <b>{fmtPace(livePace(gpsTrack.current, now) ?? paceOf(gpsM, (now - runStart.current) / 1000))}</b> /km</>}</div>}
       {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>✓ Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
       {bubble && <div className="rp-bubble" role="status"><span className="pf-orb" aria-hidden="true" />{bubble.text}</div>}
@@ -291,6 +334,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
       <div className="rp-locked-k">{seg ? KIND[seg.kind] : ''}</div>
       <div className="rp-locked-t">{left != null ? fmt(left) : fmt(elapsed)}</div>
       <div className="rp-locked-l">{seg?.label}</div>
+      {gps && gpsState === 'on' && <div className="rp-locked-l">{kmOf(gpsM).toFixed(2)} km · {fmtPace(paceOf(gpsM, (now - runStart.current) / 1000))} /km</div>}
       <div className="rp-locked-u"><span className="rp-locked-ring" style={{ '--p': hold }} />🔒 Hold anywhere to unlock</div>
     </div>}
   </div>
