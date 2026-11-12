@@ -148,22 +148,37 @@ function BadgeFitOnboarding() {
   const [busy, setBusy] = useState(false)
   // Sign in on the website (Google, Apple or a password), which hands the code back through a
   // badgefit://pair?code=... link (views/LinkApp.jsx): nothing to type.
-  const signIn = () => { window.open(`https://${BRAND.server}/#/link-app`, '_blank', 'noopener') }
-  useEffect(() => {
-    let off = null, gone = false
-    const got = async url => {
-      const m = /^badgefit:\/\/pair\/?\?(?:.*&)?code=([A-Za-z0-9]+)/.exec(String(url || ''))
-      if (!m || gone) return
-      setBusy(true)
-      try { await connectToServer(BRAND.server, m[1].toUpperCase(), askAddDeviceData); useUI.getState().toast('Signed in') }
-      catch (e) { useUI.getState().toast(e?.message || 'Could not link the app. Try again.') }
-      finally { if (!gone) setBusy(false) }
+  const gone = useRef(false)
+  const got = async url => {
+    const m = /^badgefit:\/\/pair\/?\?(?:.*&)?code=([A-Za-z0-9]+)/.exec(String(url || ''))
+    if (!m || gone.current) return
+    setBusy(true)
+    try { await connectToServer(BRAND.server, m[1].toUpperCase(), askAddDeviceData); useUI.getState().toast('Signed in') }
+    catch (e) { useUI.getState().toast(e?.message || 'Could not link the app. Try again.') }
+    finally { if (!gone.current) setBusy(false) }
+  }
+  // The sign-in sheet over the app (the iPhone's own, WebAuthPlugin.swift): it shows the website's
+  // link page and closes by itself with the link. Where there is no such sheet, the browser opens
+  // and the link comes back through appUrlOpen below.
+  const signIn = async () => {
+    const link = `https://${BRAND.server}/#/link-app`
+    try {
+      const { registerPlugin } = await import('@capacitor/core')
+      const r = await registerPlugin('WebAuth').start({ url: link, scheme: 'badgefit' })
+      if (r?.url) got(r.url)
+    } catch (e) {
+      if (e?.code === 'cancelled') return
+      window.open(link, '_blank', 'noopener')
     }
+  }
+  useEffect(() => {
+    let off = null
+    gone.current = false
     import('@capacitor/app').then(({ App }) => {
       App.getLaunchUrl?.().then(r => { if (r?.url) got(r.url) }).catch(() => {})
-      Promise.resolve(App.addListener('appUrlOpen', e => { if (e?.url) got(e.url) })).then(h => { if (gone) h?.remove?.(); else off = h })
+      Promise.resolve(App.addListener('appUrlOpen', e => { if (e?.url) got(e.url) })).then(h => { if (gone.current) h?.remove?.(); else off = h })
     }).catch(() => {})
-    return () => { gone = true; off?.remove?.() }
+    return () => { gone.current = true; off?.remove?.() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
   return <div className="narrow" style={wrap}>
@@ -172,7 +187,7 @@ function BadgeFitOnboarding() {
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
     <Button variant="primary" onClick={signIn} disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
     <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
-      Opens {BRAND.server} to sign in with Google, Apple or your password, then brings you straight back. Your plan, workouts and Hayden come with you.
+      Sign in with Google, Apple or your password, right here. Your plan, workouts and Hayden come with you.
     </div>
     <div style={{ height: 14 }} />
     <Button variant="ghost" className="dim" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} initialUrl={BRAND.server} />)}>Enter a code instead</Button>

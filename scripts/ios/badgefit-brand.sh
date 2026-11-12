@@ -31,6 +31,9 @@ sed -i '' 's/applinks:opengym\.ch/applinks:app.badgefit.com.au/' "$ENT"
 # first signed build does not depend on a group being registered.
 /usr/libexec/PlistBuddy -c "Delete :com.apple.security.application-groups" "$ENT" 2>/dev/null || true
 
+# The sign-in sheet plugin (scripts/ios/badgefit/WebAuthPlugin.swift), added to the app for the build.
+ruby "$ROOT/scripts/ios/badgefit/add-webauth.rb"
+
 # The shield on navy, 1024 px, no transparency.
 cp "$ROOT/scripts/ios/badgefit/AppIcon-1024.png" "$APP/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
 
