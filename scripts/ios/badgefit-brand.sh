@@ -25,13 +25,15 @@ sed -i '' 's/openGym/BadgeFit/g' "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName BadgeFit" "$PLIST"
 # badgefit:// links: the website hands the app its sign-in this way (views/LinkApp.jsx).
 /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes: string badgefit" "$PLIST"
+# Hayden with the screen locked (RunCuesPlugin.swift): the app may play audio in the background.
+/usr/libexec/PlistBuddy -c "Add :UIBackgroundModes: string audio" "$PLIST"
 # Links to the BadgeFit app domain open in the app.
 sed -i '' 's/applinks:opengym\.ch/applinks:app.badgefit.com.au/' "$ENT"
 # No widgets or watch app in this build, so nothing shares the App Group yet: left out, so the
 # first signed build does not depend on a group being registered.
 /usr/libexec/PlistBuddy -c "Delete :com.apple.security.application-groups" "$ENT" 2>/dev/null || true
 
-# The sign-in sheet plugin (scripts/ios/badgefit/WebAuthPlugin.swift), added to the app for the build.
+# BadgeFit's own plugins (scripts/ios/badgefit/*.swift), added to the app for the build.
 ruby "$ROOT/scripts/ios/badgefit/add-webauth.rb"
 
 # The shield on navy, 1024 px, no transparency.

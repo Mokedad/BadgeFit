@@ -58,6 +58,7 @@ import { useNfcTagLinks } from './components/Nfc.jsx'
 import { useRoutineLinks } from './components/RoutineShare.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
+import './lib/police/guest.js'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
@@ -105,6 +106,12 @@ const LinkApp = lazyView(() => import('./views/LinkApp.jsx'))
 // sign-in, which comes back on another screen.
 const LINK_FLAG = 'badgefit_link_app'
 try { if (/^#\/link-app/.test(window.location.hash)) sessionStorage.setItem(LINK_FLAG, '1') } catch { /* private mode */ }
+// One tap in the app (Continue with Google / Apple): straight to that sign-in, which comes back
+// to the link page. A fresh sign-in is also the proof the link needs, so nothing else is asked.
+try {
+  const w = /^#\/link-app\?with=(google|apple)$/.exec(window.location.hash)
+  if (w && !MOBILE) window.location.replace(window.location.pathname.replace(/[^/]*$/, '') + 'api/auth/' + w[1])
+} catch { /* the link page offers the buttons */ }
 const Community = lazyView(() => import('./views/Community.jsx'))
 const SettingsRoute = lazyView(() => import('./views/Settings.jsx').then(m => ({ default: m.SettingsRoute })))
 // The app tour's overlay (components/Tour.jsx): fetched when it opens, never before.

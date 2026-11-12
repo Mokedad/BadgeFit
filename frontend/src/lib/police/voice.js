@@ -5,6 +5,7 @@
 // app unpaired) the device's own speech reads it, with the most natural male voice
 // the device has. Never an imitation of any real person.
 //
+import { pocketSay } from './pocket.js'
 import { apiPostBlob, apiPostBlobInfo } from '../api.js'
 import { spoken } from './spoken.js'
 import { MOBILE as NATIVE } from '../mobile.js'
@@ -84,7 +85,9 @@ async function sayNow(text, opts = {}) {
   // cannot do that. It answers when the line starts, so the wait covers the time it takes.
   if (NATIVE) {
     const { speakNative } = await import('../rest-alert.js')
-    if (await speakNative(String(text), { lang: 'en-US', rate: 1, onSilent: true })) {
+    // During a run or a gym session the pocket session says it: that one plays with the screen
+    // locked (lib/police/pocket.js).
+    if (await pocketSay(String(text)) || await speakNative(String(text), { lang: 'en-US', rate: 1, onSilent: true })) {
       opts.onStart?.()
       await new Promise(r => { nativeStop = () => r(false); setTimeout(r, speakMs(text) * 0.7) })
       nativeStop = null

@@ -4,7 +4,8 @@
 import { useStore } from '../store/useStore.js'
 import { useRun } from '../store/useRun.js'
 import { todayISO } from '../lib/format.js'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { pocketKeep } from '../lib/police/pocket.js'
 import { effectiveRoutineIds } from '../lib/history.js'
 import { runCredits, runWorkout } from '../lib/police/run-workout.js'
 import { stampWorkout } from '../lib/sync-merge.js'
@@ -15,6 +16,10 @@ export default function RunHost() {
   const run = useRun(s => s.run)
   const minimized = useRun(s => s.minimized)
   const P = useStore(s => s.S.police) || {}
+  // Hayden in your pocket (the iPhone app): awake behind the lock screen for as long as a run, a
+  // walk or a gym session is on, so his lines still play (lib/police/pocket.js).
+  const training = useStore(s => !!s.S.active) || !!run
+  useEffect(() => { pocketKeep(training) }, [training])
   if (!run) return null
   // Saved the moment the run ends (finished or stopped early), so it counts; the effort and the
   // distance added on the done screen update the same entry.

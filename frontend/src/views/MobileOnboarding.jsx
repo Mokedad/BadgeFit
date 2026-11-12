@@ -162,8 +162,15 @@ function BadgeFitOnboarding() {
   // The sign-in sheet over the app (the iPhone's own, WebAuthPlugin.swift): it shows the website's
   // link page and closes by itself with the link. Where there is no such sheet, the browser opens
   // and the link comes back through appUrlOpen below.
-  const signIn = async () => {
-    const link = `https://${BRAND.server}/#/link-app`
+  // Which one-tap sign-ins the BadgeFit server offers (Google, Apple): asked once, here.
+  const [social, setSocial] = useState([])
+  useEffect(() => {
+    let live = true
+    fetch(`https://${BRAND.server}/api/config`).then(r => r.json()).then(c => { if (live && Array.isArray(c?.social)) setSocial(c.social) }).catch(() => {})
+    return () => { live = false }
+  }, [])
+  const signIn = async via => {
+    const link = `https://${BRAND.server}/#/link-app` + (typeof via === 'string' ? '?with=' + via : '')
     try {
       const { registerPlugin } = await import('@capacitor/core')
       const r = await registerPlugin('WebAuth').start({ url: link, scheme: 'badgefit' })
@@ -187,9 +194,11 @@ function BadgeFitOnboarding() {
     <div style={{ display: 'flex', justifyContent: 'center' }}><BadgeLogo size={84} /></div>
     <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
-    <Button variant="primary" onClick={signIn} disabled={busy}>{busy ? 'Signing in…' : 'Sign in or create account'}</Button>
+    {social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
+    {social.includes('google') && <><Button variant="primary" onClick={() => signIn('google')} disabled={busy}>Continue with Google</Button><div style={{ height: 10 }} /></>}
+    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Signing in…' : social.length ? 'Use a password instead' : 'Sign in or create account'}</Button>
     <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
-      With Google, Apple or a password, right here. Your plan, workouts and Hayden come with you.
+      One tap, right here in the app. Your plan, workouts and Hayden come with you.
     </div>
     <div style={{ height: 22 }} />
     {/* Someone already in the app as a guest goes straight back to it; a first launch sets it up. */}

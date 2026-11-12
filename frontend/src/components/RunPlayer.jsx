@@ -3,6 +3,7 @@
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
+import { pocketCues, pocketSchedule, pocketClear, pocketHanded } from '../lib/police/pocket.js'
 import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
 import { emptyTrack, addFix, paceOf, fmtPace, kmOf, livePace, thinRoute, routePath } from '../lib/police/gps.js'
@@ -16,6 +17,8 @@ const fmt = sec => { const s = Math.max(0, Math.round(sec)); return `${Math.floo
 const KIND = { warm: 'Warm-up', work: 'Go', rest: 'Recover', cool: 'Cool-down' }
 
 function cue(audio, text, kind, music = false) {
+  // In a pocket with the phone saying the steps itself (lib/police/pocket.js): not twice.
+  if (pocketHanded() && document.visibilityState === 'hidden') return
   try {
     if (audio.current) {
       const ctx = audio.current, now = ctx.currentTime
@@ -162,6 +165,21 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
     return () => clearInterval(t)
   }, [started, paused, done, idx, bubble]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
+
+  // Hayden in your pocket (the iPhone app): when the app leaves the screen mid-run, the phone is
+  // handed the coming steps and says them itself; back on screen, the app speaks again.
+  const pocket = useRef({})
+  pocket.current = { idx, on: started && !paused && !done }
+  useEffect(() => {
+    const hand = () => {
+      if (document.visibilityState !== 'hidden') { pocketClear(); return }
+      const c = pocket.current
+      if (c.on) pocketSchedule(pocketCues(run, c.idx, (Date.now() - segStart.current) / 1000, say))
+    }
+    document.addEventListener('visibilitychange', hand)
+    return () => { document.removeEventListener('visibilitychange', hand); pocketClear() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!pocket.current.on) pocketClear() }, [paused, done])
 
   const next = segs[idx + 1]
 

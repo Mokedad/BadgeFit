@@ -42,7 +42,7 @@ export default function LinkApp() {
     {code ? <>
       <p className="ls-tag">You are signed in. One tap takes you back to the app.</p>
       <a className="ls-btn ls-primary" href={appLink(code)}>Open the BadgeFit app</a>
-      <p className="ls-fine">If nothing happens, open the BadgeFit app, tap “Enter a code instead” and type <b style={{ letterSpacing: '.12em' }}>{code}</b>. It lasts 5 minutes.</p>
+      <p className="ls-fine">If nothing happens, tap the button again. It works for 5 minutes.</p>
       <button className="ls-link" onClick={() => make()}>Make a new code</button>
     </> : need === 'social' ? <>
       <p className="ls-tag">Confirm it is you to link the app.</p>

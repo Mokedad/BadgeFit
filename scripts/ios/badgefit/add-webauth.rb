@@ -1,28 +1,30 @@
-# Adds BadgeFit's sign-in sheet plugin (WebAuthPlugin.swift, beside this file) to the iPhone app
-# for the build: the file into App/App and the App target, and its registration into
-# MainViewController.swift. Run by scripts/ios/badgefit-brand.sh on the Mac runner; the committed
-# project stays openGym's.
+# Adds BadgeFit's own plugins (the .swift files beside this one) to the iPhone app for the build:
+# each file into App/App and the App target, and its registration into MainViewController.swift.
+#   WebAuthPlugin   the sign-in sheet over the app
+#   RunCuesPlugin   Hayden with the screen locked (frontend/src/lib/police/pocket.js)
+# Run by scripts/ios/badgefit-brand.sh on the Mac runner; the committed project stays openGym's.
 require 'xcodeproj'
 require 'fileutils'
 
+PLUGINS = %w[WebAuthPlugin RunCuesPlugin]
 dir = File.expand_path('../../../frontend/ios/App', __dir__)
-FileUtils.cp(File.join(__dir__, 'WebAuthPlugin.swift'), File.join(dir, 'App', 'WebAuthPlugin.swift'))
-
 proj = Xcodeproj::Project.open(File.join(dir, 'App.xcodeproj'))
 app = proj.targets.find { |t| t.name == 'App' }
 abort 'no App target' unless app
 group = proj.main_group.children.find { |g| g.respond_to?(:path) && g.path == 'App' }
 abort 'no App group' unless group
-unless group.files.any? { |f| f.path == 'WebAuthPlugin.swift' }
-  app.add_file_references([group.new_file('WebAuthPlugin.swift')])
-  proj.save
-end
 
 main = File.join(dir, 'App', 'MainViewController.swift')
 src = File.read(main)
-unless src.include?('WebAuthPlugin()')
-  anchor = 'bridge?.registerPluginInstance(DeviceAuthPlugin())'
-  abort 'MainViewController.swift: no place to register the plugin' unless src.include?(anchor)
-  File.write(main, src.sub(anchor, "#{anchor}\n        bridge?.registerPluginInstance(WebAuthPlugin())"))
+anchor = 'bridge?.registerPluginInstance(DeviceAuthPlugin())'
+abort 'MainViewController.swift: no place to register the plugins' unless src.include?(anchor)
+
+PLUGINS.each do |name|
+  file = "#{name}.swift"
+  FileUtils.cp(File.join(__dir__, file), File.join(dir, 'App', file))
+  app.add_file_references([group.new_file(file)]) unless group.files.any? { |f| f.path == file }
+  src = src.sub(anchor, "#{anchor}\n        bridge?.registerPluginInstance(#{name}())") unless src.include?("#{name}()")
+  puts "#{name} is in the app"
 end
-puts 'WebAuthPlugin is in the app'
+proj.save
+File.write(main, src)

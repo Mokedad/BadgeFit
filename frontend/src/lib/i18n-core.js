@@ -75,8 +75,14 @@ export const dateLocale = () => DATE_LOCALES[lang] || 'en-GB'
 export const getVersion = () => version
 
 // Translate a source string; {0},{1}… are replaced with args (also on the English fallback).
+// BadgeFit: the app's name in every translated line ("Install openGym", "the openGym app"). The
+// keys stay as upstream wrote them, so its packs keep merging; the name is swapped on the way out.
+let brand = null
+export function setBrand(name) { brand = name || null }
+
 export function t(s, ...args) {
   let v = dict[s] || s
+  if (brand && typeof v === 'string' && v.includes('openGym')) v = v.replaceAll('openGym', brand)
   // A plural key (an object of forms, read by tn()) reached through plain t() — a call site
   // that was not moved to tn(). Pick a form rather than crash on replaceAll.
   if (v && typeof v === 'object') {
