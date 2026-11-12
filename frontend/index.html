@@ -63,7 +63,7 @@
 </script>
 <title>BadgeFit</title>
 <meta name="description" content="Personal gym & body weight tracker">
-<meta name="theme-color" content="#0c0e12">
+<meta name="theme-color" content="#0d1b33">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -81,9 +81,11 @@
      page. Same dark and lime as the native splash. lib/boot.js takes it away the moment the
      app can draw, so it never adds a wait. -->
 <style>
-  #boot{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#0c0e12;transition:opacity .22s ease-out}
+  #boot{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#0d1b33;background:radial-gradient(120% 70% at 50% 0%,#1d3b6e 0%,#132a4f 45%,#0b1830 100%);transition:opacity .22s ease-out}
   #boot.out{opacity:0;pointer-events:none}
-  #boot svg{width:112px;height:auto;overflow:visible}
+  #boot svg{width:96px;height:auto;overflow:visible}
+  #boot .bf-boot{animation:bf-pulse 1.4s ease-in-out infinite;filter:drop-shadow(0 8px 22px rgba(0,0,0,.45))}
+  @keyframes bf-pulse{50%{transform:scale(1.06)}}
   #boot rect,#boot ellipse{transform-box:fill-box;transform-origin:center}
   #boot .bar{animation:boot-bar .32s cubic-bezier(.3,.7,.4,1) both}
   #boot .pl{animation:boot-plate .28s cubic-bezier(.3,.7,.4,1.3) both}
@@ -101,7 +103,7 @@
   #boot.fail div{max-width:340px;font:15px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#e6e8ec;text-align:center}
   #boot.fail .h{font-size:19px;font-weight:600;margin:0 0 8px}
   #boot.fail code{display:block;margin:14px 0 18px;padding:10px;border-radius:10px;background:#1a1d24;color:#a9b0bc;font-size:12px;text-align:left;word-break:break-word;-webkit-user-select:text;user-select:text}
-  #boot.fail button{font:inherit;font-weight:600;color:#0c0e12;background:#a3e635;border:0;border-radius:12px;min-height:44px;padding:0 28px}
+  #boot.fail button{font:inherit;font-weight:600;color:#0d1b33;background:#ffc629;border:0;border-radius:12px;min-height:44px;padding:0 28px}
   @media (prefers-reduced-motion:reduce){
     #boot .bar,#boot .pl,#boot .pr,#boot ellipse{animation:none}
     #boot .db{animation:boot-breathe 1.6s ease-in-out infinite}
@@ -109,15 +111,11 @@
   }
 </style>
 <div id="boot" aria-hidden="true">
-  <svg viewBox="80 140 352 250">
-    <ellipse cx="256" cy="372" rx="150" ry="9"/>
-    <g class="db" fill="#a3e635">
-      <rect class="bar" x="80" y="242" width="352" height="28"/>
-      <rect class="pl in" x="131" y="169" width="47" height="174"/>
-      <rect class="pr in" x="334" y="169" width="47" height="174"/>
-      <rect class="pl outer" x="80" y="199" width="36" height="114"/>
-      <rect class="pr outer" x="396" y="199" width="36" height="114"/>
-    </g>
+  <!-- BadgeFit: the shield, a slow pulse while the app loads (navy and gold, as the sign-in). -->
+  <svg class="bf-boot" viewBox="0 0 48 48" width="96" height="96">
+    <path d="M24 3 41 9v13c0 11-7.3 19.2-17 23C14.3 41.2 7 33 7 22V9z" fill="#0d1b33" stroke="#ffc629" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M24 12.5l3.1 6.4 7 .9-5.1 4.9 1.3 6.9L24 28.3l-6.3 3.3 1.3-6.9-5.1-4.9 7-.9z" fill="#ffc629"/>
+    <path d="M14 36.5c3 2.7 6.3 4.6 10 5.9 3.7-1.3 7-3.2 10-5.9" fill="none" stroke="#ffc629" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
   </svg>
 </div>
 <div id="root"></div>
