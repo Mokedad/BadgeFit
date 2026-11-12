@@ -40,6 +40,7 @@ import { coachAvailable } from '../lib/coach.js'
 import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
 import TodaySwipe from '../components/TodaySwipe.jsx'
+import { isBadgeFit, isBadgeFitGuest, toSignIn } from '../lib/police/guest.js'
 import { useUI } from '../store/useUI.js'
 import { REST } from '../lib/rotation.js'
 import { weeklyFocus } from '../lib/police/weekly-focus.js'
@@ -176,7 +177,7 @@ export default function Home() {
   const coachModeHere = useStore(st => st.coachLocal?.mode)
   const coachHere = !!S.police?.level && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode: coachModeHere })
   useEffect(() => {
-    if (config?.passkeys !== false || S.police?.level) return
+    if (!isBadgeFit(null, config) || S.police?.level) return
     try { if (sessionStorage.getItem('badgefit_welcomed')) return; sessionStorage.setItem('badgefit_welcomed', '1') } catch { /* private mode */ }
     nav('/police')
   }, [config?.passkeys]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -189,6 +190,8 @@ export default function Home() {
       <div className="hdr-btns hdr-actions">
         {/* BadgeFit: the Coach (Hayden), as on Plan, on the same plan. */}
         {coachHere && <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/coach')}>{t('Coach')}</Button>}
+        {/* A guest always has the way to an account in sight. */}
+        {isBadgeFitGuest(S, config, user) && <Button size="sm" variant="primary" onClick={() => toSignIn(nav)}>Sign in</Button>}
         <button className="iconbtn" data-tour="settings-gear" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
       </div>
     </div>

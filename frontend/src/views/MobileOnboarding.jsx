@@ -146,6 +146,8 @@ export function ConnectSheet({ close, initialUrl = '', again = false }) {
 function BadgeFitOnboarding() {
   const { chooseLocalMode, connectToServer } = useStore()
   const [busy, setBusy] = useState(false)
+  // Came here from inside the app (Sign in on Home or in Settings), with a guest's training on it.
+  const returning = useStore(s => !!(s.S?.police?.level || (s.S?.workouts || []).length))
   // Sign in on the website (Google, Apple or a password), which hands the code back through a
   // badgefit://pair?code=... link (views/LinkApp.jsx): nothing to type.
   const gone = useRef(false)
@@ -185,14 +187,14 @@ function BadgeFitOnboarding() {
     <div style={{ display: 'flex', justifyContent: 'center' }}><BadgeLogo size={84} /></div>
     <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
-    <Button variant="primary" onClick={signIn} disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+    <Button variant="primary" onClick={signIn} disabled={busy}>{busy ? 'Signing in…' : 'Sign in or create account'}</Button>
     <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
-      Sign in with Google, Apple or your password, right here. Your plan, workouts and Hayden come with you.
+      With Google, Apple or a password, right here. Your plan, workouts and Hayden come with you.
     </div>
-    <div style={{ height: 14 }} />
-    <Button variant="ghost" className="dim" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} initialUrl={BRAND.server} />)}>Enter a code instead</Button>
     <div style={{ height: 22 }} />
-    <Button variant="ghost" className="dim" onClick={() => chooseLocalMode()}>Use without an account</Button>
+    {/* Someone already in the app as a guest goes straight back to it; a first launch sets it up. */}
+    <Button variant="ghost" className="dim" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>{returning ? 'Keep going as a guest' : 'Try it as a guest'}</Button>
+    <div className="dim small" style={{ marginTop: 10, lineHeight: 1.5 }}>Guests get the simple plan and 15 questions a day with Hayden. Sign up any time from Home or Settings.</div>
   </div>
 }
 

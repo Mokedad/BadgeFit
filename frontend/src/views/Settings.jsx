@@ -61,6 +61,7 @@ import { DeleteAccountRow } from '../components/DeleteAccount.jsx'
 import { warmupAutoOf } from '../lib/warmup-ramp.js'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC, profileRule } from '../lib/progression.js'
+import { toSignIn as goSignIn } from '../lib/police/guest.js'
 import { PAGES, ROOT_GROUPS, HEALTH_PAGES, badgefitGuest, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
 import { platformNow } from '../lib/platform-now.js'
 import { pathBefore } from '../lib/nav.js'
@@ -1315,11 +1316,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
   const config = useStore(s => s.config)
   // BadgeFit guest: no greyed-out rows, only what a guest can use, and the way to an account.
   const guest = badgefitGuest(ctx)
-  const toSignIn = () => {
-    if (MOBILE) useStore.setState({ needsMobileOnboarding: true })
-    else useStore.getState().setGuest(false)
-    nav('/home')
-  }
+  const toSignIn = () => goSignIn(nav)
   const groups = ctx.badgefit ? [...ROOT_GROUPS.slice(0, -1), ['apple-health', 'health-connect'], ROOT_GROUPS.at(-1)] : ROOT_GROUPS
   const adminCoach = !MOBILE && !DEMO && !!user?.admin && coachAvailable(config, user) && (!ctx.mod || ctx.mod('coach'))
   return <div className="narrow">
@@ -1342,7 +1339,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
           <span className="lrow-m"><span className="lrow-t">Guest</span><span className="lrow-s">Sign up free to save your training and unlock every plan.</span></span>
         </div>
         <Row icon="plusCircle" iconTint="var(--acc)" title="Sign up or sign in" accessory="chevron" onClick={toSignIn} />
-        <Row icon="signOut" iconTint="var(--red)" title="Log out" danger onClick={toSignIn} />
+        <Row icon="signOut" iconTint="var(--red)" title="Log out" subtitle="Back to the first screen" danger onClick={toSignIn} />
       </Section> : <Section>
         <button className="lrow tap sp-acct" data-tour="settings-account" onClick={() => open('account')}>
           <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>

@@ -26,6 +26,8 @@ import {
 import { beginWorkout } from '../sheets.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
+import { MOBILE } from '../lib/mobile.js'
+const BADGEFIT_APP = MOBILE && import.meta.env?.MODE !== 'test'
 import { PRESETS, presetOf, applyPreset } from '../lib/modules.js'
 import { presetCopy } from '../lib/modules-copy.js'
 import './Tour.css'
@@ -613,7 +615,7 @@ function Run({ at, flow = 'tour' }) {
   </div>
 }
 
-const isBadgeFit = () => { const st = useStore.getState(); return st.config?.passkeys === false || !!st.S?.police?.level }
+const isBadgeFit = () => { const st = useStore.getState(); return BADGEFIT_APP || st.config?.passkeys === false || !!st.S?.police?.level }
 
 export default function Tour() {
   const st = useTour()
