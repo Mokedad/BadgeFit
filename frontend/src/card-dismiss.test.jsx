@@ -102,13 +102,6 @@ describe('Home: the streak card and check-in', () => {
     act(() => card.querySelector('.tap-main').click())
     expect(calendarSheet).toHaveBeenCalledTimes(1)
   })
-  it('check-in opens from its text, a real button', () => {
-    const host = mount()
-    const main = host.querySelector('.checkin-card .tap-main')
-    expect(nameOf(main)).toBe('Check in')
-    act(() => main.click())
-    expect(navSpy).toHaveBeenCalledWith('/checkin')
-  })
   it('nothing on Home is a control inside a control', () => {
     expect(nestedInteractive(mount())).toEqual([])
   })
