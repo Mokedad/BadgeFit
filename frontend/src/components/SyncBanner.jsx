@@ -72,7 +72,8 @@ export function useConnectionTrouble() {
 export default function SyncBanner() {
   const nav = useNavigate()
   const on = useStore(s => showsConnection(s.S))
-  const local = useStore(s => showsLocalLine(s.S))
+  // BadgeFit: a guest has Sign in on Home and in Settings; the guest line would say it again.
+  const local = useStore(s => showsLocalLine(s.S) && !s.S?.police?.level)
   const update = useStore(s => s.update)
   const conn = useConnection()
   const { view, user, status } = conn

@@ -52,3 +52,12 @@ After the iPhone app is on TestFlight and the PCT is done. Roughly 3 to 4 days o
 - A share card after a run or a session (distance, time, the route, the BadgeFit shield), sized
   for an Instagram story, sent through the phone's own share sheet.
 - Off by default; only people in the member's circle see the name.
+
+## Received tick (added 13 November 2026)
+
+- The person training can answer a cheer without stopping: a ✓ on the run or workout screen while
+  the cheer shows (one tap, big enough for a moving thumb), or just saying "thanks Hayden".
+- The sender sees their message go from "Sent" to "Heard ✓" (and "Thanks ✓" when the tick was
+  tapped), so they know it landed. Nothing else is sent back mid-session.
+- A cheer that arrived while muted is marked "Delivered after the session" when it is shown at
+  the end.

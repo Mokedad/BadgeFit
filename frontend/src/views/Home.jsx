@@ -33,7 +33,12 @@ import RecoveryHint from '../components/RecoveryHint.jsx'
 import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
-import { planWeekOf } from '../lib/police/programme.js'
+import { planWeekOf, daysUntil } from '../lib/police/programme.js'
+import { runMinutes } from '../lib/police/runs.js'
+import { sessionMinutes } from '../lib/police/session-length.js'
+import { buildCombinedEntries } from '../lib/session-merge.js'
+import { tapJarvis } from '../store/useJarvis.js'
+import { useRun } from '../store/useRun.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
 import { coachAvailable } from '../lib/coach.js'
@@ -188,7 +193,65 @@ export default function Home() {
     const tm = setTimeout(() => { import('../sheets.jsx').then(m => offerHealthOnce(useStore.getState().S, m.confirmSheet, useUI.getState().toast)).catch(() => {}) }, 2500)
     return () => clearTimeout(tm)
   }, [S.police?.start])
+  const runOn = useRun(s => !!s.run)
   const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
+
+  // BadgeFit with a plan: the calm Home. One screen that reads like a trainer, not an app: a
+  // welcome, what today is, one button, the week's dates, and Hayden at the bottom. Everything
+  // else (plan, tests, stats, exercises, settings) is behind the menu, top left.
+  if (S.police?.start) {
+    const P = S.police
+    const guest = isBadgeFitGuest(S, config, user)
+    const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
+    const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null,
+      left != null && left >= 0 ? (left === 0 ? `${(P.testName || 'PCT').trim()} today` : `${left} ${left === 1 ? 'day' : 'days'} to your ${(P.testName || 'PCT').trim()}`) : null].filter(Boolean)
+    const mins = S.active || doneToday || !routine ? null
+      : bfRun ? runMinutes(bfRun) : sessionMinutes(buildCombinedEntries(S, effectiveRoutineIds(S, todayISO())).entries)
+    const line = S.active ? `${S.active.name} is under way.`
+      : doneToday ? 'Today is done. Good work.'
+      : routine ? `Today: ${bfRun ? bfRun.name : todayName}${mins ? `, about ${mins} min` : ''}.`
+      : next ? `Rest day. Next up: ${t(DAYN[next.weekday])}, ${next.routine.name}.` : 'Rest day. Recover well.'
+    const menu = () => menuSheet({ title: 'BadgeFit', sections: [{ items: [
+      { icon: 'calendar', label: 'My plan', sub: 'This week and the weeks ahead', onClick: () => nav('/police?tab=plan') },
+      { icon: 'target', label: (P.testName || 'PCT').trim() + ' tests', sub: 'Standards, beep test, test day', onClick: () => nav('/police?tab=tests') },
+      { icon: 'figureRun', label: 'Runs and walks', sub: 'Guided by Hayden', onClick: () => nav('/police?tab=run') },
+      { icon: 'heart', label: 'Food and care', sub: 'Meals, protein, sore spots', onClick: () => nav('/police?tab=more') },
+    ] }, { items: [
+      { icon: 'chart', label: 'Progress', sub: 'Stats, history, body weight', onClick: () => nav('/stats') },
+      { icon: 'dumbbell', label: 'Exercises', sub: 'How to do each one', onClick: () => nav('/library') },
+      { icon: 'gear', label: 'Settings', onClick: () => nav('/settings') },
+    ] }] })
+    return <div className="narrow calm">
+      <div className="calm-top">
+        <button className="calm-rb" onClick={menu} aria-label="Menu"><Icon name="list" /></button>
+        {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
+          : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
+      </div>
+
+      <div className="calm-mid">
+        <BadgeLogo size={54} />
+        <h1 className="calm-hi">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
+        {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
+        <p className="calm-line">{line}</p>
+        {doneToday && !S.active
+          ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
+          : <button className="calm-go" data-tour="today" onClick={onToday}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
+        {swipeable && <button className="calm-link" onClick={holdToday}>Change today</button>}
+        {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
+        {extraDone.length > 0 && <div className="done-today">
+          {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>
+            <span className="ok">✓</span><b>{w.name || t('Workout')}</b><small>{t('Done')}</small>
+          </button>)}
+        </div>}
+        <div className="calm-week">{weekNav}</div>
+      </div>
+
+      {coachHere && !runOn && <div className="calm-ask">
+        <button className="calm-ask-t" onClick={() => nav('/coach')}>Ask Hayden anything</button>
+        <button className="calm-ask-m" onClick={() => tapJarvis()} aria-label="Talk to Hayden">🎙</button>
+      </div>}
+    </div>
+  }
 
   return <div className="narrow">
     <div className="hdr">

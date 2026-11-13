@@ -616,3 +616,22 @@
 .rp-route path{fill:none;stroke:#ffc629;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 .rp-splits{list-style:none;margin:0;padding:0;width:min(100%,260px);display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
 .rp-splits li{display:flex;justify-content:space-between;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.08)}
+
+/* ---- the calm Home (views/Home.jsx): a trainer's screen, not an app's ---- */
+.calm{display:flex;flex-direction:column;min-height:calc(100dvh - var(--sat) - var(--sab) - 24px);padding-bottom:86px}
+.calm-top{display:flex;justify-content:space-between;align-items:center;padding:6px 2px}
+.calm-rb{position:relative;width:46px;height:46px;border-radius:50%;border:0;background:var(--surface-2,var(--surface));color:var(--label);font-size:20px;display:grid;place-items:center;box-shadow:0 2px 14px rgba(0,0,0,.08)}
+.calm-pill{border:0;border-radius:999px;padding:10px 18px;background:var(--acc);color:var(--on-acc,#111);font-weight:600;font-size:15px}
+.calm-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:12px 4px}
+.calm-hi{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;font-size:30px;letter-spacing:-.01em;margin:14px 0 0}
+.calm-facts{color:var(--label-2);font-size:14px}
+.calm-line{font-size:18px;line-height:1.4;margin:16px 0 14px;max-width:320px}
+.calm-go{border:0;border-radius:999px;padding:15px 44px;background:var(--acc);color:var(--on-acc,#111);font-size:18px;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,.14)}
+.calm-go:active{transform:scale(.97)}
+.calm-done{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:13px 26px;font-weight:600;color:var(--green);background:rgba(52,199,89,.14)}
+.calm-link{border:0;background:none;color:var(--label-2);font-size:14px;padding:8px;text-decoration:underline;text-underline-offset:3px}
+.calm-week{width:100%;max-width:420px;margin-top:22px}
+.calm .done-today{width:100%;max-width:420px}
+.calm-ask{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--sab) + 14px);width:min(560px,calc(100% - 28px));display:flex;align-items:center;gap:8px;padding:7px;border-radius:999px;background:var(--surface-2,var(--surface));box-shadow:0 6px 28px rgba(0,0,0,.16);z-index:5}
+.calm-ask-t{flex:1;text-align:start;border:0;background:none;color:var(--label-2);font-size:17px;padding:10px 14px}
+.calm-ask-m{width:46px;height:46px;border-radius:50%;border:0;background:var(--label);color:var(--bg,#fff);font-size:19px;display:grid;place-items:center}
