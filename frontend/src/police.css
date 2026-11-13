@@ -794,3 +794,10 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .calm-nav .calm-nav-h .hb{display:block;margin:-6px auto 0}
 .rp-bubble .hb{width:22px}
 @media (prefers-reduced-motion:reduce){.hb-float,.hb-eyes,.hb-wave{animation:none}}
+
+/* Hayden floating in the corner (components/HaydenBuddy.jsx) and his 🤖/🚷 switch */
+.hb-buddy{position:fixed;right:12px;bottom:calc(var(--sab) + 96px);z-index:40;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hb-buddy.in-workout{bottom:calc(var(--sab) + 84px)}
+.hb-buddy:active .hb{transform:scale(.94)}
+.hb-toggle{border:0;background:var(--card,#fff);border-radius:999px;width:40px;height:40px;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.hb-toggle.iconbtn{box-shadow:none;background:none;width:auto;height:auto}

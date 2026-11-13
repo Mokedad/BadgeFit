@@ -44,6 +44,7 @@ import { useTour, tourState, openTour, readTour, shouldOffer, resumeAt } from '.
 import { exitWorkoutEdit, startFlow, beginWorkout, bwSheet } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
+import HaydenBuddy from './components/HaydenBuddy.jsx'
 import ScrollTopButton from './components/ScrollTopButton.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
@@ -424,6 +425,7 @@ function Shell() {
       {authed && <JarvisHandsFree />}
       {authed && <RunHost />}
       {authed && <JarvisFab />}
+      {authed && !needsMobileOnboarding && !permSteps && <HaydenBuddy />}
       {!noTabs && authed && <ScrollTopButton off={loc.pathname === '/workout'} path={loc.pathname} />}
       <RestTimer />
       <Modals />

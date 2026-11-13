@@ -1,3 +1,4 @@
+import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
 import { todayChoiceSheet } from '../workout-controls.jsx'
@@ -224,7 +225,7 @@ export default function Home() {
     }
     return <div className="narrow calm">
       <div className="calm-top">
-        <span />
+        <HaydenToggle />
         {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
           : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
       </div>

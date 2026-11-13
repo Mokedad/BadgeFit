@@ -1,3 +1,4 @@
+import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { workoutControlsSheet, leaveWorkoutSheet, isPaused, resumeWorkout } from '../workout-controls.jsx'
 import RepRangeCoach from '../components/RepRangeCoach.jsx'
@@ -2507,6 +2508,7 @@ function ActiveWorkout() {
         ? <button type="button" className="whdr-gym" onClick={openGymMenu} aria-label={t('Gym: {0}', gymShown)}><Icon name="house" />{gymShown}</button>
         : <span className="whdr-gym"><Icon name="house" />{gymShown}</span>)}</div>
       {!chipRow && sessionMap}
+      {S.police?.level && !editing && <HaydenToggle className="iconbtn" />}
       {S.police?.level && !editing && <JarvisMic coach={isOn(S, 'coach')} />}
       <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
