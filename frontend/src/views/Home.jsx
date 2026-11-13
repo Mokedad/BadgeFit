@@ -250,14 +250,13 @@ export default function Home() {
           </button>)}
         </div>}
         <div className="calm-week">{weekNav}</div>
-        {/* New here: four small things to try, each a tap into another part of the app. Gone for
-            good once all four are ticked (lib/police/first-steps.js). */}
-        {first && <div className="calm-first">
-          <div className="calm-first-h"><b>Getting started</b><span>{first.done} of {first.total}</span></div>
-          {first.steps.map(st => <button key={st.id} className={st.done ? 'done' : st === first.next ? 'next' : ''} disabled={st.done}
+        {/* New here: four things to try, a symbol and one word each, ticked as they are done and
+            gone for good after the fourth (lib/police/first-steps.js). */}
+        {first && <div className="calm-first" aria-label={`Getting started, ${first.done} of ${first.total}`}>
+          {first.steps.map(st => <button key={st.id} className={st.done ? 'done' : st === first.next ? 'next' : ''} disabled={st.done} aria-label={st.label}
             onClick={() => (st.to === 'hayden' ? document.querySelector('.calm-nav-h')?.click() : st.to ? nav(st.to) : onToday())}>
-            <span className="calm-first-o" aria-hidden="true">{st.done ? <Icon name="check" /> : null}</span>
-            <span><b>{st.label}</b>{!st.done && <small>{st.hint}</small>}</span>
+            <span className="calm-first-o" aria-hidden="true"><Icon name={st.done ? 'check' : st.icon} /></span>
+            <small>{st.word}</small>
           </button>)}
         </div>}
       </div>

@@ -690,16 +690,30 @@ body:has(.calm-nav) #app{padding-bottom:calc(118px + var(--sab))}
 .pf-ds{font-size:20px}
 .pf-ready b{white-space:nowrap}
 .calm-intro{color:var(--label-2);font-size:16px;line-height:1.4;margin:-6px 4px 14px}
-.calm-first{width:100%;max-width:420px;margin-top:22px;text-align:start;background:var(--surface);border-radius:18px;padding:12px 14px}
-.calm-first-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.calm-first-h span{color:var(--label-2);font-size:13px}
-.calm-first button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;color:inherit;text-align:start;padding:9px 0}
-.calm-first button>span:last-child{display:flex;flex-direction:column;gap:1px}
-.calm-first button b{font-weight:600;font-size:15px}
-.calm-first button small{color:var(--label-2);font-size:13px}
-.calm-first button.done b{color:var(--label-2);font-weight:500;text-decoration:line-through}
-.calm-first-o{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--surface-3,rgba(128,128,128,.4));display:grid;place-items:center;font-size:13px;color:#fff}
-.calm-first .done .calm-first-o{background:var(--green);border-color:var(--green)}
+.calm-first{width:100%;max-width:420px;margin-top:20px;display:flex;justify-content:space-around}
+.calm-first button{border:0;background:none;color:var(--label-2);display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;padding:4px}
+.calm-first-o{width:46px;height:46px;border-radius:50%;background:var(--surface);color:var(--label);display:grid;place-items:center;font-size:20px;border:2px solid transparent}
 .calm-first .next .calm-first-o{border-color:var(--acc)}
+.calm-first .done .calm-first-o{background:var(--green);color:#fff}
+.calm-first .done{opacity:.75}
+/* the picture-led day tile */
+.pf-tile{padding:10px 12px}
+.pf-tile-h{display:flex;align-items:center;gap:12px}
+.pf-tile-d{flex:none;width:44px;color:var(--label-2);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.pf-tile.on .pf-tile-d{color:var(--acc-ink,var(--acc));font-weight:700}
+.pf-tile-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pf-tile-m b{font-weight:600;font-size:16px;line-height:1.25}
+.pf-tile-m small{color:var(--label-2);font-size:13px}
+.pf-tile-p{flex:none;display:flex;gap:4px}
+.pf-tile-p .thumb{width:40px;height:40px;border-radius:10px}
+.pf-tile-i{width:40px;height:40px;border-radius:10px;background:var(--surface-2,var(--surface));display:grid;place-items:center;font-size:20px;color:var(--label-2)}
+.pf-tile ul{margin-top:10px}
+.pf-ease-line{display:flex;flex-direction:column;gap:6px;align-items:center;margin:16px 4px 0;color:var(--label-2);font-size:13px}
+.pf-ease-line .pf-bar{width:100%}
+/* More: a grid of tiles */
+.pf-mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pf-mtile{border:0;border-radius:18px;background:var(--surface);color:var(--label);padding:18px 6px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:14px}
+.pf-mtile span{font-size:26px;display:grid;place-items:center}
+.pf-mtile b{font-weight:600}
 .pf-ease .pf-bar{margin:10px 0}
 .pf-ease .row{margin-top:6px}

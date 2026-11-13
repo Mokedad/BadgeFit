@@ -4,10 +4,10 @@
 // strip goes away for good. Kept in the profile (police.seen), so it follows the account. Pure.
 
 export const STEPS = [
-  { id: 'session', label: 'Do your first session', hint: 'Tap Start. Hayden talks you through it.', to: null },
-  { id: 'hayden', label: 'Meet Hayden', hint: 'Tap the ball. He is your coach.', to: 'hayden' },
-  { id: 'plan', label: 'See your week', hint: 'What is coming, one day at a time.', to: '/police?tab=plan' },
-  { id: 'tests', label: 'Look at the test', hint: 'The six things you will be tested on.', to: '/police?tab=tests' },
+  { id: 'session', icon: 'play', word: 'Train', label: 'Do your first session', hint: 'Tap Start. Hayden talks you through it.', to: null },
+  { id: 'hayden', icon: 'sparkles', word: 'Hayden', label: 'Meet Hayden', hint: 'Tap the ball. He is your coach.', to: 'hayden' },
+  { id: 'plan', icon: 'calendar', word: 'Week', label: 'See your week', hint: 'What is coming, one day at a time.', to: '/police?tab=plan' },
+  { id: 'tests', icon: 'target', word: 'Test', label: 'Look at the test', hint: 'The six things you will be tested on.', to: '/police?tab=tests' },
 ]
 
 /** Each step with `done`, from the profile. `S` is the whole state. */

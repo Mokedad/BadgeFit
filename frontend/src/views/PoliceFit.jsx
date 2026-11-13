@@ -5,7 +5,9 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
-import { PAGE_INTRO, seenPatch, comfort } from '../lib/police/first-steps.js'
+import { EXIDX } from '../lib/exercises.js'
+import { seenPatch, comfort } from '../lib/police/first-steps.js'
+import { Thumb } from '../components/Media.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -199,19 +201,23 @@ function JarvisSwitches({ S, P }) {
 const MORE_ICON = { run: 'figureRun', strength: 'dumbbell', food: 'flame', care: 'heart' }
 function More({ setTab, calm }) {
   const nav = useNavigate()
-  const row = (icon, label, sub, go) => <button key={label} className="pf-more-row" onClick={go}><span className="pf-more-i" aria-hidden="true"><Icon name={icon} /></span><span><b>{label}</b><small>{sub}</small></span><Icon name="chevronRight" /></button>
-  return <>
-    <div className="card pf-more-list">
-      {MORE.map(m => row(MORE_ICON[m.value] || 'list', m.label, m.sub, () => setTab(m.value)))}
-      {row('personCircle', 'Community', 'Train alongside other recruits', () => nav('/community'))}
+  // With the calm look: a grid of tiles, a picture and a name each, nothing to read.
+  if (calm) {
+    const tile = (icon, label, go) => <button key={label} className="pf-mtile" onClick={go}><span aria-hidden="true"><Icon name={icon} /></span><b>{label}</b></button>
+    return <div className="pf-mgrid">
+      {MORE.map(m => tile(MORE_ICON[m.value] || 'list', m.label, () => setTab(m.value)))}
+      {tile('personCircle', 'Community', () => nav('/community'))}
+      {tile('chart', 'Progress', () => nav('/stats'))}
+      {tile('list', 'Exercises', () => nav('/library'))}
+      {tile('sparkles', 'Hayden', () => setTab('today'))}
+      {tile('gear', 'Settings', () => nav('/settings'))}
     </div>
-    {calm && <div className="card pf-more-list">
-      {row('chart', 'Progress', 'Stats, history, body weight', () => nav('/stats'))}
-      {row('list', 'Exercises', 'How to do each one', () => nav('/library'))}
-      {row('sparkles', 'Hayden', 'His briefing, voice and reminders', () => setTab('today'))}
-      {row('gear', 'Settings', 'Account, units, notifications', () => nav('/settings'))}
-    </div>}
-  </>
+  }
+  const row = (icon, label, sub, go) => <button key={label} className="pf-more-row" onClick={go}><span className="pf-more-i" aria-hidden="true"><Icon name={icon} /></span><span><b>{label}</b><small>{sub}</small></span><Icon name="chevronRight" /></button>
+  return <div className="card pf-more-list">
+    {MORE.map(m => row(MORE_ICON[m.value] || 'list', m.label, m.sub, () => setTab(m.value)))}
+    {row('personCircle', 'Community', 'Train alongside other recruits', () => nav('/community'))}
+  </div>
 }
 
 /** Three numbers at a glance: days to the test, readiness, weight change. Each opens its tab. */
@@ -399,10 +405,22 @@ function PhaseSync({ S, P, week }) {
   </div>
 }
 
-function DayCard({ d, today }) {
-  const [open, setOpen] = useState(!!today)
-  return <div className={'pf-day pfk-' + d.kind + (today ? ' on' : '') + (open ? '' : ' shut')} onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
-    <div className="pf-day-h"><span>{d.dayName}{d.minutes ? ` · ${d.minutes} min` : ''}</span><b><span className="pf-ds" aria-hidden="true"><Icon name={DAY_ICON[d.kind] || 'calendar'} /></span>{d.title}</b></div>
+// A day of the plan as a picture-led tile: the day, a short name, the minutes, and pictures of
+// what is in it (the first exercises of a gym day; a symbol for a run, a walk or a rest). The
+// words (what to focus on, recovery) open on a tap, so the week reads at a glance.
+function DayCard({ d, today, S = null, P = null }) {
+  const [open, setOpen] = useState(false)
+  const rid = d.key && P?.keys?.[d.key]
+  const routine = rid && d.kind === 'gym' ? (S?.routines || []).find(r => r.id === rid) : null
+  const pics = (routine?.ex || []).map(e => EXIDX[e.id]).filter(Boolean).slice(0, 3)
+  return <div className={'pf-day pf-tile pfk-' + d.kind + (today ? ' on' : '')} onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
+    <div className="pf-tile-h">
+      <span className="pf-tile-d">{today ? 'Today' : String(d.dayName).slice(0, 3)}</span>
+      <span className="pf-tile-m"><b>{d.title}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
+      <span className="pf-tile-p" aria-hidden="true">
+        {pics.length ? pics.map(ex => <Thumb key={ex.id} ex={ex} />) : <span className="pf-tile-i"><Icon name={DAY_ICON[d.kind] || 'calendar'} /></span>}
+      </span>
+    </div>
     {open && <ul>{d.details.map((x, i) => <li key={i}>{x}</li>)}</ul>}
     {open && d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{x}</span>)}</div>}
   </div>
@@ -465,8 +483,8 @@ function Tests({ S, P, openBeep, openTest }) {
       <b>{ready.passed} of {ready.rows.length}</b><span>standards passing{ready.rows.some(r => !r.ev) ? `, ${ready.rows.filter(r => !r.ev).length} not tested yet` : ''}</span>
     </div>
     <div className="pf-tools">
-      <button className="card pf-tool" onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b><small>All 6 standards in order, with rests. Baseline now, mock PCT a week out.</small></button>
-      <button className="card pf-tool" onClick={openBeep}><span className="pf-more-i" aria-hidden="true"><Icon name="timer" /></span><b>Beep test trainer</b><small>Real beeps, Hayden calls the levels. Saves your score.</small></button>
+      <button className="card pf-tool" onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b></button>
+      <button className="card pf-tool" onClick={openBeep}><span className="pf-more-i" aria-hidden="true"><Icon name="timer" /></span><b>Beep test trainer</b></button>
     </div>
     {ready.rows.map(({ std, latest, ev }) => <div key={std.id} className="card pf-std">
       <button className="pf-std-h" onClick={() => setOpen(open === std.id ? null : std.id)}>
@@ -557,17 +575,12 @@ function Plan({ S, P }) {
   if (P.start && !ease.ready) {
     const now = weekPlan(level, Math.min(current, pw.last), P.age, planOptsOf(P))
     return <>
-      <div className="card">
-        <h3>This week</h3>
-        <p className="pf-sub">Go light and finish each session. Learning the moves is the whole job right now.</p>
-      </div>
       {/* Plain names for someone new: "VO2 max" means nothing yet, "Interval run" does. */}
-      {now.days.map(d => <DayCard key={d.day} d={{ ...d, title: String(d.title).replace(/^VO2 max:\s*/i, 'Interval run: ') }} today={d.day === new Date().getDay()} />)}
-      <div className="card pf-ease">
-        <div className="row between"><b>{ease.sessions} of {ease.need} sessions done</b><span className="pf-sub">then more opens up</span></div>
+      {now.days.map(d => <DayCard key={d.day} S={S} P={P} d={{ ...d, title: String(d.title).replace(/^VO2 max:\s*/i, 'Interval run: ') }} today={d.day === new Date().getDay()} />)}
+      <div className="pf-ease-line">
         <div className="pf-bar"><span style={{ width: (ease.sessions / ease.need) * 100 + '%' }} /></div>
-        <p className="pf-sub">Finish five and Hayden shows you the weeks ahead and the other plans: more running, or one built around you.</p>
-        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show me everything now</button>
+        <span>{ease.sessions} of {ease.need} sessions. More plans open at {ease.need}.</span>
+        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show all now</button>
       </div>
     </>
   }
@@ -594,7 +607,7 @@ function Plan({ S, P }) {
       <div className="row between"><h3>{plan.final ? `Final week (week ${week})` : `Week ${week}`}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
       <p className="pf-sub">{plan.final && P.testDate ? 'Light training and good recovery. Half the sets, same intensity, sleep and eat well, and arrive fresh for test day.' : plan.phase.focus + (plan.test ? ' This week ends with a re-test.' : '')}</p>
     </div>
-    {plan.days.map(d => <DayCard key={d.day} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
+    {plan.days.map(d => <DayCard key={d.day} S={S} P={P} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
     <Fold key={'ps' + (P.seen?.moreplans ? 1 : 0)} id="plansettings" title="Change my plan">
       <PlanChoice S={S} P={P} />
@@ -970,8 +983,6 @@ export default function PoliceFit() {
       </div>
       <PfTabs value={tab} onChange={setTab} />
     </>}
-    {/* One plain line on what this page is, for someone new to all of it. */}
-    {calm && PAGE_INTRO[tab] && <p className="calm-intro">{PAGE_INTRO[tab]}</p>}
     {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openTest={() => setOverlay('test')} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests S={S} P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}
@@ -980,6 +991,7 @@ export default function PoliceFit() {
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}
     {tab === 'more' && <More setTab={setTab} calm={calm} />}
-    <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>
+    {/* Said once, on More (and before a plan is set up), not under every page. */}
+    {(!calm || tab === 'more') && <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>}
   </div>
 }
