@@ -5,7 +5,7 @@
 import { weekPlan, phaseOf, daysUntil, planOptsOf, planWeekOf } from './programme.js'
 import { readiness, fmtResult, DEFAULT_BEEP_TARGET } from './standards.js'
 import { runForDay, runsThisWeek, runById, runMinutes } from './runs.js'
-import { dayTotals, bodyProgress } from './meals.js'
+import { bodyProgress } from './meals.js'
 import { macroTargets } from './nutrition.js'
 import { checkinCall } from './checkin.js'
 
@@ -41,7 +41,6 @@ export function policeBrief(S, today) {
     .sort((a, b) => (a.pass - b.pass) || (a.pct - b.pct))
   const weekRuns = runsThisWeek(P.runLog, today)
   const targets = macroTargets({ weightKg: P.weightKg, goal: P.goal || 'lose', heightCm: P.heightCm, age: P.age, sex: P.sex })
-  const food = dayTotals(P.meals, today, targets)
   const body = bodyProgress(S.bodyweight, { startISO: P.start, goal: S.targetW })
   const days = P.testDate ? daysUntil(P.testDate, today) : null
   return {
@@ -58,7 +57,8 @@ export function policeBrief(S, today) {
     tomorrow: dayLine(tomorrowDay),
     gaps: gaps.slice(0, 6),
     runsThisWeek: { count: weekRuns.length, minutes: weekRuns.reduce((a, r) => a + (r.min || 0), 0), last: weekRuns.slice(-3).map(r => ({ run: runById(r.run)?.name || 'Run', on: r.at, rpe: r.rpe || null })) },
-    foodToday: { kcal: food.kcal, protein: food.protein, kcalTarget: targets?.kcal || null, proteinTarget: targets?.protein || null },
+    // Targets only: BadgeFit does not ask anyone to log their food (advice, not a diary).
+    foodToday: { kcalTarget: targets?.kcal || null, proteinTarget: targets?.protein || null },
     checkin: P.checkins?.[today] ? { ...P.checkins[today], call: checkinCall(P.checkins[today]) } : null,
     weight: body ? { start: body.start, now: body.now, change: body.change, goal: S.targetW || null, unit: S.unit || 'kg' } : null,
   }

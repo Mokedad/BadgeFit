@@ -27,8 +27,10 @@ export function answerOffline(question, brief) {
   if (has(q, /\b(tomorrow)\b/)) return b.tomorrow ? `Tomorrow: ${dayWords(b.tomorrow)}` : 'Tomorrow is a rest day. Recover well.'
   if (has(q, /\b(protein|eat|food|diet|meal|calorie|carb|hungry)/)) {
     const f = b.foodToday || {}
-    if (f.proteinTarget) return `Your targets: about ${f.proteinTarget} grams of protein and ${f.kcalTarget || 'your'} calories a day. So far today: ${f.protein || 0} grams of protein. Protein at every meal, and carbs around training.`
-    return 'Protein at every meal, about 2 grams per kilo of body weight a day, and carbs around training. Add your weight in the Food tab and I will give you exact numbers.'
+    const meal = f.proteinTarget ? Math.round(f.proteinTarget / 4 / 5) * 5 : null
+    const foods = 'Good protein: eggs, chicken, lean beef, tuna, Greek yoghurt. Carbs around training: oats or rice before, rice, potatoes or fruit after. Water with every meal.'
+    if (f.proteinTarget) return `About ${f.proteinTarget} grams of protein a day${f.kcalTarget ? ` and ${f.kcalTarget} calories` : ''}: roughly ${meal} grams at each of four meals. ${foods}`
+    return `Protein at every meal, about 2 grams per kilo of body weight a day. ${foods} Add your weight in the Food tab and I will give you exact numbers.`
   }
   if (has(q, /\b(weigh|weight loss|fat|kilos? down|lose)\b/) && b.weight) {
     const w = b.weight

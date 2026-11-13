@@ -879,7 +879,6 @@ function Food({ S, P }) {
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div></Fold>
-    <Fold id="log" title="🍽️ Today's food" open><MealLog P={P} targets={m} /></Fold>
     <Fold id="remind" title="🔔 Meal reminders"><MealReminders S={S} P={P} /></Fold>
     <Fold id="protein" title="🥩 Protein for your weight"><ProteinCard weight={weight} /></Fold>
     <Fold id="creatine" title="⚡ Creatine"><CreatineCard weight={weight} /></Fold>

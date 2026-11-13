@@ -31,7 +31,7 @@ describe('policeBrief', () => {
     expect(b.gaps.at(-1)).toMatchObject({ id: 'bridge', pass: true })
     expect(b.gaps.find(g => g.id === 'pushups')).toMatchObject({ area: 'Chest, shoulders and triceps', pct: 88, latest: '22 reps' })
     expect(b.runsThisWeek.count).toBe(1)
-    expect(b.foodToday).toMatchObject({ kcal: 520, protein: 42, proteinTarget: 242 })
+    expect(b.foodToday).toEqual({ kcalTarget: expect.any(Number), proteinTarget: 242 })
     expect(b.weight).toMatchObject({ start: 114, now: 110, change: -4, goal: 100 })
   })
   it('every standard maps to a body area', () => {
