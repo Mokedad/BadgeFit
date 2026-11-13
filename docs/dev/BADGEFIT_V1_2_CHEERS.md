@@ -87,3 +87,43 @@ list of everyone training, and nobody can be found by browsing.
 - **Later, for people you know of** (a public figure, a coach): a member can mark their profile
   Public, which accepts followers without approval and shows no route or location. Off by
   default; not in 1.2.
+
+## Decisions from the owner (13 November 2026, later)
+
+- **Following is both ways, automatically.** One accepted request and each sees the other's
+  bubble. No one-way follows in 1.2.
+- **The dumbbell is the follow button.** Every profile shows a dumbbell: tap to send a follow
+  request, tap again to unfollow. Grey: not following; outlined: requested; filled gold: in each
+  other's circle.
+- **The bell is the circle.** The bell on Home opens "My circle": everyone followed, those
+  training now at the top with their bubble, the rest below with when they last trained. Each row
+  has its own small bell for the "started training" notification.
+- **The other person always has the last word.** On a request: Accept or Decline. On someone
+  already in the circle: Mute (they stay, but their cheers and notifications are silent, and they
+  are not told) or Remove. Block stops further requests.
+
+## What BadgeFit takes from Strava and Runna, and what it leaves
+
+BadgeFit is live and private: it is about the session happening now, with people you know.
+Strava and Runna are a feed of finished sessions for an audience. So no feed, no maps, no photos.
+
+Taken:
+- **Kudos, as a cheer or a ✓.** One tap on a finished session in the circle: "Good work". No
+  comments thread.
+- **The session card, without the map.** After a session the circle sees a small card: what it
+  was (Hill repeats), how long, and one number that matters (distance, or sets done). Never a
+  route, never a start or finish place.
+- **Streaks and the week.** "4 of 5 sessions this week" on a profile, like Runna's plan
+  progress: it shows commitment, not location.
+- **A shared goal.** "23 days to the PCT" on a profile, and a circle that trains for the same
+  test date sees each other's readiness percent (opt in).
+- **Clubs, later.** A recruit intake or a gym as a closed group joined by code: the same circle
+  rules, for a class of people who know of each other.
+
+Left out on purpose:
+- Maps, routes, segments and leaderboards (location, and strangers competing).
+- Photos and a scrolling feed (an audience, not a training partner).
+- Public profiles by default and "people you may know" suggestions.
+
+Connecting accounts: a member may link Strava to send a finished run there (one way out, the
+route only if they choose). Nothing is read from Strava or Instagram into BadgeFit.
