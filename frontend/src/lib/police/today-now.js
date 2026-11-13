@@ -5,7 +5,7 @@ import { effectiveRoutines } from '../history.js'
 import { buildCombinedEntries } from '../session-merge.js'
 import { runForRoutine } from './run-routines.js'
 import { runMinutes } from './runs.js'
-import { sessionMinutes } from './session-length.js'
+import { sessionMinutes, fitSession } from './session-length.js'
 
 /** { name, minutes, today: { kind, title, minutes } | { kind: 'rest' }, logged, done } for a day. */
 export function todayNow(S, iso) {
@@ -15,7 +15,7 @@ export function todayNow(S, iso) {
   const name = routines.map(r => runOf(r)?.name || r.name).join(' + ')
   const gymIds = routines.filter(r => !runOf(r)).map(r => r.id)
   const minutes = routines.length
-    ? routines.reduce((a, r) => a + (runOf(r) ? runMinutes(runOf(r)) : 0), 0) + (gymIds.length ? sessionMinutes(buildCombinedEntries(S, gymIds).entries) : 0)
+    ? routines.reduce((a, r) => a + (runOf(r) ? runMinutes(runOf(r)) : 0), 0) + (gymIds.length ? sessionMinutes(fitSession(buildCombinedEntries(S, gymIds).entries, P.sessionCap ?? 45)) : 0)
     : null
   const logged = (S?.workouts || []).filter(w => w.d === iso)
   const covered = new Set(logged.flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))

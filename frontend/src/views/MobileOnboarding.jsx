@@ -196,14 +196,10 @@ function BadgeFitOnboarding() {
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
     {social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
     {social.includes('google') && <><Button variant="primary" onClick={() => signIn('google')} disabled={busy}>Continue with Google</Button><div style={{ height: 10 }} /></>}
-    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Signing in…' : social.length ? 'Use a password instead' : 'Sign in or create account'}</Button>
-    <div className="dim small" style={{ marginTop: 14, lineHeight: 1.5 }}>
-      One tap, right here in the app. Your plan, workouts and Hayden come with you.
-    </div>
+    {/* One word a button, nothing to read: log in, or look around first. */}
+    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : social.length ? 'Log in with password' : 'Log in'}</Button>
     <div style={{ height: 22 }} />
-    {/* Someone already in the app as a guest goes straight back to it; a first launch sets it up. */}
-    <Button variant="ghost" className="dim" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>{returning ? 'Keep going as a guest' : 'Try it as a guest'}</Button>
-    <div className="dim small" style={{ marginTop: 10, lineHeight: 1.5 }}>Guests get the simple plan and 15 questions a day with Hayden. Sign up any time from Home or Settings.</div>
+    <Button variant="ghost" className="dim" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>{returning ? 'Back as guest' : 'Try as guest'}</Button>
     <a className="dim small" style={{ marginTop: 18, textDecoration: 'underline' }} href={`https://${BRAND.server}/privacy.html`} target="_blank" rel="noopener">Privacy policy</a>
   </div>
 }

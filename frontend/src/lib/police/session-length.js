@@ -1,45 +1,83 @@
-// How long a BadgeFit gym session is today: asked at Start, so a busy day still gets trained.
-//   quick     3 exercises, 3 sets each: the two main lifts and the day's test practice
-//   standard  5 exercises, 3 sets each
-//   full      the whole session as the plan wrote it
-// The plan itself is not changed: only today's session is cut down.
+// How long a BadgeFit gym session takes, and fitting it to the time there is (45 minutes unless
+// the member gives it more). The rest after each set follows the kind of exercise:
+//   heavy lifting (6 reps or fewer at the top)  3½ min
+//   strength (7-8 reps)                          2½ min
+//   muscle (9-12 reps)                           90 s
+//   lighter sets (13+ reps)                      60 s
+//   explosive work (jumps, swings), body weight  45 s: keep moving
+//   holds (plank, carries)                       45 s
+// A rest the member set on the exercise is kept. Runs are not touched: a run is the run the plan
+// chose, at its own length. Only today's session is changed; the plan stays as it is. Pure.
 
-export const LENGTHS = [
-  { id: 'quick', label: 'Quick', n: 3, sets: 3 },
-  { id: 'standard', label: 'Standard', n: 5, sets: 3 },
-  { id: 'full', label: 'Full session', n: Infinity, sets: Infinity },
-]
-export const lengthOf = id => LENGTHS.find(l => l.id === id) || LENGTHS[2]
-
+// Explosive and body-weight moves: short rests, more movement.
+const QUICK = new Set(['0514', '0549', '0662', '0814', '0472', '1179'])
 // The moves the test itself asks for (push-ups, jump, plank and friends): one always stays in.
 const PRACTICE = new Set(['0662', '0514', '0463', '0814', '0472', '3420', '2133'])
 
-/**
- * Today's entries cut to a length: the first lifts in the plan's order (the big ones come
- * first) with one test-practice move kept, each at no more than the length's sets. Cardio
- * entries (a run in the same session) are always kept whole.
- */
-export function trimEntries(entries, id) {
-  const len = lengthOf(id)
-  const list = entries || []
-  if (len.n === Infinity) return list
-  const gym = list.filter(e => !isCardio(e))
-  if (gym.length <= len.n) return list.map(e => capSets(e, len.sets))
-  const practice = gym.find(e => PRACTICE.has(e.id))
-  const keep = new Set(gym.filter(e => e !== practice).slice(0, practice ? len.n - 1 : len.n))
-  if (practice) keep.add(practice)
-  return list.filter(e => isCardio(e) || keep.has(e)).map(e => capSets(e, len.sets))
-}
+export const CAPS = [
+  { id: 45, label: '45 min' },
+  { id: 60, label: '60 min' },
+  { id: 0, label: 'Full' },
+]
 
 const isCardio = e => (e?.sets || []).some(s => s?.mode === 'cardio') || e?.target?.mode === 'cardio'
-const capSets = (e, n) => (isCardio(e) || !Array.isArray(e.sets) || e.sets.length <= n ? e : { ...e, sets: e.sets.slice(0, n) })
+const isHold = e => e?.target?.mode === 'time' || (e?.sets || []).some(s => s?.mode === 'time')
+const topReps = e => Number(e?.target?.reps) || Number(e?.sets?.[0]?.r) || 10
 
-/** About how long the entries take, in minutes: each set with its rest, and the walk between machines. */
+/** Seconds of rest after each set of this exercise, by its kind (or its own, when set). */
+export function restFor(e) {
+  const own = Math.round(Number(e?.target?.restSec)) || 0
+  if (own > 0) return own
+  if (isCardio(e)) return 0
+  if (isHold(e) || QUICK.has(e?.id)) return 45
+  const top = topReps(e)
+  return top <= 6 ? 210 : top <= 8 ? 150 : top <= 12 ? 90 : 60
+}
+
+/** A set's working time in seconds: a hold its seconds, a lift about 3 s a rep. */
+const workFor = e => (isHold(e) ? (Number(e?.target?.sec) || 40) : Math.max(25, topReps(e) * 3))
+
+/** Minutes one exercise takes: its sets, the rests between them, and getting to the next one. */
+export function entryMinutes(e) {
+  if (isCardio(e)) return (e.sets || []).reduce((a, s) => a + (Number(s?.min) || 0), 0) || 20
+  const n = (e?.sets || []).length || 0
+  if (!n) return 0
+  return (n * workFor(e) + (n - 1) * restFor(e)) / 60 + 1.5
+}
+
+/** About how long the entries take, in minutes, rounded to 5. */
 export function sessionMinutes(entries) {
-  let min = 0
-  for (const e of entries || []) {
-    if (isCardio(e)) { min += (e.sets || []).reduce((a, s) => a + (Number(s?.min) || 0), 0) || 20; continue }
-    min += (e.sets || []).length * 2.25 + 1
+  const m = (entries || []).reduce((a, e) => a + entryMinutes(e), 0)
+  return Math.max(5, Math.round(m / 5) * 5)
+}
+
+const capSets = (e, n) => (isCardio(e) || !Array.isArray(e.sets) || e.sets.length <= n ? e : { ...e, sets: e.sets.slice(0, n) })
+const withRest = e => (isCardio(e) || Number(e?.target?.restSec) > 0 ? e : { ...e, target: { ...(e.target || {}), restSec: restFor(e) } })
+
+/**
+ * Today's entries fitted to `cap` minutes (0: the whole session), each with its rest set.
+ * First the sets come down to 3, then exercises come off the end, keeping the first two lifts
+ * (the big ones lead the plan) and one test-practice move. Runs are never cut.
+ */
+export function fitSession(entries, cap = 45) {
+  let list = (entries || []).map(withRest)
+  const over = () => cap > 0 && list.reduce((a, e) => a + entryMinutes(e), 0) > cap
+  if (!cap || !over()) return list
+  list = list.map(e => capSets(e, 3))
+  const practice = list.find(e => !isCardio(e) && PRACTICE.has(e.id))
+  while (over()) {
+    const gym = list.filter(e => !isCardio(e))
+    const drop = [...gym].reverse().find((e, i, a) => e !== practice && gym.indexOf(e) >= 2)
+    if (!drop) break
+    list = list.filter(e => e !== drop)
   }
-  return Math.max(5, Math.round(min / 5) * 5)
+  return list
+}
+
+/** A rest in words: "3½ min", "90 s". */
+export function restLabel(sec) {
+  if (!sec) return ''
+  if (sec < 120) return `${sec} s`
+  const m = sec / 60
+  return Number.isInteger(m) ? `${m} min` : `${Math.floor(m)}½ min`
 }

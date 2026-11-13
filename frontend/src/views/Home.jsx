@@ -35,7 +35,6 @@ import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf, daysUntil } from '../lib/police/programme.js'
 import { todayNow } from '../lib/police/today-now.js'
-import { firstStepsView } from '../lib/police/first-steps.js'
 import { shareSession } from '../lib/police/share-card.js'
 import { durationMinOf } from '../lib/workout-date.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
@@ -161,7 +160,9 @@ export default function Home() {
   // session with a cardio row in it.
   const bfRun = S.active || !S.police?.level ? null : todayRoutines.map(r => runForRoutine(S.police, r.id, todayISO())).find(Boolean) || null
   const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
-    : S.police?.level && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
+    // BadgeFit with a plan: Start opens today's session as pictures (components/SessionPreview.jsx),
+    // where it can be changed or started; the swap symbol is the way to something else.
+    : S.police?.level && !S.police?.start && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // BadgeFit: today's box swipes away (TodaySwipe) while there is a plan still to do.
   const swipeable = !!S.police?.level && !S.active && !doneToday && todayRoutines.length > 0
   const removeToday = () => { useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } }); useUI.getState().toast('🗑 Removed. Today is a rest day.') }
@@ -204,7 +205,6 @@ export default function Home() {
     const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null].filter(Boolean)
     // What today really is (lib/police/today-now.js): the same source Hayden reads from.
     const now = todayNow(S, todayISO())
-    const first = firstStepsView(S)
     const nowName = now.name
     const mins = S.active || doneToday || !routine ? null : now.minutes
     const line = S.active ? `${S.active.name} is under way.`
@@ -249,15 +249,6 @@ export default function Home() {
           </button>)}
         </div>}
         <div className="calm-week">{weekNav}</div>
-        {/* New here: four things to try, a symbol and one word each, ticked as they are done and
-            gone for good after the fourth (lib/police/first-steps.js). */}
-        {first && <div className="calm-first" aria-label={`Getting started, ${first.done} of ${first.total}`}>
-          {first.steps.map(st => <button key={st.id} className={st.done ? 'done' : st === first.next ? 'next' : ''} disabled={st.done} aria-label={st.label}
-            onClick={() => (st.to === 'hayden' ? document.querySelector('.calm-nav-h')?.click() : st.to ? nav(st.to) : onToday())}>
-            <span className="calm-first-o" aria-hidden="true"><Icon name={st.done ? 'check' : st.icon} /></span>
-            <small>{st.word}</small>
-          </button>)}
-        </div>}
       </div>
     </div>
   }

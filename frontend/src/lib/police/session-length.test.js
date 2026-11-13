@@ -1,31 +1,47 @@
 import { describe, it, expect } from 'vitest'
-import { trimEntries, sessionMinutes, lengthOf } from './session-length.js'
+import { restFor, fitSession, sessionMinutes, restLabel, entryMinutes } from './session-length.js'
 
-const e = (id, n = 4) => ({ id, sets: Array.from({ length: n }, () => ({ reps: 10 })) })
-const chest = [e('0025'), e('0314', 3), e('0426', 3), e('0334', 2), e('1236', 3), e('0662', 2), e('0472', 3), e('0463', 3)]
+const lift = (id, n, reps) => ({ id, sets: Array.from({ length: n }, () => ({ r: reps })), target: { reps } })
+const chest = [lift('0025', 4, 6), lift('0314', 3, 6), lift('0426', 3, 6), lift('0334', 3, 8), lift('1236', 3, 8),
+  lift('0662', 3, 15), lift('0472', 3, 12), { id: '0463', sets: [{ mode: 'time' }, { mode: 'time' }, { mode: 'time' }], target: { mode: 'time', sec: 60 } }]
 
-describe('session length', () => {
-  it('quick: the two main lifts and one test-practice move, three sets at most', () => {
-    const out = trimEntries(chest, 'quick')
-    expect(out.map(x => x.id)).toEqual(['0025', '0314', '0662'])
-    expect(out.map(x => x.sets.length)).toEqual([3, 3, 2])
+describe('rests follow the kind of exercise', () => {
+  it('heavy lifting rests longest, light sets and explosive or body-weight work least', () => {
+    expect(restFor(lift('0025', 3, 5))).toBe(210)
+    expect(restFor(lift('0025', 3, 8))).toBe(150)
+    expect(restFor(lift('0025', 3, 12))).toBe(90)
+    expect(restFor(lift('0025', 3, 15))).toBe(60)
+    expect(restFor(lift('0514', 3, 6))).toBe(45) // jump squat: keep moving
+    expect(restFor(chest[7])).toBe(45)           // plank hold
   })
-  it('standard: five exercises in the plan\'s order', () => {
-    expect(trimEntries(chest, 'standard').map(x => x.id)).toEqual(['0025', '0314', '0426', '0334', '0662'])
+  it('keeps a rest the member set, and never rests a run', () => {
+    expect(restFor({ id: '0025', sets: [{}], target: { reps: 5, restSec: 100 } })).toBe(100)
+    expect(restFor({ id: '0685', sets: [{ mode: 'cardio', min: 30 }] })).toBe(0)
   })
-  it('full: untouched', () => {
-    expect(trimEntries(chest, 'full')).toBe(chest)
-    expect(lengthOf('nonsense').id).toBe('full')
+  it('says a rest in plain words', () => {
+    expect([restLabel(45), restLabel(90), restLabel(150), restLabel(180), restLabel(210)]).toEqual(['45 s', '90 s', '2½ min', '3 min', '3½ min'])
   })
-  it('a short session only has its sets capped, and a run in it stays whole', () => {
-    const run = { id: '0685', sets: [{ mode: 'cardio', min: 25 }] }
-    const out = trimEntries([e('0025'), run], 'quick')
-    expect(out.map(x => x.sets.length)).toEqual([3, 1])
-    expect(trimEntries([...chest, run], 'quick').at(-1)).toBe(run)
+})
+
+describe('fitting today into the time there is', () => {
+  it('a heavy day over 45 minutes comes down to 45, keeping the big lifts and the test practice', () => {
+    expect(sessionMinutes(chest)).toBeGreaterThan(45)
+    const fit = fitSession(chest, 45)
+    expect(fit.reduce((a, e) => a + entryMinutes(e), 0)).toBeLessThanOrEqual(45)
+    expect(fit.slice(0, 2).map(e => e.id)).toEqual(['0025', '0314'])
+    expect(fit.map(e => e.id)).toContain('0662')
+    expect(fit.every(e => e.sets.length <= 3)).toBe(true)
+    expect(fit.every(e => e.target.restSec > 0)).toBe(true)
   })
-  it('estimates the time in five-minute steps', () => {
-    expect(sessionMinutes(trimEntries(chest, 'quick'))).toBe(20)
-    expect(sessionMinutes(chest)).toBeGreaterThan(55)
-    expect(sessionMinutes([{ id: '0685', sets: [{ mode: 'cardio', min: 25 }] }])).toBe(25)
+  it('more time keeps more; Full keeps all, with rests set', () => {
+    expect(fitSession(chest, 60).length).toBeGreaterThan(fitSession(chest, 45).length)
+    const full = fitSession(chest, 0)
+    expect(full.length).toBe(chest.length)
+    expect(full[0].sets.length).toBe(4)
+  })
+  it('a short day is left whole, and a run is never cut', () => {
+    const run = { id: '0685', sets: [{ mode: 'cardio', min: 40 }] }
+    expect(fitSession([lift('0025', 3, 10)], 45).length).toBe(1)
+    expect(fitSession([...chest, run], 45).at(-1)).toBe(run)
   })
 })
