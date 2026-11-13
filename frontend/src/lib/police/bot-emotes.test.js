@@ -30,3 +30,12 @@ describe('Hayden copies the exercise', () => {
     expect(exerciseAct(null)).toBe(null)
   })
 })
+
+import { SPOTS, nextSpot } from './bot-emotes.js'
+describe('Hayden hops corners', () => {
+  it('always lands somewhere new, any of the others', () => {
+    const seen = new Set()
+    for (const r of [0, 0.2, 0.4, 0.6, 0.8, 0.999]) { const s = nextSpot('br', () => r); expect(s).not.toBe('br'); expect(SPOTS).toContain(s); seen.add(s) }
+    expect(seen.size).toBe(SPOTS.length - 1)
+  })
+})

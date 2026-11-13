@@ -845,3 +845,11 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 /* BadgeFit workout: a finished exercise greys out, with Redo last set */
 .card.ex-done{opacity:.45;filter:grayscale(1)}
 .ex-redo{display:flex;align-items:center;gap:6px;margin:10px auto 0;border:0;border-radius:999px;padding:9px 16px;background:var(--surface-2,var(--surface));color:var(--label);font-weight:600;font-size:15px}
+
+/* Hayden's spots: double-tapped he shrinks away and pops up in another (HaydenBuddy) */
+.hb-buddy{transition:transform .2s ease,opacity .2s ease}
+.hb-buddy.hop{transform:scale(.2);opacity:0}
+.hb-buddy.spot-bl,.hb-buddy.spot-ml,.hb-buddy.spot-tl{right:auto;left:12px}
+.hb-buddy.spot-mr,.hb-buddy.spot-ml{bottom:auto;top:46%}
+.hb-buddy.spot-tr,.hb-buddy.spot-tl{bottom:auto;top:calc(var(--sat) + 128px)}
+.hb-buddy.on-run.spot-tr,.hb-buddy.on-run.spot-tl{top:calc(var(--sat) + 96px)}

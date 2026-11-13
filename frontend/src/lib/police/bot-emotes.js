@@ -33,3 +33,10 @@ export function exerciseAct(ex) {
   return null
 }
 export const ACT_MS = 2600
+
+/** Where Hayden can float. Double-tapped, he hops to another one, picked at random. */
+export const SPOTS = ['br', 'bl', 'mr', 'ml', 'tr', 'tl']
+export function nextSpot(cur = 'br', rand = Math.random) {
+  const others = SPOTS.filter(s => s !== cur)
+  return others[Math.min(others.length - 1, Math.floor(rand() * others.length))]
+}
