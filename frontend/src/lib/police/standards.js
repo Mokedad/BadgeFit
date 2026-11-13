@@ -42,12 +42,14 @@ export const STANDARDS = [
 export const standardById = id => STANDARDS.find(s => s.id === id) || null
 
 // --- beep test ---------------------------------------------------------------------------
-// Shuttles per level as on the standard 20 m recording sheet, speeds from 8 km/h rising by
-// 0.5 km/h each level. Seconds per shuttle follow from the speed (20 m at that speed).
+// The standard 20 m multistage shuttle run (Ramsbottom et al. 1988, the "beep test"): shuttles
+// per level as on its recording sheet; level 1 at 8.0 km/h, level 2 at 9.0, then 0.5 km/h more
+// each level (level 21 at 18.5). Seconds per shuttle follow from the speed: 9.0 s at level 1,
+// 8.0 s at level 2, and so on, about a minute a level.
 const SHUTTLES = [7, 8, 8, 9, 9, 10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16]
 
 export const BEEP_LEVELS = SHUTTLES.map((shuttles, i) => {
-  const speed = 8 + i * 0.5
+  const speed = i === 0 ? 8 : 8.5 + i * 0.5
   return { level: i + 1, shuttles, speed, secPerShuttle: Math.round((20 / (speed / 3.6)) * 100) / 100 }
 })
 

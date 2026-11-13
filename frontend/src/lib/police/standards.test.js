@@ -4,9 +4,12 @@ import { STANDARDS, DEFAULT_BEEP_GOAL, BEEP_LEVELS, parseBeep, beepShuttles, bee
 describe('beep test', () => {
   it('matches the shuttle table: speeds, seconds per shuttle', () => {
     expect(BEEP_LEVELS[0]).toEqual({ level: 1, shuttles: 7, speed: 8, secPerShuttle: 9 })
-    expect(BEEP_LEVELS[1].secPerShuttle).toBe(8.47)
-    expect(BEEP_LEVELS[8].speed).toBe(12)
-    expect(BEEP_LEVELS[8].secPerShuttle).toBe(6)
+    // The standard test: level 2 jumps to 9.0 km/h (8.0 s a shuttle), then +0.5 km/h a level.
+    expect(BEEP_LEVELS[1]).toEqual({ level: 2, shuttles: 8, speed: 9, secPerShuttle: 8 })
+    expect(BEEP_LEVELS[6].speed).toBe(11.5)
+    expect(BEEP_LEVELS[8].speed).toBe(12.5)
+    expect(BEEP_LEVELS[8].secPerShuttle).toBe(5.76)
+    expect(BEEP_LEVELS[20].speed).toBe(18.5)
   })
   it('parses level.shuttle without treating it as a decimal', () => {
     expect(parseBeep('7.5')).toEqual({ level: 7, shuttle: 5 })

@@ -80,7 +80,8 @@ export default function Home() {
   // is the setting.
   const wkStart = new Date(today)
   wkStart.setDate(today.getDate() - weekDayOffset(today.getDay(), ws) + weekOffset * 7)
-  const doneDays = new Set(S.workouts.map(w => w.d))
+  // A day unticked on Plan loses its ✓ here too (lib/police/reopen.js).
+  const doneDays = new Set(S.workouts.filter(w => countsForPlan(w, S.police)).map(w => w.d))
   // The last session logged for today, if any — what the row below reports instead of asking
   // you to start the one you already did. Last wins, so a second session names itself. Only once
   // today's plan is covered, though: a freestyle session on a planned day, or the rotation's
