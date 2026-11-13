@@ -6,6 +6,7 @@ import { buildCombinedEntries } from '../session-merge.js'
 import { runForRoutine } from './run-routines.js'
 import { runMinutes } from './runs.js'
 import { sessionMinutes, fitSession } from './session-length.js'
+import { planLogged } from './reopen.js'
 
 /** { name, minutes, today: { kind, title, minutes } | { kind: 'rest' }, logged, done } for a day. */
 export function todayNow(S, iso) {
@@ -17,7 +18,8 @@ export function todayNow(S, iso) {
   const minutes = routines.length
     ? routines.reduce((a, r) => a + (runOf(r) ? runMinutes(runOf(r)) : 0), 0) + (gymIds.length ? sessionMinutes(fitSession(buildCombinedEntries(S, gymIds).entries, P.sessionCap ?? 45)) : 0)
     : null
-  const logged = (S?.workouts || []).filter(w => w.d === iso)
+  // A day unticked to train again (lib/police/reopen.js) ignores what was logged before.
+  const logged = planLogged(S, iso)
   const covered = new Set(logged.flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
   const done = !S?.active && logged.length > 0 && routines.every(r => covered.has(r.id))
   const today = S?.active ? { kind: 'gym', title: S.active.name }

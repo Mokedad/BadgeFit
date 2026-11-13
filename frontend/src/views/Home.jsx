@@ -1,3 +1,4 @@
+import { countsForPlan } from '../lib/police/reopen.js'
 import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
@@ -86,7 +87,8 @@ export default function Home() {
   // first session done when its next one is today's too, leaves the row offering what is still
   // to do, as Start and the progress row already do. A queue session is never "covered" by an
   // earlier workout: the queue only names one it does not count as done yet.
-  const loggedToday = S.workouts.filter(w => w.d === todayISO())
+  // A day unticked on Plan (lib/police/reopen.js) is offered again: earlier workouts stop counting.
+  const loggedToday = S.workouts.filter(w => w.d === todayISO() && countsForPlan(w, S.police))
   const queueIds = queueOf(S)?.ids || []
   const coveredToday = id => !queueIds.includes(id) && loggedToday.some(w => (Array.isArray(w.routineIds) ? w.routineIds : [w.routineId]).includes(id))
   const doneToday = (todayRoutines.every(r => coveredToday(r.id)) && loggedToday.at(-1)) || null

@@ -14,7 +14,8 @@ import { todayNow } from '../lib/police/today-now.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { fitSession } from '../lib/police/session-length.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
-import { menuSheet, exercisePicker, dayOverrideSheet } from '../sheets.jsx'
+import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet } from '../sheets.jsx'
+import { reopenPatch } from '../lib/police/reopen.js'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 
@@ -65,6 +66,12 @@ export default function PlanDays({ first = null }) {
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.8) go(dx > 0 ? -1 : 1)
   }
   const removeEx = (r, i) => update(s => { const x = (s.routines || []).find(y => y.id === r.id); if (x) x.ex = x.ex.filter((_, j) => j !== i) })
+  // Untick today's done plan: the day is offered again on Home (lib/police/reopen.js).
+  const reopen = iso => confirmSheet({
+    title: 'Train this again?', message: 'Today goes back to not done, so you can do it again. What you logged stays in your stats.',
+    confirmText: 'Untick',
+    onConfirm: () => useStore.getState().update(s => { s.police = { ...(s.police || {}), ...reopenPatch(s.police, iso, Date.now(), todayISO()) } }),
+  })
   const hold = (r, i, ex) => menuSheet({ title: exerciseNameFor(ex), items: [
     { icon: 'trash', danger: true, label: 'Remove from this workout', onClick: () => removeEx(r, i) },
     { icon: 'xmark', label: 'Keep it', onClick: () => {} },
@@ -85,7 +92,9 @@ export default function PlanDays({ first = null }) {
     <div className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={down} onPointerUp={up}>
       <div className="pd-h">
         <span className="pd-m"><b>{d.name}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
-        {d.trained ? <span className="pd-tick" aria-label="Done"><Icon name="check" /></span>
+        {d.trained ? (focus === today
+          ? <button type="button" className="pd-tick" onClick={() => reopen(focus)} aria-label="Done. Tap to train this again"><Icon name="check" /></button>
+          : <span className="pd-tick" aria-label="Done"><Icon name="check" /></span>)
           : !past && <button className="calm-swap" onClick={() => dayOverrideSheet(focus)} aria-label="Change this day"><Icon name="swap" /></button>}
       </div>
       {d.gym.map(r => <div key={r.id} className="pf-pics">

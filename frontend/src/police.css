@@ -853,3 +853,4 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .hb-buddy.spot-mr,.hb-buddy.spot-ml{bottom:auto;top:46%}
 .hb-buddy.spot-tr,.hb-buddy.spot-tl{bottom:auto;top:calc(var(--sat) + 128px)}
 .hb-buddy.on-run.spot-tr,.hb-buddy.on-run.spot-tl{top:calc(var(--sat) + 96px)}
+button.pd-tick{border:0;padding:0;cursor:pointer}
