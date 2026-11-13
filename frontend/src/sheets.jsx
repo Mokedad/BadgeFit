@@ -3510,13 +3510,12 @@ export function startFlow(routineIds) {
     const last = P.sessionLen || 'full'
     menuSheet({
       title: 'How long have you got?',
-      subtitle: 'Hayden cuts today down to the lifts that matter most. Your plan stays the same.',
       items: LENGTHS.map(l => {
         const cut = trimEntries(full, l.id)
         return {
           icon: l.id === 'quick' ? 'bolt' : l.id === 'standard' ? 'timer' : 'dumbbell', accent: l.id === last,
           label: `${l.label} · about ${sessionMinutes(cut)} min`,
-          sub: `${cut.length} exercises${l.sets === Infinity ? ', every set' : ', 3 sets each'}`,
+          sub: `${cut.length} exercises`,
           onClick: () => { update(s => { if (s.police) s.police.sessionLen = l.id }); begin(l.id) },
         }
       }),

@@ -5,6 +5,7 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
+import { exerciseNameFor } from '../lib/i18n-core.js'
 import { EXIDX } from '../lib/exercises.js'
 import { seenPatch, comfort } from '../lib/police/first-steps.js'
 import { Thumb } from '../components/Media.jsx'
@@ -146,7 +147,6 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
     <div className="card pf-jarvis">
       <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your trainer</span></div>
       {lines.slice(1, 3).map((l, i) => <p key={i}>{l}</p>)}
-      <p className="pf-sub">🎧 I talk you through every workout: your next weight after each set, when rest is up, and how you are tracking to your {testName}.{isOn(S, 'coach') ? ' Tap 🎤 in a workout and just say "12 at 60", "done" or "swap to dumbbells".' : ''}</p>
       {!fresh && <JarvisSwitches S={S} P={P} />}
     </div>
   </>
@@ -262,7 +262,6 @@ function TestCountdown({ S, P }) {
         <label>Event<TextField value={P.testName ?? ''} placeholder="PCT" maxLength={24} onChange={e => update(s => { s.police = { ...(s.police || {}), testName: e.target.value } })} /></label>
         <label>Date<TextField type="date" value={P.testDate || ''} onChange={e => setDate(e.target.value)} /></label>
       </div>
-      {P.testDate && <p className="pf-sub">Plan weeks run Monday to Sunday. Your plan runs from week 1 to week {pw.last}, your final week: light training, the {name} on its own day and an easy day before it{pw.week && !pw.after && !pw.before ? `. This is week ${pw.week}` : ''}. Change the date and the plan fits itself to it.</p>}
     </div>
   </div>
 }
@@ -412,7 +411,8 @@ function DayCard({ d, today, S = null, P = null }) {
   const [open, setOpen] = useState(false)
   const rid = d.key && P?.keys?.[d.key]
   const routine = rid && d.kind === 'gym' ? (S?.routines || []).find(r => r.id === rid) : null
-  const pics = (routine?.ex || []).map(e => EXIDX[e.id]).filter(Boolean).slice(0, 3)
+  const all = (routine?.ex || []).map(e => EXIDX[e.id]).filter(Boolean)
+  const pics = all.slice(0, 3)
   return <div className={'pf-day pf-tile pfk-' + d.kind + (today ? ' on' : '')} onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
     <div className="pf-tile-h">
       <span className="pf-tile-d">{today ? 'Today' : String(d.dayName).slice(0, 3)}</span>
@@ -421,29 +421,32 @@ function DayCard({ d, today, S = null, P = null }) {
         {pics.length ? pics.map(ex => <Thumb key={ex.id} ex={ex} />) : <span className="pf-tile-i"><Icon name={DAY_ICON[d.kind] || 'calendar'} /></span>}
       </span>
     </div>
-    {open && <ul>{d.details.map((x, i) => <li key={i}>{x}</li>)}</ul>}
-    {open && d.recovery?.length > 0 && <div className="pf-rec">{d.recovery.map((x, i) => <span key={i} className="pf-chip">{x}</span>)}</div>}
+    {open && (all.length
+      ? <div className="pf-pics">{all.map(ex => <figure key={ex.id}><Thumb ex={ex} /><figcaption>{exerciseNameFor(ex)}</figcaption></figure>)}</div>
+      : <ul>{d.details.slice(0, 2).map((x, i) => <li key={i}>{x}</li>)}</ul>)}
   </div>
 }
 
 // --- Run ---------------------------------------------------------------------------------
 function RunTab({ S, P, startRun }) {
-  const [cat, setCat] = useState('all')
+  // Opens on one kind of run (today's, or the first), not the whole list: a short page.
+  const [cat, setCat] = useState(null)
   const pw = planWeekOf(P, todayISO())
   const week = pw.week
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
   const todayRun = runForDay(plan?.days.find(d => d.day === new Date().getDay()))
   const done = runsThisWeek(P.runLog, todayISO())
   const ranToday = (P.runLog || []).filter(r => r.at === todayISO()).at(-1)
-  const list = cat === 'all' ? RUNS : RUNS.filter(r => r.cat === cat)
+  const shown = cat || todayRun?.cat || CATEGORIES[0].id
+  const list = shown === 'all' ? RUNS : RUNS.filter(r => r.cat === shown)
   const catOf = id => CATEGORIES.find(c => c.id === id)
   return <>
     {todayRun && <div className="card pf-todayrun">
       <span className="pf-sub">Today's run</span>
-      <h3>{catOf(todayRun.cat).emoji} {todayRun.name}</h3>
-      <p className="pf-sub">{todayRun.why} · ~{runMinutes(todayRun)} min</p>
+      <h3>{todayRun.name}</h3>
+      <p className="pf-sub">{runMinutes(todayRun)} min</p>
       {ranToday ? <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span></div>
-        : <button className="pf-go" onClick={() => startRun(todayRun)}>▶ Start guided run</button>}
+        : <button className="pf-go" onClick={() => startRun(todayRun)}>Start</button>}
     </div>}
     <div className="pf-strip pf-strip3">
       <div><b>{done.length}</b><span>runs this week</span></div>
@@ -451,23 +454,20 @@ function RunTab({ S, P, startRun }) {
       <div><b>{Math.round(done.reduce((a, r) => a + (Number(r.km) || 0), 0) * 10) / 10}</b><span>km</span></div>
     </div>
     <div className="pf-cats" role="tablist" aria-label="Run type">
-      <button className={cat === 'all' ? 'on' : ''} onClick={() => setCat('all')}>All</button>
-      {CATEGORIES.map(c => <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.emoji} {c.name}</button>)}
+      {CATEGORIES.map(c => <button key={c.id} className={shown === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
+      <button className={shown === 'all' ? 'on' : ''} onClick={() => setCat('all')}>All</button>
     </div>
-    {cat !== 'all' && <p className="pf-sub pf-pad">{catOf(cat).about}</p>}
     <div className="card pf-runs">{list.map(r => <button key={r.id} className="pf-run" onClick={() => startRun(r)}>
-      <span className="pf-run-e" aria-hidden="true">{catOf(r.cat).emoji}</span>
-      <span className="pf-run-m"><b>{r.name}</b><small>{catOf(r.cat).name} · ~{runMinutes(r)} min · {r.km}</small></span>
-      <span className="pf-run-go" aria-hidden="true">▶</span>
+      <span className="pf-run-e pf-more-i" aria-hidden="true"><Icon name={r.cat === 'walk' ? 'heart' : 'figureRun'} /></span>
+      <span className="pf-run-m"><b>{r.name}</b><small>{runMinutes(r)} min · {r.km}</small></span>
+      <Icon name="chevronRight" />
     </button>)}</div>
-    <p className="pf-sub pf-pad">A week that works: 1 VO2 or interval session, 1 tempo or beep session, and everything else easy. About 80% of your running should feel easy.</p>
     <MusicBar />
-    {(P.runLog || []).length > 0 && <div className="card">
-      <h3>Recent runs</h3>
+    {(P.runLog || []).length > 0 && <Fold id="recentruns" title="Recent runs">
       {(P.runLog || []).slice(-6).reverse().map(r => <div key={r.id} className="pf-logrow">
         <span>{runById(r.run)?.name || 'Run'}</span><small>{r.at} · {r.min} min{r.km ? ` · ${r.km} km` : ''}{r.rpe ? ` · effort ${r.rpe}/10` : ''}</small>
       </div>)}
-    </div>}
+    </Fold>}
   </>
 }
 
@@ -491,12 +491,11 @@ function Tests({ S, P, openBeep, openTest }) {
         <span className={'pf-std-dot' + (ev ? (ev.pass ? ' pass' : ' fail') : '')} aria-hidden="true">{ev?.pass ? <Icon name="check" /> : null}</span>
         <span className="pf-std-m">
           <b>{std.name}</b>
-          <span className="pf-sub">{std.id === 'beep' ? `Pass ${P.beepTarget || DEFAULT_BEEP_TARGET}, goal ${P.beepGoal || DEFAULT_BEEP_GOAL}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`} · {std.attempts} attempt{std.attempts > 1 ? 's' : ''}</span>
+          <span className="pf-sub">{std.id === 'beep' ? `Level ${P.beepTarget || DEFAULT_BEEP_TARGET}` : `${std.better === 'lower' ? 'Under ' : ''}${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`}</span>
         </span>
         {ev ? <span className={'pf-chip ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'PASS' : `${ev.pct}%`}</span> : <span className="pf-chip">Not tested</span>}
       </button>
       {ev && <div className="pf-bar"><span style={{ width: ev.pct + '%' }} /></div>}
-      {std.id === 'beep' && latest && (() => { const g = evaluate('beep', latest.v, P.beepGoal || DEFAULT_BEEP_GOAL); return g && <p className="pf-sub">{g.pass ? 'Training goal reached. Comfortable pass territory.' : `Training goal: ${g.pct}% of the way.`}</p> })()}
       {latest && <p className="pf-sub">Latest: {fmtResult(std.id, latest.v)} on {latest.at}{(() => { const b = bestResult(P.results, std.id); return b && b !== latest ? ` · Best: ${fmtResult(std.id, b.v)}` : '' })()}</p>}
       {open === std.id && <LogForm std={std} P={P} onDone={() => setOpen(null)} />}
     </div>)}
@@ -504,7 +503,6 @@ function Tests({ S, P, openBeep, openTest }) {
       <TestCountdown S={S} P={P} />
     </Fold>
     <Fold id="beepmarks" title="Beep test: pass mark and your goal">
-      <p className="pf-sub">Test yourself at the start, then at the end of every 4-week phase. Log every attempt: the latest one counts.</p>
       <p className="pf-sub">Pass/fail is judged on the pass mark. Train for the goal above it, so test day feels comfortable. Standards differ by state and change: check your service's current requirement.</p>
       <div className="pf-2">
         <label>Pass mark<TextField value={P.beepTarget || DEFAULT_BEEP_TARGET} inputMode="decimal" onChange={e => setP({ beepTarget: e.target.value })} /></label>
@@ -579,8 +577,8 @@ function Plan({ S, P }) {
       {now.days.map(d => <DayCard key={d.day} S={S} P={P} d={{ ...d, title: String(d.title).replace(/^VO2 max:\s*/i, 'Interval run: ') }} today={d.day === new Date().getDay()} />)}
       <div className="pf-ease-line">
         <div className="pf-bar"><span style={{ width: (ease.sessions / ease.need) * 100 + '%' }} /></div>
-        <span>{ease.sessions} of {ease.need} sessions. More plans open at {ease.need}.</span>
-        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show all now</button>
+        <span>{ease.sessions} of {ease.need}</span>
+        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show all</button>
       </div>
     </>
   }
@@ -589,7 +587,7 @@ function Plan({ S, P }) {
     {/* The habit is there: the other plans are offered once, then live under Change my plan. */}
     {P.start && level === 'beginner' && !P.seen?.moreplans && (S.workouts || []).length >= ease.need && <div className="card pf-ease">
       <b>Five sessions done. You have the habit.</b>
-      <p className="pf-sub">There are other plans when you want one: more running, or a plan Hayden builds around you. Your simple plan carries on if you leave it.</p>
+      <p className="pf-sub">More running, or a plan built around you.</p>
       <div className="row" style={{ gap: 8 }}>
         <Button size="sm" variant="primary" onClick={openPlans}>See the plans</Button>
         <Button size="sm" variant="ghost" onClick={() => setP(p => seenPatch(p, 'moreplans') || {})}>Not now</Button>
@@ -605,7 +603,6 @@ function Plan({ S, P }) {
     </div>
     <div className="card">
       <div className="row between"><h3>{plan.final ? `Final week (week ${week})` : `Week ${week}`}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
-      <p className="pf-sub">{plan.final && P.testDate ? 'Light training and good recovery. Half the sets, same intensity, sleep and eat well, and arrive fresh for test day.' : plan.phase.focus + (plan.test ? ' This week ends with a re-test.' : '')}</p>
     </div>
     {plan.days.map(d => <DayCard key={d.day} S={S} P={P} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
@@ -620,13 +617,6 @@ function Plan({ S, P }) {
       </div>
       <label className="pf-toggle"><input type="checkbox" checked={!!P.beepFocus} onChange={e => setP({ beepFocus: e.target.checked })} />
         <span><b>Beep focus</b><br />The beep test is my weak point: make Saturday a second interval session.</span></label>
-      {pw.after
-        ? <p className="pf-sub pf-explain">Your {(P.testName || '').trim() || 'PCT'} is done. Training carries on so you stay fit. Set a new date in Tests and the plan stretches to it.</p>
-        : <p className="pf-sub pf-explain">{P.testDate
-          ? pw.last > WEEKS
-            ? `Your plan is ${pw.last} weeks, up to your test. The 12-week cycle repeats, and the last 12 weeks end on test day.`
-            : `Your plan is ${pw.last} ${pw.last === 1 ? 'week' : 'weeks'}, up to your test. The gold week is your final week: light training and recovery.`
-          : 'No test date yet: a 12-week plan. Set your date in Tests and the plan fits itself to it.'}</p>}
     </Fold>
     {/* How the lifting works (the rep range rule, the next-set helper, the phases, the warm-up)
         lives under More → Strength, so the plan is only the plan. */}
@@ -644,7 +634,7 @@ function Strength({ S, P }) {
   return <>
     {now && <div className="card">
       <div className="row between"><h3>Where you are</h3><span className="pf-chip">Phase {now.n}</span></div>
-      <p className="pf-sub"><b>{now.range} reps this week.</b> {now.focus}</p>
+      <p className="pf-sub"><b>{now.range} reps this week</b></p>
     </div>}
     <Reps S={S} start={now && rangeById(now.range)?.id === now.range ? now.range : null} />
     <Fold id="phases" title="The three phases">
@@ -675,7 +665,6 @@ function Reps({ S, start = null }) {
         <div><b>{range.min}-{range.max - 1}</b><span>in range</span><em className="stay">Stay</em></div>
         <div><b>{range.max}+</b><span>top or more</span><em className="up">Move up +{unit === 'lb' ? '5 lb' : '2.5 kg'}</em></div>
       </div>
-      <p className="pf-sub">Same rule week to week: where you finish is where you start next week. Log every set, so you always know your number.</p>
     </div>
     <div className="card">
       <h3>What next set?</h3>

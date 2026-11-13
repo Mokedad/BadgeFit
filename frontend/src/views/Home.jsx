@@ -201,17 +201,16 @@ export default function Home() {
     const P = S.police
     const guest = isBadgeFitGuest(S, config, user)
     const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
-    const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null,
-      today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
+    const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null].filter(Boolean)
     // What today really is (lib/police/today-now.js): the same source Hayden reads from.
     const now = todayNow(S, todayISO())
     const first = firstStepsView(S)
     const nowName = now.name
     const mins = S.active || doneToday || !routine ? null : now.minutes
     const line = S.active ? `${S.active.name} is under way.`
-      : doneToday ? 'Today is done. Good work.'
-      : routine ? `Today: ${nowName}${mins ? `, about ${mins} min` : ''}.`
-      : next ? `Rest day. Next up: ${t(DAYN[next.weekday])}, ${next.routine.name}.` : 'Rest day. Recover well.'
+      : doneToday ? 'Done. Good work.'
+      : routine ? `${nowName}${mins ? ` · ${mins} min` : ''}`
+      : next ? `Rest day · next ${t(DAYN[next.weekday])}` : 'Rest day'
     const shareToday = () => {
       const all = loggedToday
       const runKm = (P.runLog || []).filter(r => r.at === todayISO()).reduce((a, r) => a + (Number(r.km) || 0), 0)
