@@ -323,7 +323,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       </div>}
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
-      <button className="rp-main" onClick={onClose}>Done</button>
+      <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home' }}>Done</button>
     </div>
   </div>
 

@@ -22,6 +22,18 @@ export function swipeStep({ dx, dy, ms, startX, width, startY = 0, top = null })
   return dx < 0 ? 1 : -1
 }
 
+// BadgeFit's pages under More, and where a back swipe from each goes: More itself, or the page
+// before (a page further in, such as Measurements from Food).
+const UNDER_MORE = new Set(['/stats', '/library', '/settings', '/community'])
+export function backTarget(pathname, search) {
+  if (pathname === '/police') return { path: '/police', search: '?tab=more', back: true }
+  if (UNDER_MORE.has(pathname)) return { path: '/police', search: '?tab=more', back: true }
+  if (['/measurements', '/progress-photos', '/coach', '/workout', '/admin'].includes(pathname)) return null
+  return pathname.startsWith('/settings/') || pathname.startsWith('/exercise/') ? { history: true, back: true } : null
+}
+/** How far down a back swipe may start: the middle of the screen up. */
+export const BACK_BAND = 0.55
+
 /** Where a swipe by `step` lands: { path, search } to go to, or null (no tab that way, not a tab screen). */
 export function swipeTarget(pathname, search, step, calm = false) {
   if (!step) return null
@@ -29,7 +41,10 @@ export function swipeTarget(pathname, search, step, calm = false) {
   if (calm) {
     const tab = pathname === '/police' ? new URLSearchParams(search || '').get('tab') || 'today' : null
     const i = pathname === '/home' ? 0 : tab ? CALM_TABS.findIndex(t => t.tab === tab) : -1
-    const next = i < 0 ? null : CALM_TABS[i + step]
+    // A page opened from More (Runs, Food, Hayden, Exercises, Progress...): a swipe either way
+    // goes back to More, in place of (or as well as) its back button.
+    if (i < 0) return backTarget(pathname, search)
+    const next = CALM_TABS[i + step]
     return next ? { path: next.path, search: next.tab ? '?tab=' + next.tab : '' } : null
   }
   if (pathname === '/police') {
@@ -72,9 +87,11 @@ export function installTabSwipe(where, go, calm = () => false) {
     const t = e.changedTouches?.[0]
     if (!s || !t) return
     const isCalm = calm()
-    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth, startY: s.y, top: isCalm ? TOP_BAND : null })
+    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth })
     const { pathname, search } = where()
     const to = swipeTarget(pathname, search, step, isCalm)
+    // BadgeFit: a tab change only from the title band at the top; a back swipe from the middle up.
+    if (to && isCalm && s.y > (to.back ? window.innerHeight * BACK_BAND : TOP_BAND)) return
     if (to) go(to)
   }
   const cancel = () => { t0 = null }

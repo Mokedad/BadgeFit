@@ -324,7 +324,7 @@ function Shell() {
   swipeRef.current = { loc, ok: authed && !noTabs }
   useEffect(() => installTabSwipe(
     () => (swipeRef.current.ok && document.body.style.position !== 'fixed' ? swipeRef.current.loc : { pathname: '', search: '' }),
-    to => navigate(to.path + to.search, { replace: true }),
+    to => (to.history ? navigate(-1) : navigate(to.path + to.search, { replace: true })),
     () => !!useStore.getState().S.police?.start
   ), []) // eslint-disable-line react-hooks/exhaustive-deps
   // The first setup is through (sign-in or "Use on this device", and the phone's permission

@@ -18,7 +18,7 @@ export default function EventCountdown({ P, children }) {
   return <div className="card ev-wrap"><button type="button" className="tap-host ev-card" onClick={() => nav('/police?tab=tests')}>
     <span className="ev-box">
       <b>{days ?? '–'}</b>
-      <span>⏳ {days === 1 ? 'day' : 'days'} to your {name}</span>
+      <span>{days === 1 ? 'day' : 'days'} to your {name}</span>
     </span>
     <span className="ev-m">
       <b className="ev-week">{f.final ? `🏁 Final week · ${name} week` : `📅 Week ${f.week} of ${f.last}`}</b>

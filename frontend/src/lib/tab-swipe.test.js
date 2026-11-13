@@ -28,8 +28,13 @@ describe('tab swipe', () => {
     expect(swipeTarget('/police', '?tab=plan', 1, true)).toEqual({ path: '/police', search: '?tab=tests' })
     expect(swipeTarget('/police', '?tab=plan', -1, true)).toEqual({ path: '/home', search: '' })
     expect(swipeTarget('/police', '?tab=more', 1, true)).toBe(null)
-    expect(swipeTarget('/police', '?tab=strength', -1, true)).toBe(null) // a page under More
-    expect(swipeTarget('/stats', '', 1, true)).toBe(null)
+    // A page under More: a swipe either way goes back to More.
+    const more = { path: '/police', search: '?tab=more', back: true }
+    expect(swipeTarget('/police', '?tab=strength', -1, true)).toEqual(more)
+    expect(swipeTarget('/police', '?tab=today', 1, true)).toEqual(more) // Hayden's page
+    expect(swipeTarget('/stats', '', 1, true)).toEqual(more)
+    expect(swipeTarget('/library', '', -1, true)).toEqual(more)
+    expect(swipeTarget('/workout', '', 1, true)).toBe(null)
   })
   it('moves between the BadgeFit hub tabs', () => {
     expect(swipeTarget('/police', '', 1)).toEqual({ path: '/police', search: '?tab=plan' })

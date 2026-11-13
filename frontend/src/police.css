@@ -873,3 +873,10 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .hb-buddy.dragging{transition:none;transform:scale(1.15) rotate(-6deg);filter:drop-shadow(0 14px 18px rgba(20,32,58,.3));z-index:450}
 .hb-buddy.placed{transition:transform .2s ease,opacity .2s ease}
 @media (prefers-reduced-motion:reduce){.hb-ring{animation:none;border-color:#f2b81a}}
+
+/* Hayden's settings, folded (PoliceFit JarvisSwitches) */
+.pf-jsw-fold>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:700;padding:6px 0}
+.pf-jsw-fold>summary::-webkit-details-marker{display:none}
+.pf-jsw-fold>summary .icn{transition:transform .2s}
+.pf-jsw-fold[open]>summary .icn{transform:rotate(180deg)}
+.hdr .calm-back{flex:none;margin-inline-end:10px}

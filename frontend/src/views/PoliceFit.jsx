@@ -5,6 +5,7 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
+import { todayNow } from '../lib/police/today-now.js'
 import { CHIRP_LEVELS, beepVolume, beep } from '../lib/police/bot-voice.js'
 import { iconFor } from '../lib/police/emoji-icon.js'
 import { HaydenMark } from '../components/HaydenBot.jsx'
@@ -116,18 +117,33 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
             : P.testDate
               ? `Your plan is ${pw.last} weeks, up to your ${testName}${pw.last > WEEKS ? ' (the 12-week cycle repeats, ending on test day)' : ''}. Week ${pw.last} is your final week: light training. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}.`
               : `No test date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
-      {day && <DayCard d={day} today />}
+      {/* Today as Home and Plan have it (lib/police/today-now.js): the real schedule, swaps and
+          all, and done the same way, so a session finished here is done there too. */}
       {(() => {
-        // What is on today: a run, a gym session, or both (a run picked for a gym day adds to it).
         const iso = todayISO()
+        const now = todayNow(S, iso)
         const ids = effectiveRoutineIds(S, iso)
-        const picked = ids.map(id => runForRoutine(P, id, iso)).find(Boolean)
-        const run = picked || runForDay(day)
-        const gymIds = ids.filter(id => !runForRoutine(P, id, iso))
-        const hasGym = gymIds.length > 0 || (day?.kind === 'gym' && !picked)
-        // Done today: complete, not offered again (each part on its own).
-        const ran = (P.runLog || []).filter(r => r.at === iso).at(-1)
-        const doneW = !S.active && S.workouts.filter(w => w.d === iso && !w.runLogId).at(-1)
+        const runIds = ids.filter(id => runForRoutine(P, id, iso))
+        const run = runIds.length ? runForRoutine(P, runIds[0], iso) : null
+        const gymIds = now.gymIds
+        const gymR = (S.routines || []).find(r => r.id === gymIds[0])
+        return (now.today.kind !== 'rest' || !day) ? <DayCard today S={S} P={P} routine={gymR}
+          d={{ kind: run && !gymIds.length ? (/walk/i.test(run.name) ? 'walk' : 'run') : now.today.kind === 'rest' ? 'rest' : 'gym', title: now.name || 'Rest day', minutes: now.minutes, details: day?.details || [] }} /> : <DayCard d={day} today />
+      })()}
+      {(() => {
+        const iso = todayISO()
+        const now = todayNow(S, iso)
+        const ids = effectiveRoutineIds(S, iso)
+        const runIds = ids.filter(id => runForRoutine(P, id, iso))
+        const run = runIds.length ? runForRoutine(P, runIds[0], iso) : null
+        const gymIds = now.gymIds
+        const hasGym = gymIds.length > 0
+        // Done today, each part on its own, by the same rule as Home: a logged workout covering
+        // the routine (an untick on Plan sets this back).
+        const covered = new Set(now.logged.flatMap(w => [].concat(w.routineIds ?? w.routineId ?? [])))
+        const ranW = runIds.length && runIds.every(id => covered.has(id)) ? now.logged.filter(w => w.runLogId).at(-1) : null
+        const ran = ranW ? { name: ranW.name, min: ranW.entries?.[0]?.sets?.[0]?.min ?? 0 } : null
+        const doneW = !S.active && hasGym && gymIds.every(id => covered.has(id)) ? now.logged.filter(w => !w.runLogId).at(-1) : null
         const runPart = run && (ran
           ? <div className="pf-ran" key="r"><b>Run done</b><span>{ranName(ran)} · {ran.min} min</span></div>
           : <button key="r" className="pf-go" onClick={() => startRun(run)}>Start run · {run.name}</button>)
@@ -138,7 +154,7 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
             if (S.active) { nav('/workout'); return }
             if (gymIds.length) startFlow(gymIds); else nav('/home')
           }}>{S.active ? 'Back to your workout' : 'Start workout'}</button>)
-        if ((!run || ran) && (!hasGym || doneW) && (ran || doneW)) return <div className="pf-ran"><b>Today complete</b><span>{[ran && `${ranName(ran)} · ${ran.min} min`, doneW && (doneW.name || 'Workout')].filter(Boolean).join(' · ')}</span></div>
+        if (now.done) return <div className="pf-ran"><b>Today complete</b><span>{now.logged.map(w => w.name || 'Workout').join(' · ')}</span></div>
         if (runPart || gymPart) return <div className="pf-today-acts">{gymPart}{runPart}</div>
         if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>Start test day</button>
         return null
@@ -184,7 +200,8 @@ function JarvisSwitches({ S, P }) {
       useUI.getState().toast(`Every morning at ${nudge.time}: today's session and the days left`)
     } catch (e) { useUI.getState().toast(e?.message || 'Notifications were not allowed') } finally { setBusy(false) }
   }
-  return <div className="pf-jsw">
+  // Folded: one line, "Hayden's settings", opened when wanted (nudge, voice, music, beeps).
+  return <details className="pf-jsw pf-jsw-fold"><summary><span>Hayden's settings</span><Icon name="chevronDown" /></summary>
     <label className="pf-jsw-row"><span><b>Morning nudge</b><small>Today's session and the days left, every morning at {nudge.time}</small></span>
       {nudge.on && <input type="time" value={nudge.time} aria-label="Nudge time" onChange={e => { if (!e.target.value) return; const n = { ...nudge, time: e.target.value }; setP(p => ({ nudge: n, pushPlan: buildPushPlan({ ...p, nudge: n }, todayISO(), localTZ()) })) }} />}
       <Switch checked={nudge.on} disabled={busy} onChange={() => turnNudge(!nudge.on)} aria-label="Morning nudge" /></label>
@@ -201,7 +218,7 @@ function JarvisSwitches({ S, P }) {
     <div className="pf-jsw-row"><span><b>Hayden's beeps</b><small>The little robot sounds he makes when you tap him</small></span>
       <Segmented options={CHIRP_LEVELS} value={CHIRP_LEVELS.find(l => l.value === beepVolume(P))?.value ?? 0.35}
         onChange={v => { setP({ botBeeps: v }); beep('happy', v) }} /></div>
-  </div>
+  </details>
 }
 
 /** Everything beyond today, the plan and the test, filed in one list: one tap away. */
@@ -236,7 +253,7 @@ function StatusStrip({ S, P, ready, setTab }) {
   const startKg = Number(P.weightKg) || (bw[0] ? Number(bw[0].w) : null)
   const change = nowKg && startKg ? Math.round((nowKg - startKg) * 10) / 10 : null
   return <div className="pf-strip pf-strip3">
-    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
+    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>days to {(P.testName || '').trim() || 'PCT'}</span></button>
     <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>ready</span></button>
     <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{change ? `${change > 0 ? '+' : ''}${change} kg since start` : 'kg'}</span></button>
   </div>
@@ -415,10 +432,10 @@ function PhaseSync({ S, P, week }) {
 // A day of the plan as a picture-led tile: the day, a short name, the minutes, and pictures of
 // what is in it (the first exercises of a gym day; a symbol for a run, a walk or a rest). The
 // words (what to focus on, recovery) open on a tap, so the week reads at a glance.
-function DayCard({ d, today, S = null, P = null }) {
+function DayCard({ d, today, S = null, P = null, routine: given = null }) {
   const [open, setOpen] = useState(false)
   const rid = d.key && P?.keys?.[d.key]
-  const routine = rid && d.kind === 'gym' ? (S?.routines || []).find(r => r.id === rid) : null
+  const routine = given || (rid && d.kind === 'gym' ? (S?.routines || []).find(r => r.id === rid) : null)
   const all = (routine?.ex || []).map(e => EXIDX[e.id]).filter(Boolean)
   const pics = all.slice(0, 3)
   return <div className={'pf-day pf-tile pfk-' + d.kind + (today ? ' on' : '')} onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
@@ -910,7 +927,7 @@ function Food({ S, P }) {
   </>
 }
 
-const ranName = r => runById(r.run)?.name || 'Run'
+const ranName = r => r.name || runById(r.run)?.name || 'Run'
 
 export default function PoliceFit() {
   const nav = useNavigate()
