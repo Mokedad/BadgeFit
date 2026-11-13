@@ -225,6 +225,7 @@ export default function Home() {
       { icon: 'calendar', label: 'My plan', sub: 'This week and the weeks ahead', onClick: () => nav('/police?tab=plan') },
       { icon: 'target', label: (P.testName || 'PCT').trim() + ' tests', sub: 'Standards, beep test, test day', onClick: () => nav('/police?tab=tests') },
       { icon: 'figureRun', label: 'Runs and walks', sub: 'Guided by Hayden', onClick: () => nav('/police?tab=run') },
+      { icon: 'dumbbell', label: 'Strength', sub: 'The rep range rule and your next set', onClick: () => nav('/police?tab=strength') },
       { icon: 'heart', label: 'Food and care', sub: 'Meals, protein, sore spots', onClick: () => nav('/police?tab=more') },
     ] }, { items: [
       { icon: 'chart', label: 'Progress', sub: 'Stats, history, body weight', onClick: () => nav('/stats') },

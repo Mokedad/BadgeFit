@@ -50,6 +50,7 @@ const TABS = [
 ]
 const MORE = [
   { value: 'run', label: 'Runs', sym: '🏃', sub: 'Guided runs: base, intervals, VO2' },
+  { value: 'strength', label: 'Strength', sym: '🏋️', sub: 'The rep range rule, your next set, warm-up' },
   { value: 'food', label: 'Food', sym: '🍽️', sub: 'Meals, protein, meal reminders' },
   { value: 'care', label: 'Care', sym: '🩹', sub: 'Sore shins, knees, recovery' },
 ]
@@ -561,24 +562,43 @@ function Plan({ S, P }) {
       <p className="pf-sub">{plan.final && P.testDate ? 'Light training and good recovery. Half the sets, same intensity, sleep and eat well, and arrive fresh for test day.' : plan.phase.focus + (plan.test ? ' This week ends with a re-test.' : '')}</p>
     </div>
     {plan.days.map(d => <DayCard key={d.day} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
+    {/* How the lifting works (the rep range rule, the next-set helper, the phases, the warm-up)
+        lives under More → Strength, so the plan is only the plan. */}
+  </>
+}
+
+// --- Strength (More → Strength) ------------------------------------------------------------
+// How the lifting works, in one place: where you are now, the rep range rule, the next-set
+// helper, the phases and the warm-up.
+function Strength({ S, P }) {
+  const guest = !useStore(s => s.user) && !DEMO
+  const level = guest ? 'beginner' : P.level || 'beginner'
+  const pw = planWeekOf(P, todayISO())
+  const now = P.start && pw.week ? phaseOf(level, pw.tw || pw.week) : null
+  return <>
+    {now && <div className="card">
+      <div className="row between"><h3>🏋️ Where you are</h3><span className="pf-chip">Phase {now.n}</span></div>
+      <p className="pf-sub"><b>{now.range} reps this week.</b> {now.focus}</p>
+    </div>}
+    <Reps S={S} start={now && rangeById(now.range)?.id === now.range ? now.range : null} />
+    <div className="card">
+      <h3>The three phases</h3>
+      {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
+    </div>
     <div className="card">
       <h3>🤸 Warm-up and cool-down</h3>
       <p className="pf-sub">4 rounds, 30 s each, 30 s rest after each round. Same again at the end.</p>
       <ol>{WARMUP.map((x, i) => <li key={i}>{x}</li>)}</ol>
       <p className="pf-sub">Can't do an exercise yet? Make it easier, never skip it: push-ups on knees, a smaller box, a lighter dumbbell.</p>
     </div>
-    <div className="card">
-      <h3>The three phases</h3>
-      {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
-    </div>
-    <Reps S={S} />
   </>
 }
 
 // --- Reps --------------------------------------------------------------------------------
-function Reps({ S }) {
+function Reps({ S, start = null }) {
   const unit = S.unit === 'lb' ? 'lb' : 'kg'
-  const [rangeId, setRangeId] = useState('4-6')
+  // Opens on the range the plan is in this week, when it is one of the ranges here.
+  const [rangeId, setRangeId] = useState(start || '4-6')
   const [weight, setWeight] = useState(unit === 'lb' ? 135 : 60)
   const [reps, setReps] = useState(null)
   const range = rangeById(rangeId)
@@ -601,18 +621,21 @@ function Reps({ S }) {
         <label>Weight ({unit})<NumberField value={weight} onChange={setWeight} /></label>
         <label>Reps done<NumberField value={reps} nullable decimal={false} onChange={setReps} /></label>
       </div>
-      {advice && <div className={'pf-advice ' + advice.action}>
+      {/* Only once the reps are typed in: an empty box is not a set that went badly. */}
+      {advice && reps != null && <div className={'pf-advice ' + advice.action}>
         <b>{advice.action === 'up' ? 'Move up' : advice.action === 'down' ? 'Move down' : 'Stay'}: {advice.weight} {unit}</b>
         <p>{setLine(advice, unit, reps)}</p>
       </div>}
     </div>
     <div className="card">
-      <h3>Example: bench press</h3>
+      <h3>Example: bench press, 4-6 reps</h3>
       <table className="pf-table"><thead><tr><th></th><th>Week 1</th><th>Week 2</th></tr></thead>
         <tbody>
-          <tr><td>Set 1</td><td>135 lb × 8 → up</td><td>140 lb × 6 → up</td></tr>
-          <tr><td>Set 2</td><td>140 lb × 5 → stay</td><td>145 lb × 4 → stay</td></tr>
-          <tr><td>Set 3</td><td>140 lb × 4 → stay</td><td>145 lb × 3 → down</td></tr>
+          {(unit === 'lb' ? [[135, 140, 140], [140, 145, 145]] : [[60, 62.5, 62.5], [62.5, 65, 65]]).reduce((rows, wk, w) => {
+            const said = [[8, 'up', 5, 'stay', 4, 'stay'], [6, 'up', 4, 'stay', 3, 'down']][w]
+            wk.forEach((kg, i) => { (rows[i] ||= []).push(`${kg} ${unit} × ${said[i * 2]} → ${said[i * 2 + 1]}`) })
+            return rows
+          }, []).map((r, i) => <tr key={i}><td>Set {i + 1}</td><td>{r[0]}</td><td>{r[1]}</td></tr>)}
         </tbody></table>
     </div>
   </>
@@ -890,6 +913,7 @@ export default function PoliceFit() {
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests S={S} P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}
     {tab === 'plan' && <Plan S={S} P={P} />}
+    {tab === 'strength' && <Strength S={S} P={P} />}
     {tab === 'food' && <Food S={S} P={P} />}
     {tab === 'care' && <Care />}
     {tab === 'more' && <More setTab={setTab} />}
