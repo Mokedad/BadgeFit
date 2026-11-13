@@ -43,7 +43,7 @@ import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import PlanDays from '../components/PlanDays.jsx'
-import { isBadgeFit } from '../lib/police/guest.js'
+import { isBadgeFit, toSignIn } from '../lib/police/guest.js'
 import '../police.css'
 
 // The lean hub: the workout of the day, the plan to the test, the test itself. The rest is kept
@@ -205,10 +205,11 @@ function More({ setTab, calm }) {
   const nav = useNavigate()
   // With the calm look: a grid of tiles, a picture and a name each, nothing to read.
   if (calm) {
+    const guestHere = !useStore.getState().user && !DEMO
     const tile = (icon, label, go) => <button key={label} className="pf-mtile" onClick={go}><span aria-hidden="true"><Icon name={icon} /></span><b>{label}</b></button>
     return <div className="pf-mgrid">
       {MORE.map(m => tile(MORE_ICON[m.value] || 'list', m.label, () => setTab(m.value)))}
-      {tile('personCircle', 'Community', () => nav('/community'))}
+      {tile('personCircle', 'Community', () => (guestHere ? membersOnly() : nav('/community')))}
       {tile('chart', 'Progress', () => nav('/stats'))}
       {tile('list', 'Exercises', () => nav('/library'))}
       {tile('sparkles', 'Hayden', () => setTab('today'))}
@@ -331,6 +332,7 @@ const PLAN_CHOICES = [
 /** Which plan Home follows: BadgeFit, running focus, or one Hayden builds (the Coach). */
 function PlanChoice({ S, P }) {
   const update = useStore(s => s.update)
+  const guest = !useStore(s => s.user) && !DEMO
   const nav = useNavigate()
   const onHome = !!S.programme?.id && S.programme.id === P.programmeId
   const current = onHome ? (P.planChoice || 'badgefit') : null
@@ -354,12 +356,12 @@ function PlanChoice({ S, P }) {
     <h3>Your plan</h3>
     {!onHome && P.planChoice !== 'own' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
     {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Hayden built you. Pick another below any time.</p>}
-    <div className="pf-choice">{PLAN_CHOICES.map(c => <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : ''} onClick={() => pick(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
+    <div className="pf-choice">{PLAN_CHOICES.map(c => { const locked = guest && c.id !== 'badgefit'; return <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : locked ? 'locked' : ''} onClick={() => (locked ? membersOnly() : pick(c.id))}><b>{c.title}</b><small>{locked ? 'Members' : c.sub}</small></button> })}</div>
   </div>
 }
 
 /** The Intermediate plan is for members: a guest gets the simple plan. */
-const membersOnly = () => useUI.getState().toast('Sign up free to unlock the Intermediate plan')
+const membersOnly = () => useUI.getState().toast('Sign up free to unlock this')
 
 function Setup({ S, P }) {
   const update = useStore(s => s.update)
@@ -561,6 +563,7 @@ function phaseRows(level, L) {
 
 function Plan({ S, P }) {
   const setP = usePolice()
+  const nav = useNavigate()
   const guest = !useStore(s => s.user) && !DEMO
   const level = guest ? 'beginner' : P.level || 'beginner'
   const pw = planWeekOf(P, todayISO())
@@ -570,7 +573,7 @@ function Plan({ S, P }) {
   const z2 = zone2(P.age)
   // The simple plan first (lib/police/first-steps.js): someone new sees this week only, in plain
   // words, until five sessions are done. Then the weeks ahead and the other plans open.
-  const ease = comfort(S)
+  const ease = comfort(S, { guest })
   if (P.start && !ease.ready) {
     const now = weekPlan(level, Math.min(current, pw.last), P.age, planOptsOf(P))
     return <>
@@ -578,7 +581,9 @@ function Plan({ S, P }) {
       <div className="pf-ease-line">
         <div className="pf-bar"><span style={{ width: (ease.sessions / ease.need) * 100 + '%' }} /></div>
         <span>{ease.sessions} of {ease.need}</span>
-        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show all</button>
+        {/* A guest has the simple plan only: more plans come with an account. */}
+        {ease.guest ? <button className="pf-link" onClick={() => toSignIn(nav)}>Sign up for more plans</button>
+          : <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show all</button>}
       </div>
     </>
   }

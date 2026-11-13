@@ -38,9 +38,11 @@ export function seenPatch(P, id) {
 export const COMFORT_SESSIONS = 5
 
 /** { sessions, need, ready } : whether the full plan is shown yet. */
-export function comfort(S) {
+export function comfort(S, { guest = false } = {}) {
   const P = S?.police || {}
   const sessions = (S?.workouts || []).length
+  // A guest stays on the simple plan: the rest comes with an account.
+  if (guest) return { sessions: Math.min(sessions, COMFORT_SESSIONS), need: COMFORT_SESSIONS, ready: false, guest: true }
   const ready = sessions >= COMFORT_SESSIONS || P.level === 'intermediate' || (!!P.planChoice && P.planChoice !== 'badgefit') || !!P.seen?.full
   return { sessions: Math.min(sessions, COMFORT_SESSIONS), need: COMFORT_SESSIONS, ready }
 }

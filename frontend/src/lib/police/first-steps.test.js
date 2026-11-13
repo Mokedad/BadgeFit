@@ -31,6 +31,8 @@ describe('the first steps', () => {
     expect(comfort(S({ level: 'beginner', planChoice: 'badgefit' })).ready).toBe(false)
     expect(comfort(S({ level: 'beginner', seen: { full: 1 } })).ready).toBe(true)
     expect(seenPatch({ start: 'x' }, 'full')).toEqual({ seen: { full: 1 } })
+    // a guest stays on the simple plan, whatever they have done
+    expect(comfort(S({ level: 'beginner', seen: { full: 1 } }, [{}, {}, {}, {}, {}, {}]), { guest: true }).ready).toBe(false)
   })
   it('every intro is one short plain line', () => {
     for (const line of Object.values(PAGE_INTRO)) { expect(line.length).toBeLessThan(100); expect(line).not.toMatch(/VO2|zone 2|RPE|hypertrophy/i) }

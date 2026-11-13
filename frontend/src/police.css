@@ -770,3 +770,4 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .pd-focus .pf-pics figcaption{min-height:2.5em}
 .pd-focus .pf-pics figure.faint{opacity:.35}
 .pd-add{width:100%}
+.pf-choice button.locked{opacity:.5}

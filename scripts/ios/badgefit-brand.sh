@@ -41,6 +41,10 @@ sed -i '' 's/applinks:opengym\.ch/applinks:app.badgefit.com.au/' "$ENT"
 # BadgeFit's own plugins (scripts/ios/badgefit/*.swift), added to the app for the build.
 ruby "$ROOT/scripts/ios/badgefit/add-webauth.rb"
 
+# The launch screen: the shield on navy, the same as the loading screen after it, so the app
+# opens on one picture (openGym's dumbbell flashed in between).
+for f in "$APP/App/Assets.xcassets/Splash.imageset/"*.png; do cp "$ROOT/scripts/ios/badgefit/Splash-2732.png" "$f"; done
+sed -i '' 's/<color key="backgroundColor" systemColor="systemBackgroundColor"\/>/<color key="backgroundColor" red="0.051" green="0.106" blue="0.2" alpha="1" colorSpace="custom" customColorSpace="sRGB"\/>/' "$APP/App/Base.lproj/LaunchScreen.storyboard"
 # The shield on navy, 1024 px, no transparency.
 cp "$ROOT/scripts/ios/badgefit/AppIcon-1024.png" "$APP/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
 
