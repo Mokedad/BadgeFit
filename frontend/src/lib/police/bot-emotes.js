@@ -1,12 +1,21 @@
 // Hayden's moves when he is tapped (components/HaydenBuddy.jsx), and the on/off switch.
 // He is on unless the member has turned him off (S.police.haydenOff).
+// Each move has its one symbol (his speech bubble) and the mood of his beeps (bot-voice.js).
 export const EMOTES = [
-  { eyes: 'happy', pose: 'wave' },
-  { eyes: 'happy', pose: 'cheer' },
-  { eyes: 'determined', pose: 'fist' },
-  { eyes: 'look', pose: 'think' },
-  { eyes: 'wide', pose: 'listen' },
+  { eyes: 'happy', pose: 'wave', sym: '👋', mood: 'happy' },
+  { eyes: 'happy', pose: 'cheer', sym: '🎉', mood: 'excited' },
+  { eyes: 'determined', pose: 'fist', sym: '💪', mood: 'proud' },
+  { eyes: 'look', pose: 'think', sym: '🤔', mood: 'curious' },
+  { eyes: 'wide', pose: 'listen', sym: '👂', mood: 'curious' },
+  { eyes: 'happy', pose: 'idle', sym: '❤️', mood: 'love' },
+  { eyes: 'closed', pose: 'rest', sym: '😴', mood: 'sleepy' },
 ]
+/** His symbol and mood while doing an exercise (HaydenBot acts). */
+export const ACT_SAY = { run: ['🏃', 'excited'], bench: ['💪', 'proud'], squat: ['🔥', 'excited'], curl: ['💪', 'proud'], pull: ['💪', 'proud'], press: ['🙌', 'excited'] }
+/** Picked up (a long hold), and put down again. */
+export const LIFT = { eyes: 'wide', pose: 'cheer', sym: '😮', mood: 'whoa' }
+export const DROP = { eyes: 'happy', pose: 'wave', sym: '❤️', mood: 'love' }
+export const HOLD_MS = 3000
 export const IDLE = { eyes: 'open', pose: 'idle' }
 export const EMOTE_MS = 1600
 

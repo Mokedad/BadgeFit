@@ -2,6 +2,8 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import HaydenBot from './HaydenBot.jsx'
+import Icon from './Icon.jsx'
 import { createPortal } from 'react-dom'
 import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
 import { HaydenToggle } from './HaydenBuddy.jsx'
@@ -269,7 +271,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   // On the page itself (a portal), above the run screen and Hayden floating over it.
   const choiceBox = choice && createPortal(<div className="rp-choice" role="dialog" aria-label="End the run" onClick={() => setChoice(false)}>
     <div className="rp-choice-box" onClick={e => e.stopPropagation()}>
-      <button className="rp-choice-fin" onClick={finishHere}>✓ Finish run<small>What you ran is saved</small></button>
+      <button className="rp-choice-fin" onClick={finishHere}>Finish run<small>What you ran is saved</small></button>
       <button className="rp-choice-cancel" onClick={cancelRun}>Cancel run<small>Not saved, still to do today</small></button>
     </div>
   </div>, document.body)
@@ -293,7 +295,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         <RunnerIcon size={28} />
         <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
       </button>
-      <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}>{paused ? '▶' : '⏸'}</button>
+      <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}><Icon name={paused ? 'play' : 'pause'} /></button>
       <button className="rp-mini-b" onClick={end} aria-label="Finish or cancel the run">✕</button>
       {choiceBox}
     </div>
@@ -302,9 +304,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   if (done && result) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
     <div className="rp-top"><button className="rp-x" onClick={back} aria-label="Back to the run" title="Back to the run">←</button></div>
     <div className="rp-body">
-      <div className="rp-party" aria-hidden="true">{['🥳', '🎉', '🏃', '💪', '🎉', '🥳'].map((e, i) => <span key={i} style={{ animationDelay: `${i * 0.12}s` }}>{e}</span>)}</div>
+      <div className="rp-party" aria-hidden="true"><HaydenBot size={110} pose="cheer" eyes="happy" /></div>
       <h2>{result.headline}</h2>
-      <p className="rp-sub">{result.completed ? `${run.name}, all of it.` : `You did ${result.min} of ${result.planned} minutes. It counts.`} <b>Saved ✅</b></p>
+      <p className="rp-sub">{result.completed ? `${run.name}, all of it.` : `You did ${result.min} of ${result.planned} minutes. It counts.`} <b>Saved <Icon name="check" /></b></p>
       <div className="rp-stats">
         <div><b>{result.min}</b><span>minutes</span></div>
         <div><b>{result.pct}%</b><span>of the run</span></div>
@@ -321,7 +323,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       </div>}
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
-      <button className="rp-main" onClick={onClose}>Done 🥳</button>
+      <button className="rp-main" onClick={onClose}>Done</button>
     </div>
   </div>
 
@@ -331,9 +333,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <button className="rp-x" onClick={leave} aria-label={started ? 'Minimise, the run keeps going' : 'Close'} title={started ? 'Minimise, the run keeps going' : 'Close'}>{started ? '⌄' : '✕'}</button>
       <span className="rp-gap" />
       {onMusic && <button type="button" className={'rp-music' + (musicMode ? ' on' : '')} onClick={() => onMusic(!musicMode)} aria-pressed={musicMode}
-        title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}>🎵 {musicMode ? 'On' : 'Off'}</button>}
+        title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}><Icon name="speaker" /> {musicMode ? 'On' : 'Off'}</button>}
       {onGps && <button type="button" className={'rp-music' + (gps ? ' on' : '')} onClick={() => onGps(!gps)} aria-pressed={gps}
-        title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}>📍 {gps ? 'On' : 'Off'}</button>}
+        title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}><Icon name="mapPin" /> {gps ? 'On' : 'Off'}</button>}
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
       <HaydenToggle className="rp-hb" />
     </div>
@@ -357,19 +359,19 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>
       <div className="rp-label">{seg.label}</div>
       <div className="rp-time" aria-live="off">{left != null ? fmt(left) : fmt(elapsed)}</div>
-      {gps && <div className="rp-gps">{gpsState === 'denied' ? '📍 Location is off for BadgeFit. Allow it in Settings to track distance.'
-        : gpsState !== 'on' ? '📍 Finding GPS…'
+      {gps && <div className="rp-gps">{gpsState === 'denied' ? 'Location is off for BadgeFit. Allow it in Settings to track distance.'
+        : gpsState !== 'on' ? 'Finding GPS…'
         : <><b>{kmOf(gpsM).toFixed(2)}</b> km · <b>{fmtPace(livePace(gpsTrack.current, now) ?? paceOf(gpsM, (now - runStart.current) / 1000))}</b> /km</>}</div>}
-      {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>✓ Done {seg.dist} m</button>}
+      {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
       {bubble && <div className="rp-bubble" role="status"><HaydenMark />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
-        <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>
-        <span><button onClick={() => go(idx + 1)} aria-label="Skip this step">⏭</button><small>Skip</small></span>
+        <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}><Icon name={paused ? 'play' : 'pause'} /></button><small>{paused ? 'Resume' : 'Pause'}</small></span>
+        <span><button onClick={() => go(idx + 1)} aria-label="Skip this step"><Icon name="skipForward" /></button><small>Skip</small></span>
       </div>
-      <button className="rp-lock" onClick={lock}>🔒 Lock screen <small>Hayden keeps talking</small></button>
-      <button className="rp-end" onClick={end}>■ End run</button>
+      <button className="rp-lock" onClick={lock}><Icon name="lock" /> Lock screen <small>Hayden keeps talking</small></button>
+      <button className="rp-end" onClick={end}>End run</button>
     </div>}
     {choiceBox}
     {locked && <div className="rp-locked" role="dialog" aria-label="Screen locked"
@@ -379,7 +381,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <div className="rp-locked-t">{left != null ? fmt(left) : fmt(elapsed)}</div>
       <div className="rp-locked-l">{seg?.label}</div>
       {gps && gpsState === 'on' && <div className="rp-locked-l">{kmOf(gpsM).toFixed(2)} km · {fmtPace(paceOf(gpsM, (now - runStart.current) / 1000))} /km</div>}
-      <div className="rp-locked-u"><span className="rp-locked-ring" style={{ '--p': hold }} />🔒 Hold anywhere to unlock</div>
+      <div className="rp-locked-u"><span className="rp-locked-ring" style={{ '--p': hold }} /><Icon name="lock" /> Hold anywhere to unlock</div>
     </div>}
   </div>
 }

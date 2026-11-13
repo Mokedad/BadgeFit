@@ -15,7 +15,7 @@ export const isPaused = A => !!A?.pausedAt
 
 export function pauseWorkout() {
   useStore.getState().update(s => { if (s.active && !s.active.pausedAt) s.active.pausedAt = Date.now() })
-  toast('⏸ Workout paused. The clock has stopped.')
+  toast('Workout paused. The clock has stopped.')
 }
 
 export function resumeWorkout() {
@@ -52,7 +52,7 @@ export function workoutControlsSheet({ discardNow }) {
         { icon: 'moon', label: 'Wipe today (rest day)', onClick: () => ask('Wipe today?', 'This workout is dropped and today becomes a rest day. Your plan for the other days stays.', 'Wipe today', () => {
           discardNow()
           useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } })
-          toast('🧹 Today is wiped. Rest up, or start anything from Home.')
+          toast('Today is wiped. Rest up, or start anything from Home.')
         }) },
       ] },
       { items: [
@@ -76,7 +76,7 @@ export function todayChoiceSheet(name, start) {
         { icon: 'swap', label: 'Do something else today', onClick: () => dayOverrideSheet(todayISO()) },
         { icon: 'moon', label: 'Rest today', onClick: () => {
           useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } })
-          toast('🧹 Today is a rest day. Recover well.')
+          toast('Today is a rest day. Recover well.')
         } },
       ] },
       { items: [{ icon: 'xmark', label: 'Not now', onClick: () => {} }] },

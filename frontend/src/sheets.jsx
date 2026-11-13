@@ -1,3 +1,4 @@
+import { iconFor } from './lib/police/emoji-icon.js'
 import SessionPreview from './components/SessionPreview.jsx'
 import { fitSession } from './lib/police/session-length.js'
 import { RUNS, CATEGORIES as RUN_CATEGORIES, runMinutes } from './lib/police/runs.js'
@@ -3010,11 +3011,11 @@ export const dayNoteSheet = iso => ui().openSheet(close => <DayNote iso={iso} cl
 // (lib/police/run-routines.js). `isOn(runId)` marks the ones on the day; `onPick(runId)` adds it.
 function RunPicks({ isOn: on, onPick }) {
   return <>
-    <h4 className="sec" style={{ marginTop: 14 }}>🏃 Runs</h4>
+    <h4 className="sec" style={{ marginTop: 14 }}>Runs</h4>
     <div className="list menu-list">{RUNS.map(r => {
       const cat = RUN_CATEGORIES.find(c => c.id === r.cat)
       return <div key={r.id} className="item menu-item" aria-pressed={on(r.id)} {...tappable(() => onPick(r.id))}>
-        <span className="lrow-i" style={{ background: 'var(--surface-3)', fontSize: 18 }}>{cat?.emoji || '🏃'}</span>
+        <span className="lrow-i" style={{ background: 'var(--surface-3)', fontSize: 18 }}><Icon name={iconFor(cat?.emoji || 'figureRun')} /></span>
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min</div></div>
         <span className={'menu-on' + (on(r.id) ? ' is-on' : '')}><Icon name="check" /></span>
       </div>

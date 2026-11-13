@@ -169,7 +169,7 @@ export default function Home() {
     : S.police?.level && !S.police?.start && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
   // BadgeFit: today's box swipes away (TodaySwipe) while there is a plan still to do.
   const swipeable = !!S.police?.level && !S.active && !doneToday && todayRoutines.length > 0
-  const removeToday = () => { useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } }); useUI.getState().toast('🗑 Removed. Today is a rest day.') }
+  const removeToday = () => { useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } }); useUI.getState().toast('Removed. Today is a rest day.') }
   const holdToday = () => menuSheet({ title: todayName || t('Today'), sections: [{ items: [
     { icon: 'swap', label: 'Swap for another workout', onClick: () => dayOverrideSheet(todayISO()) },
     { icon: 'trash', danger: true, label: "Remove today's workout", onClick: removeToday },
@@ -319,7 +319,7 @@ export default function Home() {
             <div className="ttl">{S.active ? (editingSaved ? S.active.name : t('{0} (in progress)', S.active.name))
               : doneToday ? (doneToday.name ? t('{0} (done)', doneToday.name) : t('Workout done'))
               : routine ? todayName : t('Rest day')}{todayOvr && routine && !doneToday ? ' · ' + t('rescheduled') : ''}</div>
-            {bfRun && !doneToday && <div className="ss">🏃 Guided run with Hayden · {bfRun.name}</div>}
+            {bfRun && !doneToday && <div className="ss">Guided run with Hayden · {bfRun.name}</div>}
             {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.routine.name)}</div>}
           </div>
         </div>

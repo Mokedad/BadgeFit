@@ -32,7 +32,7 @@ const ping = () => { try { beep?.play() } catch { /* no audio */ } }
 
 /** Starts listening for the rest of this workout. Call from a tap the first time. */
 export function startHandsFree() {
-  if (!Recognition) { useUI.getState().toast('This browser cannot listen. Use the 🎤 to type, or try Safari or Chrome.'); return }
+  if (!Recognition) { useUI.getState().toast('This browser cannot listen. Tap Hayden to type instead, or try Safari or Chrome.'); return }
   primeSpeech()
   if (!beep) { beep = tonePlayer({ freq: 1046, ms: 120, volume: 0.5 }); beep.unlock() }
   useJarvis.setState({ handsFree: true })
@@ -62,7 +62,7 @@ async function loop() {
     if (!useJarvis.getState().handsFree) break
     if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
       stopHandsFree(false)
-      useUI.getState().toast('🎤 Tap the mic in your workout to let Hayden listen')
+      useUI.getState().toast('Tap the mic in your workout to let Hayden listen')
       break
     }
     if (out.error) { failures++; await wait(Math.min(5000, 500 * failures)); continue }

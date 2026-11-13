@@ -2,6 +2,9 @@
 // (that one still runs from Settings → Tutorials). Slide 1 asks how much app you want (the module
 // presets, lib/modules.js); the last slide shows what that choice gives you. Each slide is a small
 // picture of the real screen, so people know what to expect and find the rest themselves.
+import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
+import { iconFor } from '../lib/police/emoji-icon.js'
+import Icon from './Icon.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { PRESETS, presetOf, applyPreset } from '../lib/modules.js'
@@ -15,7 +18,7 @@ const PICK = {
   all: { title: 'The lot', desc: 'Everything: the coach chat, streaks, community, all the PCT tools.' },
 }
 const EXTRAS = {
-  training: [['🏠', 'Today', 'what to train, one tap to start'], ['📅', 'Plan', 'your weeks up to the test'], ['▶️', 'Start', 'goes green ✓ when the day is done']],
+  training: [['🏠', 'Today', 'what to train, one tap to start'], ['📅', 'Plan', 'your weeks up to the test'], ['play', 'Start', 'goes green ✓ when the day is done']],
   body: [['⚖️', 'Weigh-ins', 'Home, under your plan'], ['📏', 'Measurements', 'and progress photos'], ['📈', 'Stats', 'what moved this month']],
   all: [['🎯', 'PCT tab', 'Test day, beep trainer, your standards'], ['💬', 'Hayden chat', 'ask anything, any time'], ['👥', 'Community', 'train alongside other recruits']],
 }
@@ -51,32 +54,32 @@ export default function BadgeFitIntro() {
         <div className="bfi-pic">
           <div className="bfi-cd"><b>26</b><span>days to your PCT</span></div>
           <div className="bfi-week">{['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d, i) => <span key={d} className={i < 2 ? 'ok' : i === 2 ? 'now' : ''}>{d}<i>{i < 2 ? '✓' : '•'}</i></span>)}</div>
-          <div className="bfi-row">🏃 <b>Easy run, 30 min</b><em>Start</em></div>
+          <div className="bfi-row"><Icon name="figureRun" /> <b>Easy run, 30 min</b><em>Start</em></div>
         </div>
         <h2>Your day, at a glance</h2>
         <p>The countdown to your test, this week's ticks, and today's session. Swipe today's box left to remove it, or hold it to swap.</p>
       </section>
       <section className="bfi-slide">
         <div className="bfi-pic">
-          <div className="bfi-say">🎧 “Hey, 55 kilos 12 reps”</div>
+          <div className="bfi-say">“Hey, 55 kilos 12 reps”</div>
           <div className="bfi-hay">Hayden: 12 reps, top of the range. Move up to 57.5 next set.</div>
           <div className="bfi-say">“2 minutes rest instead”</div>
           <div className="bfi-say">“Next exercise, I'm done with this machine”</div>
         </div>
         <h2>Hayden trains with you</h2>
-        <p>Tap the 🎤 once in a workout, then just talk: “Hayden”, “Hey” or “H”, and your set. He logs it, sets your next weight and calls your rest.</p>
+        <p>Tap Hayden's head once in a workout, then just talk: “Hayden”, “Hey” or “H”, and your set. He logs it, sets your next weight and calls your rest.</p>
       </section>
       <section className="bfi-slide">
         <div className="bfi-pic">
-          <div className="bfi-runbar"><i style={{ width: '45%' }} /><span style={{ left: '45%' }}>🏃</span><b>🏁</b></div>
+          <div className="bfi-runbar"><i style={{ width: '45%' }} /><span style={{ left: '45%' }}><RunnerIcon size={22} /></span><b><FinishFlag /></b></div>
           <div className="bfi-big">12:40</div>
-          <div className="bfi-row">⏸ Pause like music · drag the runner to move the time</div>
+          <div className="bfi-row"><Icon name="pause" /> Pause like music · drag the runner to move the time</div>
         </div>
         <h2>Guided runs</h2>
         <p>Hayden talks you through every run: warm-up, the hard bits, check-ins and your finish. {level === 'intermediate' ? 'Your plan has tempo, intervals and a hard steady run.' : 'Your plan builds you up with easy runs first.'}</p>
       </section>
       <section className="bfi-slide">
-        <div className="bfi-list">{EXTRAS[p].map(([i, a, b]) => <div key={a} className="bfi-li"><span>{i}</span><b>{a}</b><small>{b}</small></div>)}</div>
+        <div className="bfi-list">{EXTRAS[p].map(([i, a, b]) => <div key={a} className="bfi-li"><span><Icon name={iconFor(i)} /></span><b>{a}</b><small>{b}</small></div>)}</div>
         <h2>{p === 'training' ? 'That is all there is' : p === 'body' ? 'And your body too' : 'And everything else'}</h2>
         <p>Every day is done when it shows ✓. Need more? “Add an extra workout” on Home. The full tour is in Settings any time.</p>
         <button type="button" className="bfi-go" onClick={done}>Let's go</button>

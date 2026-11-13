@@ -3,6 +3,7 @@
 // weight on the next set still to do, once per finished set, so a weight typed over it stays.
 // Shown for a BadgeFit member on every weighted exercise: its own rep range, or one built from
 // its planned reps (workout-voice.js rangeOf: 8 planned is 6-8). English only.
+import Icon from './Icon.jsx'
 import { useEffect, useRef } from 'react'
 import { liveAdvice } from '../lib/police/set-advice.js'
 import { fmtNum } from '../lib/format.js'
@@ -24,10 +25,10 @@ export default function RepRangeCoach({ entry, unit, onApply }) {
   if (!a) return null
   const w = v => `${fmtNum(v)} ${unit}`
   const reps = range.min === range.max ? `${range.max}` : `${range.min}-${range.max}`
-  if (a.firstTime) return <div className="rrc first">🎯 Pick a weight you can lift {reps} times</div>
+  if (a.firstTime) return <div className="rrc first"><Icon name="target" /> Pick a weight you can lift {reps} times</div>
   const { action, weight } = a.advice
-  const text = action === 'up' ? `⬆️ ${a.reps} reps: top of the range. Move up to ${w(weight)}`
-    : action === 'down' ? `⬇️ ${a.reps} reps: under the range. Move down to ${w(weight)}`
-      : `➡️ ${a.reps} reps: in the range. Stay at ${w(weight)}, chase ${range.max}`
-  return <div className={'rrc ' + action}>{text}{a.nextIdx == null ? ' next time.' : ' next set.'}</div>
+  const text = action === 'up' ? `${a.reps} reps: top of the range. Move up to ${w(weight)}`
+    : action === 'down' ? `${a.reps} reps: under the range. Move down to ${w(weight)}`
+      : `${a.reps} reps: in the range. Stay at ${w(weight)}, chase ${range.max}`
+  return <div className={'rrc ' + action}><Icon name={action === 'up' ? 'arrowUp' : action === 'down' ? 'arrowDown' : 'chevronRight'} /> {text}{a.nextIdx == null ? ' next time.' : ' next set.'}</div>
 }

@@ -1,6 +1,7 @@
 // Music without leaving the app (BadgeFit): the Spotify embed for a saved playlist, and, once
 // the account is connected, remote controls for whatever device Spotify is playing on.
 // lib/spotify.js holds the logic; English only, like the BadgeFit hub.
+import Icon from './Icon.jsx'
 import { useEffect, useState } from 'react'
 import { MOBILE } from '../lib/mobile.js'
 import { musicPrefs, setMusicPrefs, parseSpotifyLink, clientId, startLogin, isConnected, disconnect, nowPlaying, play, pause, next, previous } from '../lib/spotify.js'
@@ -32,10 +33,10 @@ function Remote({ link }) {
       <span>{np?.track ? np.artist : np?.device ? `Ready on ${np.device}` : 'Start Spotify on any device'}</span>
     </div>
     <div className="mb-ctl">
-      <button aria-label="Previous" onClick={() => act(previous)}>⏮</button>
+      <button aria-label="Previous" onClick={() => act(previous)}><Icon name="skipForward" className="flip" /></button>
       <button aria-label={np?.playing ? 'Pause' : 'Play'} className="mb-play"
-        onClick={() => act(np?.playing ? pause : play, np?.track ? undefined : link?.uri)}>{np?.playing ? '⏸' : '▶'}</button>
-      <button aria-label="Next" onClick={() => act(next)}>⏭</button>
+        onClick={() => act(np?.playing ? pause : play, np?.track ? undefined : link?.uri)}><Icon name={np?.playing ? 'pause' : 'play'} /></button>
+      <button aria-label="Next" onClick={() => act(next)}><Icon name="skipForward" /></button>
     </div>
   </div>
 }
@@ -61,20 +62,20 @@ export default function MusicBar({ compact = false, sessionKey = null }) {
     try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1') } catch { /* private mode */ }
     play(link.uri).then(r => {
       if (r?.status === 404) toast('Open Spotify once on this phone, then it starts by itself next time')
-      else if (r?.ok) toast('🎵 Your playlist is on. Let\'s go.')
+      else if (r?.ok) toast('Your playlist is on. Let\'s go.')
     }).catch(() => {})
   }, [compact, sessionKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (compact) {
     if (!link && !connected) return null
     return <div className={'mb mb-compact' + (prefs.autoPlay !== false && !connected && sessionKey ? ' mb-nudge' : '')}>
-      {prefs.autoPlay !== false && !connected && sessionKey && <div className="mb-nudge-t">🎵 Tap ▶ to start your playlist</div>}
+      {prefs.autoPlay !== false && !connected && sessionKey && <div className="mb-nudge-t">Tap play to start your playlist</div>}
       {connected ? <Remote link={link} /> : <iframe title="Spotify" src={link.embed} height="80" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />}
     </div>
   }
 
   return <div className="card mb">
-    <h3>🎵 Music</h3>
+    <h3>Music</h3>
     {connected && <Remote link={link} />}
     {link && !connected && <iframe title="Spotify" src={link.embed} height="152" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" />}
     <label className="mb-l">Your training playlist (Spotify link)

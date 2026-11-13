@@ -3,6 +3,8 @@
 // tap counter for push-ups, the beep trainer for the beep test), then a rest counts down before
 // the next. At the end: what passed, the biggest gap, and one tap to save it all. Use it for a
 // baseline now and a mock PCT a week out. Logic: lib/police/test-day.js. English only.
+import Icon from './Icon.jsx'
+import { iconFor } from '../lib/police/emoji-icon.js'
 import { useEffect, useRef, useState } from 'react'
 import { TEST_ORDER, REST_SEC, scorable, testDaySummary, testDayLine } from '../lib/police/test-day.js'
 import { standardById, evaluate, fmtResult, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL } from '../lib/police/standards.js'
@@ -31,7 +33,7 @@ function ScoreInput({ id, value, onChange, onBeep }) {
     <label>Right (kg)<NumberField value={value?.right ?? null} nullable onChange={x => onChange({ left: value?.left ?? null, right: x })} /></label>
   </div>
   if (id === 'beep') return <>
-    <button className="pf-go" onClick={onBeep}>📣 Run the beep test</button>
+    <button className="pf-go" onClick={onBeep}>Run the beep test</button>
     <label>Or type it (level.shuttle)<TextField value={value ?? ''} inputMode="decimal" placeholder="7.2" onChange={e => onChange(e.target.value)} /></label>
   </>
   if (id === 'pushups') return <>
@@ -86,16 +88,16 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
   return <div className="rp td rp-warm" role="dialog" aria-label="Test day">
     <div className="rp-top">
       <button className="rp-x" onClick={() => { if (step >= 0 && step < TEST_ORDER.length && !confirm('Leave test day? Scores not saved are lost.')) return; onClose() }} aria-label="Close">✕</button>
-      <span>🧪 Test day{step >= 0 && step < TEST_ORDER.length ? ` · ${step + 1} of ${TEST_ORDER.length}` : ''}</span>
+      <span>Test day{step >= 0 && step < TEST_ORDER.length ? ` · ${step + 1} of ${TEST_ORDER.length}` : ''}</span>
       <span />
     </div>
     {step >= 0 && step < TEST_ORDER.length && <div className="rp-prog"><span style={{ width: `${(step / TEST_ORDER.length) * 100}%` }} /></div>}
 
     {step === -1 && <div className="rp-body">
-      <div className="rp-emoji">🧪</div>
+      <div className="rp-emoji"><Icon name="clipboard" /></div>
       <h2>Test day</h2>
       <p className="rp-sub">All six standards in the {testName} order, with 5 minutes rest between. Do it now for a baseline, and again about a week before your {testName}.</p>
-      <ol className="rp-steps">{TEST_ORDER.map(x => <li key={x}>{standardById(x).icon} {standardById(x).name}</li>)}</ol>
+      <ol className="rp-steps">{TEST_ORDER.map(x => <li key={x}><Icon name={iconFor(standardById(x).icon)} /> {standardById(x).name}</li>)}</ol>
       <p className="rp-hint">You need: a 20 m space, cones for the Illinois run, a wall for the jump, and a grip dynamometer if you have one. Skip anything you cannot test.</p>
       <button className="pf-go bt-start" onClick={begin}>▶ Start</button>
     </div>}
@@ -103,29 +105,29 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
     {std && resting && <div className="rp-body">
       <div className="rp-kind">Rest</div>
       <div className="rp-time">{fmt((resting.until - Date.now()) / 1000)}</div>
-      <p className="rp-sub">Next: {std.icon} <b>{std.name}</b>. Walk around, sip water, shake it out.</p>
+      <p className="rp-sub">Next: <Icon name={iconFor(std.icon)} /> <b>{std.name}</b>. Walk around, sip water, shake it out.</p>
       <button className="pf-link bt-again" onClick={() => setResting(null)}>Skip the rest</button>
     </div>}
 
     {std && !resting && <div className="rp-body td-step">
-      <div className="rp-emoji">{std.icon}</div>
+      <div className="rp-emoji"><Icon name={iconFor(std.icon)} /></div>
       <h2>{std.name}</h2>
       <p className="rp-sub">{std.how}</p>
       <p className="rp-hint">{id === 'beep' ? `Pass ${target} · goal ${goal}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`}</p>
       <div className="td-in pf"><ScoreInput id={id} value={v} onChange={setV} onBeep={() => setBeep(true)} /></div>
-      {ev && <p className={'td-ev ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? '✅ Pass' : `${ev.pct}% of the mark`}</p>}
+      {ev && <p className={'td-ev ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'Pass' : `${ev.pct}% of the mark`}</p>}
       <button className="pf-go bt-start" onClick={next} disabled={v != null && !scorable(id, v, target)}>{v != null && scorable(id, v, target) ? 'Next ▶' : 'Skip this one ▶'}</button>
     </div>}
 
     {sum && <div className="rp-body">
-      <div className="rp-emoji">{sum.passed === sum.total ? '🏆' : '📋'}</div>
+      <div className="rp-emoji"><Icon name={sum.passed === sum.total ? 'trophy' : 'clipboard'} /></div>
       <h2>{sum.passed} of {sum.tested} passed</h2>
       <div className="td-sum">{sum.rows.map(r => <div key={r.std.id} className="td-row">
-        <span>{r.std.icon} {r.std.name}</span>
-        <b className={r.ev ? (r.ev.pass ? 'pass' : 'fail') : ''}>{r.ev ? `${fmtResult(r.std.id, r.v)} ${r.ev.pass ? '✅' : '❌'}` : 'skipped'}</b>
+        <span><Icon name={iconFor(r.std.icon)} /> {r.std.name}</span>
+        <b className={r.ev ? (r.ev.pass ? 'pass' : 'fail') : ''}>{r.ev ? <>{fmtResult(r.std.id, r.v)} <Icon name={r.ev.pass ? 'check' : 'xmark'} /></> : 'skipped'}</b>
       </div>)}</div>
       {sum.weakest && <p className="rp-sub">Biggest gap: <b>{sum.weakest.std.name}</b>. Hayden will put the work there.</p>}
-      {sum.tested > 0 && <button className="pf-go bt-start" onClick={() => onSave(vals)}>💾 Save all to PCT</button>}
+      {sum.tested > 0 && <button className="pf-go bt-start" onClick={() => onSave(vals)}>Save all to PCT</button>}
       <button className="pf-link bt-again" onClick={onClose}>Close without saving</button>
     </div>}
   </div>

@@ -116,14 +116,14 @@ function StartChooser() {
       <Button variant="primary" icon="play" onClick={() => (bfRun && todayIds.length === 1 && todayIds[0] === bfRun.routineId ? nav('/police?run=' + bfRun.run.id) : startFlow(todayIds))}>{t('Start {0}', todayName)}</Button>
     </div>}
     {/* BadgeFit: the runs sit with the gym sessions, today's first, each a guided run with Hayden. */}
-    {S.police?.level && <><h4 className="sec">🏃 Runs</h4>
+    {S.police?.level && <><h4 className="sec">Runs</h4>
       <div className="list">
         {bfRun && <div className="item" onClick={() => nav('/police?run=' + bfRun.run.id)}>
-          <span className="lrow-i">🏃</span>
+          <span className="lrow-i"><Icon name="figureRun" /></span>
           <div className="grow"><div className="tt">Today: {bfRun.run.name}</div><div className="ss">Guided run with Hayden{bfRun.day ? ` · ${bfRun.day.title}` : ''}</div></div>
           <span className="tag acc">Run</span></div>}
         <div className="item" onClick={() => nav('/police?tab=run')}>
-          <span className="lrow-i">🗺️</span>
+          <span className="lrow-i"><Icon name="map" /></span>
           <div className="grow"><div className="tt">All guided runs</div><div className="ss">Base, VO2 max, intervals, tempo, beep prep</div></div>
           <span className="tag acc">Pick</span></div>
       </div></>}
@@ -1148,7 +1148,7 @@ function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
   if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
-    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Hayden is listening. Say "Hayden", "Hey" or "H", then "20 kilos, 4 reps"') } }}
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('Hayden is listening. Say "Hayden", "Hey" or "H", then "20 kilos, 4 reps"') } }}
     aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button>
 }
 
@@ -2586,7 +2586,7 @@ function ActiveWorkout() {
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
         title={editing ? undefined : 'Tap to finish · hold for pause, change or cancel'}
         {...(editing ? {} : finishHold)}
-        onClick={() => { if (heldRef.current) { heldRef.current = false; return } editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }) }}>{editing ? t('Save') : isPaused(A) ? '⏸ ' + t('Finish') : t('Finish')}</button>
+        onClick={() => { if (heldRef.current) { heldRef.current = false; return } editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }) }}>{editing ? t('Save') : isPaused(A) ? '' + t('Finish') : t('Finish')}</button>
     </div>
     {/* The volume so far rides at the end of the progress bar (#774): one line that never wraps,
         so a growing number cannot reflow the header the way a third item in the line above did
@@ -2601,7 +2601,7 @@ function ActiveWorkout() {
       if (!S.police?.level || editing || A.backfill) return null
       const runOf = (A.entries || []).map(e => (e.rid ? runForRoutine(S.police, e.rid, todayISO()) : null))
       if (!runOf.length || !runOf.every(Boolean) || (A.entries || []).some(e => (e.sets || []).some(x => x.done))) return null
-      return <button type="button" className="pf-go wk-run-go" onClick={() => { const id = runOf[0].id; markDiscarded(A.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/police?run=' + id) }}>🏃 Open the guided run with Hayden</button>
+      return <button type="button" className="pf-go wk-run-go" onClick={() => { const id = runOf[0].id; markDiscarded(A.id); update(s => { s.active = null }); stopRest(); stopWork(); nav('/police?run=' + id) }}>Open the guided run with Hayden</button>
     })()}
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
@@ -2609,7 +2609,7 @@ function ActiveWorkout() {
     </div>
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {/* Paused from the hold-Finish controls (workout-controls.jsx): one tap carries on. */}
-    {!editing && isPaused(A) && <button type="button" className="wk-paused" onClick={resumeWorkout}>⏸ Paused · tap to resume</button>}
+    {!editing && isPaused(A) && <button type="button" className="wk-paused" onClick={resumeWorkout}><Icon name="pause" /> Paused · tap to resume</button>}
     {/* BadgeFit music (components/MusicBar.jsx): only when a playlist or Spotify is set up. */}
     {!editing && <MusicBar compact sessionKey={A.id || A.start} />}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}

@@ -1,3 +1,4 @@
+import { iconFor } from '../lib/police/emoji-icon.js'
 import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import { todayISO } from '../lib/format.js'
 import { dailyShuffle } from '../lib/police/shuffle.js'
@@ -102,7 +103,7 @@ export default function Library() {
     {!q.trim() && !bp && <div className="lib-runs">
       <div className="lib-runs-h"><b>🏃 Runs &amp; VO2</b><button type="button" className="lib-order" onClick={() => setOrderKept(order === 'mixed' ? 'az' : 'mixed')}>{order === 'mixed' ? '🔀 Mixed' : 'A-Z'}</button></div>
       <div className="lib-runs-row">{dailyShuffle(RUNS, todayISO() + 'runs').slice(0, 8).map(r => <button key={r.id} type="button" className={'lib-run c-' + r.cat} onClick={() => nav('/police?tab=run&run=' + r.id)}>
-        <span>{CATEGORIES.find(c => c.id === r.cat)?.emoji}</span><b>{r.name}</b><small>~{runMinutes(r)} min</small></button>)}</div>
+        <span><Icon name={iconFor(CATEGORIES.find(c => c.id === r.cat)?.emoji)} /></span><b>{r.name}</b><small>~{runMinutes(r)} min</small></button>)}</div>
     </div>}
     <div className="search-row" data-tour="lib-search" style={{ marginBottom: 10 }}><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search…')} value={q} onChange={e => { setQ(e.target.value); setShown(40) }} />

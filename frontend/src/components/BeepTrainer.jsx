@@ -3,6 +3,7 @@
 // "I'm out" when you miss the line: the score is the last shuttle completed, and it can go
 // straight into the PCT tab. Timing: lib/police/beep-run.js, from the same level table the
 // standard is scored with. The screen stays awake while it runs. English only.
+import Icon from './Icon.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { beepSchedule, positionAt, scoreAt, timeTo } from '../lib/police/beep-run.js'
 import { evaluate, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL } from '../lib/police/standards.js'
@@ -86,12 +87,12 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
   return <div className={'rp bt ' + (phase === 'run' ? 'rp-work' : 'rp-warm')} role="dialog" aria-label="Beep test">
     <div className="rp-top">
       <button className="rp-x" onClick={() => { if (phase === 'run' && !confirm('Stop the beep test?')) return; clearInterval(timer.current); clearInterval(countdown.current); onClose() }} aria-label="Close">✕</button>
-      <span>📣 Beep test</span>
+      <span>Beep test</span>
       <span>{phase === 'run' ? fmt(now) : ''}</span>
     </div>
 
     {phase === 'setup' && <div className="rp-body">
-      <div className="rp-emoji">📣</div>
+      <div className="rp-emoji"><Icon name="speaker" /></div>
       <h2>Beep test</h2>
       <ol className="rp-steps">
         <li>Mark two lines <b>20 m</b> apart on a flat, grippy surface (a court is perfect).</li>
@@ -114,15 +115,15 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
       <div className="rp-kind">Level {pos.level}</div>
       <div className="rp-time">{pos.level}.{pos.shuttle}</div>
       <div className="bt-bar" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, (1 - pos.shuttleLeft / pos.shuttleTotal) * 100))}%` }} /></div>
-      <p className="rp-sub">{passT && now < passT ? `Pass mark ${target} in ${fmt(passT - now)}` : goalT && now < goalT ? `Pass mark done ✅ Goal ${goal} in ${fmt(goalT - now)}` : 'Past your goal. Every shuttle is a bonus. 🔥'}</p>
+      <p className="rp-sub">{passT && now < passT ? `Pass mark ${target} in ${fmt(passT - now)}` : goalT && now < goalT ? `Pass mark done. Goal ${goal} in ${fmt(goalT - now)}` : 'Past your goal. Every shuttle is a bonus.'}</p>
       <button className="bt-out" onClick={stop}>I'm out</button>
     </div>}
 
     {phase === 'out' && <div className="rp-body">
-      <div className="rp-emoji">{g?.pass ? '🏆' : p?.pass ? '✅' : '💪'}</div>
+      <div className="rp-emoji"><Icon name={g?.pass ? 'trophy' : p?.pass ? 'checkCircle' : 'arm'} /></div>
       <h2>{score ? `Level ${score}` : 'No shuttles yet'}</h2>
       {score && <p className="rp-sub">{g?.pass ? `Goal ${goal} reached: a comfortable pass.` : p?.pass ? `Pass mark ${target} reached. Goal ${goal} next.` : `${p?.pct || 0}% of the pass mark ${target}. Keep at the intervals.`}</p>}
-      {score && onSave && <button className="pf-go" onClick={() => onSave(score)}>💾 Save to PCT</button>}
+      {score && onSave && <button className="pf-go" onClick={() => onSave(score)}>Save to PCT</button>}
       <button className="pf-link bt-again" onClick={() => { setScore(''); setNow(0); said.current = new Set(); setPhase('setup') }}>Run it again</button>
     </div>}
   </div>

@@ -5,6 +5,8 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
+import { CHIRP_LEVELS, beepVolume, beep } from '../lib/police/bot-voice.js'
+import { iconFor } from '../lib/police/emoji-icon.js'
 import { HaydenMark } from '../components/HaydenBot.jsx'
 import { exerciseNameFor } from '../lib/i18n-core.js'
 import { EXIDX } from '../lib/exercises.js'
@@ -67,14 +69,12 @@ const CALM_TITLE = { today: 'Hayden', plan: 'Plan', more: 'More', run: 'Runs', s
 
 // Symbols for the kinds of day and the recovery chips, so a week reads at a glance.
 const DAY_ICON = { gym: 'dumbbell', run: 'figureRun', walk: 'figureRun', rest: 'moon', test: 'target' }
-const DAY_SYM = { gym: '🏋️', run: '🏃', walk: '🚶', rest: '😴', test: '🎯' } // spoken and plain-text lists still use these
-const recSym = x => (/sauna/i.test(x) ? '🧖 ' : /boots/i.test(x) ? '🦵 ' : /sleep/i.test(x) ? '🛌 ' : '')
 
 /** The hub's tabs: a symbol with a short word, six across. */
 function PfTabs({ value, onChange }) {
   return <nav className="pf-tabbar" role="tablist" aria-label="BadgeFit">
     {TABS.map(x => { const on = x.value === value || (x.value === 'more' && MORE.some(m => m.value === value)); return <button key={x.value} role="tab" aria-selected={on} className={on ? 'on' : ''} onClick={() => onChange(x.value)}>
-      <span aria-hidden="true">{x.sym}</span><small>{x.label}</small>
+      <span aria-hidden="true"><Icon name={iconFor(x.sym)} /></span><small>{x.label}</small>
     </button> })}
   </nav>
 }
@@ -129,18 +129,18 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
         const ran = (P.runLog || []).filter(r => r.at === iso).at(-1)
         const doneW = !S.active && S.workouts.filter(w => w.d === iso && !w.runLogId).at(-1)
         const runPart = run && (ran
-          ? <div className="pf-ran" key="r"><b>✅ Run done</b><span>{ranName(ran)} · {ran.min} min</span></div>
-          : <button key="r" className="pf-go" onClick={() => startRun(run)}>🏃 Start run · {run.name}</button>)
+          ? <div className="pf-ran" key="r"><b>Run done</b><span>{ranName(ran)} · {ran.min} min</span></div>
+          : <button key="r" className="pf-go" onClick={() => startRun(run)}>Start run · {run.name}</button>)
         const gymPart = hasGym && (doneW
-          ? <div className="pf-ran" key="g"><b>✅ Workout done</b><span>{doneW.name || 'Workout'}</span></div>
+          ? <div className="pf-ran" key="g"><b>Workout done</b><span>{doneW.name || 'Workout'}</span></div>
           : <button key="g" className="pf-go" onClick={() => {
             // Straight into today's gym session: one tap, no second Start on Home.
             if (S.active) { nav('/workout'); return }
             if (gymIds.length) startFlow(gymIds); else nav('/home')
-          }}>{S.active ? '🏋️ Back to your workout' : '🏋️ Start workout'}</button>)
-        if ((!run || ran) && (!hasGym || doneW) && (ran || doneW)) return <div className="pf-ran"><b>✅ Today complete</b><span>{[ran && `${ranName(ran)} · ${ran.min} min`, doneW && (doneW.name || 'Workout')].filter(Boolean).join(' · ')}</span></div>
+          }}>{S.active ? 'Back to your workout' : 'Start workout'}</button>)
+        if ((!run || ran) && (!hasGym || doneW) && (ran || doneW)) return <div className="pf-ran"><b>Today complete</b><span>{[ran && `${ranName(ran)} · ${ran.min} min`, doneW && (doneW.name || 'Workout')].filter(Boolean).join(' · ')}</span></div>
         if (runPart || gymPart) return <div className="pf-today-acts">{gymPart}{runPart}</div>
-        if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>🧪 Start test day</button>
+        if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>Start test day</button>
         return null
       })()}
       <PhaseSync S={S} P={P} week={pw.tw || 1} />
@@ -181,22 +181,26 @@ function JarvisSwitches({ S, P }) {
       const plan = buildPushPlan(next, todayISO(), localTZ())
       await allowNotifications(user, S, { ...next, pushPlan: plan })
       setP({ nudge: next.nudge, pushPlan: plan })
-      useUI.getState().toast(`🔔 Every morning at ${nudge.time}: today's session and the days left`)
+      useUI.getState().toast(`Every morning at ${nudge.time}: today's session and the days left`)
     } catch (e) { useUI.getState().toast(e?.message || 'Notifications were not allowed') } finally { setBusy(false) }
   }
   return <div className="pf-jsw">
-    <label className="pf-jsw-row"><span><b>🔔 Morning nudge</b><small>Today's session and the days left, every morning at {nudge.time}</small></span>
+    <label className="pf-jsw-row"><span><b>Morning nudge</b><small>Today's session and the days left, every morning at {nudge.time}</small></span>
       {nudge.on && <input type="time" value={nudge.time} aria-label="Nudge time" onChange={e => { if (!e.target.value) return; const n = { ...nudge, time: e.target.value }; setP(p => ({ nudge: n, pushPlan: buildPushPlan({ ...p, nudge: n }, todayISO(), localTZ()) })) }} />}
       <Switch checked={nudge.on} disabled={busy} onChange={() => turnNudge(!nudge.on)} aria-label="Morning nudge" /></label>
     <button type="button" className="pf-hear" disabled={busy} onClick={async () => {
       setBusy(true)
       try {
         const r = await voiceCheck('Hi, it\'s Hayden. This is how I sound in your workouts and on your runs. Let\'s get to work.')
-        useUI.getState().toast(r.via === 'phone' ? `That was the phone's voice, because ${r.why}` : '✅ That was Hayden\'s Gemini voice.')
+        useUI.getState().toast(r.via === 'phone' ? `That was the phone's voice, because ${r.why}` : 'That was Hayden\'s Gemini voice.')
       } finally { setBusy(false) }
-    }}>🔊 Hear Hayden</button>
-    <label className="pf-jsw-row"><span><b>🎵 Music mode</b><small>Training to Spotify or YouTube: Hayden keeps it short and uses the phone's voice, which talks over your music</small></span>
+    }}>Hear Hayden</button>
+    <label className="pf-jsw-row"><span><b>Music mode</b><small>Training to Spotify or YouTube: Hayden keeps it short and uses the phone's voice, which talks over your music</small></span>
       <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
+    {/* His robot beeps when you tap him (lib/police/bot-voice.js): off, quiet or loud. */}
+    <div className="pf-jsw-row"><span><b>Hayden's beeps</b><small>The little robot sounds he makes when you tap him</small></span>
+      <Segmented options={CHIRP_LEVELS} value={CHIRP_LEVELS.find(l => l.value === beepVolume(P))?.value ?? 0.35}
+        onChange={v => { setP({ botBeeps: v }); beep('happy', v) }} /></div>
   </div>
 }
 
@@ -233,8 +237,8 @@ function StatusStrip({ S, P, ready, setTab }) {
   const change = nowKg && startKg ? Math.round((nowKg - startKg) * 10) / 10 : null
   return <div className="pf-strip pf-strip3">
     <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>⏳ days to {(P.testName || '').trim() || 'PCT'}</span></button>
-    <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>🎯 ready</span></button>
-    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{change ? `⚖️ ${change > 0 ? '+' : ''}${change} kg since start` : '⚖️ kg'}</span></button>
+    <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>ready</span></button>
+    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{change ? `${change > 0 ? '+' : ''}${change} kg since start` : 'kg'}</span></button>
   </div>
 }
 
@@ -292,8 +296,8 @@ function BodyCard({ S, P }) {
       {spark && <svg className="pf-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points={spark} /></svg>}
     </> : <p className="pf-sub">Log your weight a few mornings a week, same time, before breakfast. The weekly average is what counts.</p>}
     <div className="pf-actions">
-      <Button size="sm" onClick={() => nav('/measurements')}>📏 Measure</Button>
-      <Button size="sm" onClick={() => nav('/progress-photos')}>📸 Photos</Button>
+      <Button size="sm" onClick={() => nav('/measurements')}>Measure</Button>
+      <Button size="sm" onClick={() => nav('/progress-photos')}>Photos</Button>
     </div>
   </div>
 }
@@ -350,7 +354,7 @@ function PlanChoice({ S, P }) {
       title: id === 'run' ? 'Switch to running focus?' : 'Use the BadgeFit plan?',
       message: `Home then follows this plan, from the week you are in. Your own routines stay under Plan, nothing is deleted.`,
       confirmText: 'Use this plan',
-      onConfirm: () => { installPlan(update, P, { level, choice: id }); useUI.getState().toast('✅ Done. Home shows this plan now.') },
+      onConfirm: () => { installPlan(update, P, { level, choice: id }); useUI.getState().toast('Done. Home shows this plan now.') },
     })
   }
   return <div className="card pf-planpick">
@@ -449,7 +453,7 @@ function RunTab({ S, P, startRun }) {
       <span className="pf-sub">Today's run</span>
       <h3>{todayRun.name}</h3>
       <p className="pf-sub">{runMinutes(todayRun)} min</p>
-      {ranToday ? <div className="pf-ran"><b>✅ Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span></div>
+      {ranToday ? <div className="pf-ran"><b>Today complete</b><span>{ranName(ranToday)} · {ranToday.min} min done</span></div>
         : <button className="pf-go" onClick={() => startRun(todayRun)}>Start</button>}
     </div>}
     <div className="pf-strip pf-strip3">
@@ -717,7 +721,7 @@ function MealReminders({ S, P }) {
         await enablePush()
       }
       save({ on: true })
-      useUI.getState().toast('Meal reminders on. Fuel the badge 🔔')
+      useUI.getState().toast('Meal reminders on. Fuel the badge')
     } catch (e) {
       useUI.getState().toast(e?.message || 'Notifications were not allowed')
     } finally { setBusy(false) }
@@ -730,7 +734,7 @@ function MealReminders({ S, P }) {
     {!cfg.on && <p className="pf-sub">A nudge at each meal so you never miss your protein. Turn on to allow notifications.</p>}
     {webState === 'denied' && <p className="pf-warn">Notifications are blocked for this site. Allow them in your browser's site settings.</p>}
     {cfg.on && <div className="pf-rlist">{MEALS.map(m => <div key={m.key} className={'pf-rrow' + (cfg.meals[m.key].on ? '' : ' off')}>
-      <span className="pf-rsym" aria-hidden="true">{m.emoji}</span>
+      <span className="pf-rsym" aria-hidden="true"><Icon name={iconFor(m.emoji)} /></span>
       <span className="pf-rname">{m.name}</span>
       <input type="time" value={cfg.meals[m.key].time} aria-label={m.name + ' time'} disabled={!cfg.meals[m.key].on}
         onChange={e => e.target.value && setMeal(m.key, { time: e.target.value })} />
@@ -752,10 +756,10 @@ function MealLog({ P, targets }) {
   return <div className="card pf-meals">
     <h3>Today's food</h3>
     <div className="pf-mt">
-      <div><span>🔥 Calories</span><b>{tot.kcal}{targets ? ` / ${targets.kcal}` : ''}</b><div className="pf-bar"><span style={{ width: (tot.kcalPct ?? 0) + '%', background: tot.kcalLeft < 0 ? 'var(--orange)' : undefined }} /></div>
+      <div><span>Calories</span><b>{tot.kcal}{targets ? ` / ${targets.kcal}` : ''}</b><div className="pf-bar"><span style={{ width: (tot.kcalPct ?? 0) + '%', background: tot.kcalLeft < 0 ? 'var(--orange)' : undefined }} /></div>
         <small>{tot.kcalLeft == null ? '' : tot.kcalLeft >= 0 ? `${tot.kcalLeft} left` : `${-tot.kcalLeft} over`}</small></div>
-      <div><span>🥩 Protein</span><b>{tot.protein} g{targets ? ` / ${targets.protein} g` : ''}</b><div className="pf-bar"><span style={{ width: (tot.proteinPct ?? 0) + '%' }} /></div>
-        <small>{tot.proteinLeft == null ? '' : tot.proteinLeft > 0 ? `${tot.proteinLeft} g to go` : 'Target hit 💪'}</small></div>
+      <div><span>Protein</span><b>{tot.protein} g{targets ? ` / ${targets.protein} g` : ''}</b><div className="pf-bar"><span style={{ width: (tot.proteinPct ?? 0) + '%' }} /></div>
+        <small>{tot.proteinLeft == null ? '' : tot.proteinLeft > 0 ? `${tot.proteinLeft} g to go` : 'Target hit'}</small></div>
     </div>
     {list.length > 0 && <ul className="pf-mlist">{list.map(x => <li key={x.id}><span>{x.name}</span><small>{x.kcal} kcal · {x.protein} g</small>
       <button className="cm-x" aria-label={'Remove ' + x.name} onClick={() => setP(p => ({ meals: removeMeal(p.meals, day, x.id) }))}>✕</button></li>)}</ul>}
@@ -862,8 +866,8 @@ function Food({ S, P }) {
   const [goal, setGoal] = useState(P.goal || 'lose')
   const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
-    <Fold id="body" title="⚖️ Body" open><BodyCard S={S} P={P} /></Fold>
-    <Fold id="targets" title="🎯 Daily targets"><div className="card">
+    <Fold id="body" title="Body" open><BodyCard S={S} P={P} /></Fold>
+    <Fold id="targets" title="Daily targets"><div className="card">
       <div className="pf-2">
         <label>Body weight (kg)<NumberField value={weight} onChange={x => { setWeight(x); setP({ weightKg: x }) }} /></label>
         <label>Height (cm)<NumberField value={P.heightCm ?? null} nullable decimal={false} onChange={x => setP({ heightCm: x })} /></label>
@@ -872,17 +876,17 @@ function Food({ S, P }) {
       </div>
       <Segmented options={[{ value: 'lose', label: 'Lose fat' }, { value: 'recomp', label: 'Recomp' }, { value: 'gain', label: 'Gain' }]} value={goal} onChange={g => { setGoal(g); setP({ goal: g }) }} />
       {m && <div className="pf-macros">
-        <div><i aria-hidden="true">🔥</i><b>{m.kcal}</b><span>kcal</span></div>
-        <div><i aria-hidden="true">🥩</i><b>{m.protein} g</b><span>protein</span></div>
-        <div><i aria-hidden="true">🍚</i><b>{m.carbs} g</b><span>carbs</span></div>
-        <div><i aria-hidden="true">🥑</i><b>{m.fat} g</b><span>fat</span></div>
-        <div><i aria-hidden="true">💧</i><b>{m.water} L</b><span>water</span></div>
+        <div><i aria-hidden="true"><Icon name="flame" /></i><b>{m.kcal}</b><span>kcal</span></div>
+        <div><i aria-hidden="true"><Icon name="arm" /></i><b>{m.protein} g</b><span>protein</span></div>
+        <div><i aria-hidden="true"><Icon name="bolt" /></i><b>{m.carbs} g</b><span>carbs</span></div>
+        <div><i aria-hidden="true"><Icon name="dot" /></i><b>{m.fat} g</b><span>fat</span></div>
+        <div><i aria-hidden="true"><Icon name="cloud" /></i><b>{m.water} L</b><span>water</span></div>
       </div>}
       <p className="pf-sub">{m?.method === 'mifflin' ? `Maintenance about ${m.maintenance} kcal for 6-7 sessions a week; fat loss is 500 under it.` : 'Add your height and age for a much better estimate.'} Check the weekly average of your weigh-ins and adjust by 100-200 kcal.</p>
     </div></Fold>
-    <Fold id="remind" title="🔔 Meal reminders"><MealReminders S={S} P={P} /></Fold>
-    <Fold id="protein" title="🥩 Protein for your weight"><ProteinCard weight={weight} /></Fold>
-    <Fold id="creatine" title="⚡ Creatine"><CreatineCard weight={weight} /></Fold>
+    <Fold id="remind" title="Meal reminders"><MealReminders S={S} P={P} /></Fold>
+    <Fold id="protein" title="Protein for your weight"><ProteinCard weight={weight} /></Fold>
+    <Fold id="creatine" title="Creatine"><CreatineCard weight={weight} /></Fold>
     <details className="card pf-diet">
       <summary><b>Supplements</b> <span className="pf-chip">What actually works</span></summary>
       <p className="pf-sub">Food first: supplements fill gaps. Police applicants are drug tested, so only buy batch-tested products (look for Informed Sport).</p>
@@ -900,8 +904,8 @@ function Food({ S, P }) {
       {d.variants && <><h4>Other options</h4><ul>{d.variants.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
       <Button size="sm" variant={P.diet === d.id ? 'primary' : 'plain'} onClick={() => setP({ diet: d.id })}>{P.diet === d.id ? 'My plan' : 'Follow this plan'}</Button>
     </details>)}
-    <Fold id="rules" title="📏 The rules every plan follows"><div className="card"><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div></Fold>
-    <Fold id="recovery" title="🧖 Recovery"><div className="card">{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div></Fold>
+    <Fold id="rules" title="The rules every plan follows"><div className="card"><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div></Fold>
+    <Fold id="recovery" title="Recovery"><div className="card">{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div></Fold>
     <p className="pf-sub pf-pad">{DISCLAIMER}</p>
   </>
 }
@@ -963,12 +967,12 @@ export default function PoliceFit() {
   return <div className="narrow pf">
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
       setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
-      setOverlay(null); useUI.getState().toast(`📣 Beep test ${v} saved`)
+      setOverlay(null); useUI.getState().toast(`Beep test ${v} saved`)
     }} />}
     {overlay === 'test' && <TestDay target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} testName={(P.testName || '').trim() || 'PCT'} onClose={() => setOverlay(null)} onSave={vals => {
       const add = testDayResults(vals, todayISO(), P.beepTarget || DEFAULT_BEEP_TARGET)
       setP(p => ({ results: [...(p.results || []), ...add] }))
-      setOverlay(null); setTab('tests'); useUI.getState().toast(`🧪 ${add.length} results saved`)
+      setOverlay(null); setTab('tests'); useUI.getState().toast(`${add.length} results saved`)
     }} />}
     {calm ? <div className="calm-head">
       {/* A page under More goes back to More; Plan, the test and More are the bar's own places. */}
