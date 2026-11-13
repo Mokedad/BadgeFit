@@ -61,3 +61,29 @@ After the iPhone app is on TestFlight and the PCT is done. Roughly 3 to 4 days o
   tapped), so they know it landed. Nothing else is sent back mid-session.
 - A cheer that arrived while muted is marked "Delivered after the session" when it is shown at
   the end.
+
+## Who sees whom: the circle (added 13 November 2026)
+
+The owner's rule: people follow people they know or know of, never strangers. So there is no
+list of everyone training, and nobody can be found by browsing.
+
+- **Your circle** is the only place bubbles come from. Someone is in it only after a follow
+  request was accepted. Nobody outside it can see that you are training, where, or at all.
+- **Three ways to find someone**, each of which needs something they gave you:
+  1. An invite link or QR code from their profile ("Add me on BadgeFit"), sent by message or
+     shown on their phone. Opening it sends the follow request.
+  2. Their exact BadgeFit username, typed in. No partial search, no suggestions.
+  3. Their Instagram: a member who has added their Instagram name can put their BadgeFit link in
+     their Instagram bio or a story. BadgeFit does not read anyone's Instagram followers.
+- **Requests are approved**: the person followed gets "Sarah wants to follow your training" and
+  taps Accept or Decline. Accepting can be one-way (she sees me) or both ways.
+- **Notification when someone starts**: each person in the circle has a bell. Bell on: a push
+  notification "Moke started a run" the moment he taps Start, which opens the app on his
+  bubble. Bell off: the bubble still shows on Home, with no notification. Default on for the
+  first five people followed, off after that, so a big circle does not flood a phone.
+- **Privacy switches**: "Show when I am training" (on or off, and per session from the Start
+  screen), "Who can send me follow requests" (anyone with my link or username, or nobody), and
+  remove or block a follower at any time.
+- **Later, for people you know of** (a public figure, a coach): a member can mark their profile
+  Public, which accepts followers without approval and shows no route or location. Off by
+  default; not in 1.2.
