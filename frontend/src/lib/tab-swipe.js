@@ -6,6 +6,7 @@
 
 export const APP_TABS = ['/home', '/plan', '/stats', '/library']
 export const HUB_TABS = ['today', 'plan', 'tests', 'more']
+export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 'plan' }, { path: '/police', tab: 'tests' }, { path: '/police', tab: 'more' }]
 
 const EDGE = 28, MIN = 70, MAX_MS = 700
 
@@ -17,8 +18,15 @@ export function swipeStep({ dx, dy, ms, startX, width }) {
 }
 
 /** Where a swipe by `step` lands: { path, search } to go to, or null (no tab that way, not a tab screen). */
-export function swipeTarget(pathname, search, step) {
+export function swipeTarget(pathname, search, step, calm = false) {
   if (!step) return null
+  // BadgeFit's one bar (components/CalmNav.jsx): Today, Plan, the test, More, in that order.
+  if (calm) {
+    const tab = pathname === '/police' ? new URLSearchParams(search || '').get('tab') || 'today' : null
+    const i = pathname === '/home' ? 0 : tab ? CALM_TABS.findIndex(t => t.tab === tab) : -1
+    const next = i < 0 ? null : CALM_TABS[i + step]
+    return next ? { path: next.path, search: next.tab ? '?tab=' + next.tab : '' } : null
+  }
   if (pathname === '/police') {
     const cur = new URLSearchParams(search || '').get('tab') || 'today'
     const i = HUB_TABS.indexOf(cur)
@@ -48,7 +56,7 @@ export function ownsSideways(el) {
 }
 
 /** Listens for tab swipes; `go({ path, search })` moves there. Returns the uninstall. */
-export function installTabSwipe(where, go) {
+export function installTabSwipe(where, go, calm = () => false) {
   let t0 = null
   const start = e => {
     const t = e.touches?.[0]
@@ -60,7 +68,7 @@ export function installTabSwipe(where, go) {
     if (!s || !t) return
     const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth })
     const { pathname, search } = where()
-    const to = swipeTarget(pathname, search, step)
+    const to = swipeTarget(pathname, search, step, calm())
     if (to) go(to)
   }
   const cancel = () => { t0 = null }

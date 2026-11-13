@@ -34,13 +34,9 @@ import { ChallengesCard } from '../components/Challenges.jsx'
 import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf, daysUntil } from '../lib/police/programme.js'
-import { runMinutes } from '../lib/police/runs.js'
-import { sessionMinutes } from '../lib/police/session-length.js'
-import { buildCombinedEntries } from '../lib/session-merge.js'
-import HaydenQuick from '../components/HaydenQuick.jsx'
+import { todayNow } from '../lib/police/today-now.js'
 import { shareSession } from '../lib/police/share-card.js'
 import { durationMinOf } from '../lib/workout-date.js'
-import { useRun } from '../store/useRun.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
 import { coachAvailable } from '../lib/coach.js'
@@ -195,7 +191,6 @@ export default function Home() {
     const tm = setTimeout(() => { import('../sheets.jsx').then(m => offerHealthOnce(useStore.getState().S, m.confirmSheet, useUI.getState().toast)).catch(() => {}) }, 2500)
     return () => clearTimeout(tm)
   }, [S.police?.start])
-  const runOn = useRun(s => !!s.run)
   const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
 
   // BadgeFit with a plan: the calm Home. One screen that reads like a trainer, not an app: a
@@ -207,18 +202,10 @@ export default function Home() {
     const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
     const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null,
       today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
-    // Hayden from Home: the common training questions, answered from the plan with no AI call
-    // (components/HaydenQuick.jsx). The AI coach is one step further, for a question of your own.
-    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close} today={todayNow} done={!!doneToday && !S.active} />)
-    // What today really is: every routine on today as it stands now (a swap, a removal or an
-    // added one included), a run by its own name, and the time of all of it together. Home's
-    // line and Hayden's words are both made from this, so they always say the same thing.
-    const runOf = r => runForRoutine(P, r.id, todayISO())
-    const nowName = todayRoutines.map(r => runOf(r)?.name || r.name).join(' + ')
-    const gymIds = todayRoutines.filter(r => !runOf(r)).map(r => r.id)
-    const mins = S.active || doneToday || !routine ? null
-      : todayRoutines.reduce((a, r) => a + (runOf(r) ? runMinutes(runOf(r)) : 0), 0) + (gymIds.length ? sessionMinutes(buildCombinedEntries(S, gymIds).entries) : 0)
-    const todayNow = S.active ? { kind: 'gym', title: S.active.name } : routine ? { kind: gymIds.length ? 'gym' : 'run', title: nowName, minutes: mins || undefined } : { kind: 'rest' }
+    // What today really is (lib/police/today-now.js): the same source Hayden reads from.
+    const now = todayNow(S, todayISO())
+    const nowName = now.name
+    const mins = S.active || doneToday || !routine ? null : now.minutes
     const line = S.active ? `${S.active.name} is under way.`
       : doneToday ? 'Today is done. Good work.'
       : routine ? `Today: ${nowName}${mins ? `, about ${mins} min` : ''}.`
@@ -232,17 +219,6 @@ export default function Home() {
         daysToTest: left, testName: P.testName, week: bfPlan?.week && !bfPlan.after ? bfPlan.week : null, weeks: bfPlan?.last || null,
       }, useUI.getState().toast)
     }
-    const menu = () => menuSheet({ title: 'BadgeFit', sections: [{ items: [
-      { icon: 'calendar', label: 'My plan', sub: 'This week and the weeks ahead', onClick: () => nav('/police?tab=plan') },
-      { icon: 'target', label: (P.testName || 'PCT').trim() + ' tests', sub: 'Standards, beep test, test day', onClick: () => nav('/police?tab=tests') },
-      { icon: 'figureRun', label: 'Runs and walks', sub: 'Guided by Hayden', onClick: () => nav('/police?tab=run') },
-      { icon: 'dumbbell', label: 'Strength', sub: 'The rep range rule and your next set', onClick: () => nav('/police?tab=strength') },
-      { icon: 'heart', label: 'Food and care', sub: 'Meals, protein, sore spots', onClick: () => nav('/police?tab=more') },
-    ] }, { items: [
-      { icon: 'chart', label: 'Progress', sub: 'Stats, history, body weight', onClick: () => nav('/stats') },
-      { icon: 'dumbbell', label: 'Exercises', sub: 'How to do each one', onClick: () => nav('/library') },
-      { icon: 'gear', label: 'Settings', onClick: () => nav('/settings') },
-    ] }] })
     return <div className="narrow calm">
       <div className="calm-top">
         <span />
@@ -273,16 +249,6 @@ export default function Home() {
         </div>}
         <div className="calm-week">{weekNav}</div>
       </div>
-
-      {/* The bar: four places and Hayden in the middle. No box to type into: his quick answers
-          come from the plan, free; the AI coach is inside, for when it is needed. */}
-      {!runOn && <nav className="calm-nav" aria-label="BadgeFit">
-        <button className="on"><Icon name="house" /><span>Today</span></button>
-        <button onClick={() => nav('/police?tab=plan')}><Icon name="calendar" /><span>Plan</span></button>
-        <button className="calm-nav-h" onClick={hayden} aria-label="Hayden"><span className="pf-orb" aria-hidden="true" /><span>Hayden</span></button>
-        <button onClick={() => nav('/police?tab=tests')}><Icon name="target" /><span>{(P.testName || 'PCT').trim()}</span></button>
-        <button onClick={menu}><Icon name="list" /><span>More</span></button>
-      </nav>}
     </div>
   }
 

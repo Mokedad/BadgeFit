@@ -8,6 +8,7 @@ import Elapsed from './Elapsed.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 import { retapTab } from '../lib/scroll-top.js'
 import { useUI } from '../store/useUI.js'
+import CalmNav from './CalmNav.jsx'
 
 // Module scope, not TabBar's render body. Declared inside it, `Tab` was a new function on every
 // render, so React saw a different component type each time and threw the button away and built a
@@ -31,6 +32,8 @@ export default function TabBar({ onStart }) {
   // Settings lives under (#369, #330).
   const trouble = useConnectionTrouble()
   if (!user && !isGuest) return null
+  // BadgeFit with a plan: its own bar, the same on every screen (components/CalmNav.jsx).
+  if (S.police?.start) return <CalmNav />
   const cur = loc.pathname.split('/')[1] || 'home'
   // A screen without a tab of its own lights the tab it is opened from (Muscles from both).
   const PARENT = { history: 'stats', 'structural-balance': 'stats', 'progress-photos': 'stats', measurements: 'stats', settings: 'home', checkin: 'home', muscles: 'library' }

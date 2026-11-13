@@ -23,6 +23,14 @@ describe('tab swipe', () => {
     expect(swipeTarget('/settings', '', 1)).toBe(null)
     expect(swipeTarget('/home', '', 0)).toBe(null)
   })
+  it('BadgeFit\'s one bar: Today, Plan, the test, More, and no further', () => {
+    expect(swipeTarget('/home', '', 1, true)).toEqual({ path: '/police', search: '?tab=plan' })
+    expect(swipeTarget('/police', '?tab=plan', 1, true)).toEqual({ path: '/police', search: '?tab=tests' })
+    expect(swipeTarget('/police', '?tab=plan', -1, true)).toEqual({ path: '/home', search: '' })
+    expect(swipeTarget('/police', '?tab=more', 1, true)).toBe(null)
+    expect(swipeTarget('/police', '?tab=strength', -1, true)).toBe(null) // a page under More
+    expect(swipeTarget('/stats', '', 1, true)).toBe(null)
+  })
   it('moves between the BadgeFit hub tabs', () => {
     expect(swipeTarget('/police', '', 1)).toEqual({ path: '/police', search: '?tab=plan' })
     expect(swipeTarget('/police', '?tab=plan', -1)).toEqual({ path: '/police', search: '' })
