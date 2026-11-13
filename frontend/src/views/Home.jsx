@@ -225,9 +225,12 @@ export default function Home() {
     }
     return <div className="narrow calm">
       <div className="calm-top">
-        <HaydenToggle />
-        {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
-          : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
+        <span />
+        <div className="calm-right">
+          <HaydenToggle />
+          {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
+            : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
+        </div>
       </div>
 
       <div className="calm-mid">

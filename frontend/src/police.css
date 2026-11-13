@@ -801,3 +801,4 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .hb-buddy:active .hb{transform:scale(.94)}
 .hb-toggle{border:0;background:var(--card,#fff);border-radius:999px;width:40px;height:40px;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .hb-toggle.iconbtn{box-shadow:none;background:none;width:auto;height:auto}
+.calm-right{display:flex;align-items:center;gap:8px}
