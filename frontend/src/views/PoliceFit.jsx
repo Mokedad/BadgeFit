@@ -574,6 +574,7 @@ function Plan({ S, P }) {
   // The simple plan first (lib/police/first-steps.js): someone new sees this week only, in plain
   // words, until five sessions are done. Then the weeks ahead and the other plans open.
   const ease = comfort(S, { guest })
+  const [openOnce, setOpenOnce] = useState(false)
   if (P.start && !ease.ready) {
     const now = weekPlan(level, Math.min(current, pw.last), P.age, planOptsOf(P))
     return <>
@@ -587,7 +588,8 @@ function Plan({ S, P }) {
       </div>
     </>
   }
-  const openPlans = () => { try { localStorage.setItem('badgefit_fold_plansettings', '1') } catch { /* private mode */ } setP(p => seenPatch(p, 'moreplans') || {}) }
+  // "See the plans" opens Change my plan this once; it is closed again the next time Plan opens.
+  const openPlans = () => { setOpenOnce(true); setP(p => seenPatch(p, 'moreplans') || {}) }
   return <>
     {/* The habit is there: the other plans are offered once, then live under Change my plan. */}
     {P.start && level === 'beginner' && !P.seen?.moreplans && (S.workouts || []).length >= ease.need && <div className="card pf-ease">
@@ -601,7 +603,7 @@ function Plan({ S, P }) {
     {/* A day at a time, read from the schedule as it is, so it matches Home (components/PlanDays.jsx). */}
     <PlanDays />
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
-    <Fold key={'ps' + (P.seen?.moreplans ? 1 : 0)} id="plansettings" title="Change my plan">
+    <Fold key={'ps' + (P.seen?.moreplans ? 1 : 0)} id="plansettings" title="Change my plan" remember={false} open={openOnce} small>
       <PlanChoice S={S} P={P} />
       <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => guest && l !== 'beginner' ? membersOnly() : setP({ level: l })} />
       <div className="card">
@@ -840,10 +842,11 @@ function Care() {
  * A collapsible section (Food tab), like the Care tab's. Open or closed is remembered on this
  * device. The card inside loses its own frame and first heading: the fold's title stands for it.
  */
-function Fold({ id, title, open = false, children }) {
+function Fold({ id, title, open = false, remember = true, small = false, children }) {
   const key = 'badgefit_fold_' + id
-  const [isOpen, setOpen] = useState(() => { try { const v = localStorage.getItem(key); return v == null ? open : v === '1' } catch { return open } })
-  return <details className="card pf-fold" open={isOpen} onToggle={e => { const o = e.currentTarget.open; setOpen(o); try { localStorage.setItem(key, o ? '1' : '0') } catch { /* private mode */ } }}>
+  // `remember` false: closed every time the page opens (Change my plan), whatever it was left at.
+  const [isOpen, setOpen] = useState(() => { if (!remember) return open; try { const v = localStorage.getItem(key); return v == null ? open : v === '1' } catch { return open } })
+  return <details className={'card pf-fold' + (small ? ' pf-fold-sm' : '')} open={isOpen} onToggle={e => { const o = e.currentTarget.open; setOpen(o); if (remember) try { localStorage.setItem(key, o ? '1' : '0') } catch { /* private mode */ } }}>
     <summary><span>{title}</span><span className="pf-fold-c" aria-hidden="true">⌄</span></summary>
     <div className="pf-fold-b">{children}</div>
   </details>

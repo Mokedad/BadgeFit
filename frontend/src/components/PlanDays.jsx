@@ -19,6 +19,8 @@ import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 
 const DAY = 86400000
+// Every run and walk shows the same picture: the catalogue's run (one picture, easy to read).
+const RUN_PIC = '0685'
 export const shiftISO = (iso, n) => isoOf(new Date(Date.parse(iso + 'T12:00:00') + n * DAY))
 const label = (iso, today) => (iso === today ? 'Today' : iso === shiftISO(today, 1) ? 'Tomorrow' : iso === shiftISO(today, -1) ? 'Yesterday'
   : new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' }))
@@ -90,7 +92,9 @@ export default function PlanDays({ first = null }) {
         {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} ex={ex} faint={!fits.has(`${r.id}:${e.id}`)} onHold={() => !past && hold(r, i, ex)} /> : null })}
         {!past && <button className="pd-add" onClick={() => add(r)} aria-label={'Add an exercise to ' + r.name}><Icon name="plus" /></button>}
       </div>)}
-      {!d.gym.length && <div className="pd-icon"><Icon name={d.kind === 'rest' ? 'moon' : 'figureRun'} /></div>}
+      {!d.gym.length && (d.kind === 'rest' || !EXIDX[RUN_PIC]
+        ? <div className="pd-icon"><Icon name={d.kind === 'rest' ? 'moon' : 'figureRun'} /></div>
+        : <div className="pd-run"><Thumb ex={EXIDX[RUN_PIC]} /></div>)}
       {first}
     </div>
     {next.map(n => <button key={n.iso} className={'pf-day pf-tile pfk-' + n.kind} onClick={() => setFocus(n.iso)}>
@@ -99,7 +103,7 @@ export default function PlanDays({ first = null }) {
         <span className="pf-tile-m"><b>{n.name}</b>{n.minutes ? <small>{n.minutes} min</small> : null}</span>
         <span className="pf-tile-p" aria-hidden="true">
           {n.gym.length ? n.gym[0].ex.slice(0, 3).map(e => EXIDX[e.id]).filter(Boolean).map(ex => <Thumb key={ex.id} ex={ex} />)
-            : <span className="pf-tile-i"><Icon name={n.kind === 'rest' ? 'moon' : 'figureRun'} /></span>}
+            : n.kind !== 'rest' && EXIDX[RUN_PIC] ? <Thumb ex={EXIDX[RUN_PIC]} /> : <span className="pf-tile-i"><Icon name={n.kind === 'rest' ? 'moon' : 'figureRun'} /></span>}
         </span>
       </div>
     </button>)}
