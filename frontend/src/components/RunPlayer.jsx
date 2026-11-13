@@ -2,6 +2,7 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import { createPortal } from 'react-dom'
 import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
 import { HaydenToggle } from './HaydenBuddy.jsx'
 import { HaydenMark } from './HaydenBot.jsx'
@@ -254,12 +255,24 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
     onRestore?.()
   }
-  const end = () => {
+  // Two ways out, the same in the run and in the bar: Finish (what was run is saved) or Cancel
+  // run (nothing saved, the run stays today's to do). Tapping outside the choice keeps running.
+  const [choice, setChoice] = useState(false)
+  const end = () => setChoice(true)
+  const finishHere = () => {
+    setChoice(false)
     const ranMin = (((paused ? pausedAt.current : Date.now()) - runStart.current) / 60000)
-    if (ranMin < 1) { if (confirm('End this run? Under a minute is not saved.')) onClose(); return }
-    if (!confirm('End the run here? What you have done is saved.')) return
+    if (ranMin < 1) { onClose(); return } // under a minute: nothing worth saving
     finish(false)
   }
+  const cancelRun = () => { setChoice(false); try { wake.current?.release() } catch { /* gone */ } onClose() }
+  // On the page itself (a portal), above the run screen and Hayden floating over it.
+  const choiceBox = choice && createPortal(<div className="rp-choice" role="dialog" aria-label="End the run" onClick={() => setChoice(false)}>
+    <div className="rp-choice-box" onClick={e => e.stopPropagation()}>
+      <button className="rp-choice-fin" onClick={finishHere}>✓ Finish run<small>What you ran is saved</small></button>
+      <button className="rp-choice-cancel" onClick={cancelRun}>Cancel run<small>Not saved, still to do today</small></button>
+    </div>
+  </div>, document.body)
   const note = patch => { if (savedId.current) onUpdate?.(savedId.current, patch) }
   // Ended by mistake (Skip at the last step, End): back to the run where it stopped, paused, and
   // the save undone, so the run is saved once, when it really ends.
@@ -281,7 +294,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
       </button>
       <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}>{paused ? '▶' : '⏸'}</button>
-      <button className="rp-mini-b" onClick={end} aria-label="End run">✕</button>
+      <button className="rp-mini-b" onClick={end} aria-label="Finish or cancel the run">✕</button>
+      {choiceBox}
     </div>
   }
 
@@ -352,11 +366,12 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
         <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>
-        <span><button onClick={() => go(idx + 1)} aria-label={idx >= segs.length - 1 ? 'Finish the run' : 'Skip this step'}>⏭</button><small>{idx >= segs.length - 1 ? 'Finish' : 'Skip'}</small></span>
+        <span><button onClick={() => go(idx + 1)} aria-label="Skip this step">⏭</button><small>Skip</small></span>
       </div>
       <button className="rp-lock" onClick={lock}>🔒 Lock screen <small>Hayden keeps talking</small></button>
-      <button className="rp-end" onClick={end}>■ End run here</button>
+      <button className="rp-end" onClick={end}>■ End run</button>
     </div>}
+    {choiceBox}
     {locked && <div className="rp-locked" role="dialog" aria-label="Screen locked"
       onPointerDown={e => { e.preventDefault(); startHold() }} onPointerUp={stopHold} onPointerCancel={stopHold} onPointerLeave={stopHold}
       onContextMenu={e => e.preventDefault()}>
