@@ -799,6 +799,9 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .hb-buddy{position:fixed;right:12px;bottom:calc(var(--sab) + 96px);z-index:40;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .hb-buddy.in-workout{bottom:calc(var(--sab) + 84px)}
 .hb-buddy:active .hb{transform:scale(.94)}
-.hb-toggle{border:0;background:var(--card,#fff);border-radius:999px;width:40px;height:40px;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12)}
-.hb-toggle.iconbtn{box-shadow:none;background:none;width:auto;height:auto}
+.hb-toggle{position:relative;width:46px;height:46px;border-radius:50%;border:0;padding:0;background:var(--surface-2,var(--surface));display:grid;place-items:center;box-shadow:0 2px 14px rgba(0,0,0,.08)}
+.hb-toggle .hb{filter:none}
+.hb-toggle.off .hb{opacity:.35;filter:grayscale(1)}
+.hb-toggle-x{position:absolute;left:50%;top:50%;width:30px;height:2.5px;border-radius:2px;background:var(--label);transform:translate(-50%,-50%) rotate(-45deg)}
+.hb-toggle.iconbtn{box-shadow:none;background:none;width:40px;height:40px}
 .calm-right{display:flex;align-items:center;gap:8px}

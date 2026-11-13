@@ -1,12 +1,12 @@
 // BadgeFit: Hayden floats in the corner of Home, the hub's pages and a workout, blinking and
 // bobbing. Tap him and he does a move (lib/police/bot-emotes.js). The 🤖/🚷 switch
-// (HaydenToggle) turns him off or on for this member.
+// (HaydenToggle: his head, crossed out when off) turns him off or on for this member.
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EMOTES, IDLE, EMOTE_MS, nextEmote, haydenOn } from '../lib/police/bot-emotes.js'
-import HaydenBot from './HaydenBot.jsx'
+import HaydenBot, { HaydenMark } from './HaydenBot.jsx'
 
 export function HaydenToggle({ className = '' }) {
   const on = useStore(s => haydenOn(s.S))
@@ -14,9 +14,9 @@ export function HaydenToggle({ className = '' }) {
     useStore.getState().update(s => { s.police = { ...(s.police || {}), haydenOff: on ? true : undefined } })
     useUI.getState().toast(on ? 'Hayden is off' : 'Hayden is back')
   }
-  return <button type="button" className={'hb-toggle ' + className} aria-pressed={on} onClick={flip}
+  return <button type="button" className={'hb-toggle' + (on ? '' : ' off') + ' ' + className} aria-pressed={on} onClick={flip}
     aria-label={on ? 'Hayden on. Tap to turn him off' : 'Hayden off. Tap to turn him on'}>
-    <span aria-hidden="true">{on ? '🤖' : '🚷'}</span>
+    <HaydenMark size={34} />{!on && <span className="hb-toggle-x" aria-hidden="true" />}
   </button>
 }
 
