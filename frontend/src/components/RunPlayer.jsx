@@ -2,6 +2,7 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import { HaydenMark } from './HaydenBot.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
 import { shareSession } from '../lib/police/share-card.js'
@@ -343,7 +344,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         : <><b>{kmOf(gpsM).toFixed(2)}</b> km · <b>{fmtPace(livePace(gpsTrack.current, now) ?? paceOf(gpsM, (now - runStart.current) / 1000))}</b> /km</>}</div>}
       {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>✓ Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
-      {bubble && <div className="rp-bubble" role="status"><span className="pf-orb" aria-hidden="true" />{bubble.text}</div>}
+      {bubble && <div className="rp-bubble" role="status"><HaydenMark />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
         <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? '▶' : '⏸'}</button><small>{paused ? 'Resume' : 'Pause'}</small></span>

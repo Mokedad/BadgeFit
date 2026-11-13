@@ -13,6 +13,7 @@ import { listenOnce } from '../lib/police/listen.js'
 import { say, stopSpeaking, primeSpeech } from '../lib/police/voice.js'
 import { MOBILE } from '../lib/mobile.js'
 import { haydenCommand } from '../lib/police/hayden-commands.js'
+import HaydenBot from './HaydenBot.jsx'
 
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 
@@ -117,7 +118,9 @@ export default function HaydenQuick({ close, today = null, done = null, onComman
       {view ? <button className="hq-back" onClick={back} aria-label="Back to the questions">‹ Back</button> : <span />}
       <button className="hq-x" onClick={close} aria-label="Close">Done</button>
     </div>
-    <button className={'hq-ball ' + phase} onClick={ball} aria-label={phase === 'listening' ? 'Stop listening' : 'Talk to Hayden'}><span className="pf-orb" aria-hidden="true" /></button>
+    <button className={'hq-ball ' + phase} onClick={ball} aria-label={phase === 'listening' ? 'Stop listening' : 'Talk to Hayden'}>
+      <HaydenBot size={120} {...(phase === 'listening' ? { eyes: 'wide', pose: 'listen' } : phase === 'speaking' ? { eyes: 'happy', pose: 'wave', talking: true } : { eyes: 'open', pose: 'idle' })} />
+    </button>
     <div className="hq-status" role="status">{status}</div>
     {view ? <>
       <div className="hq-q">{view.q}</div>

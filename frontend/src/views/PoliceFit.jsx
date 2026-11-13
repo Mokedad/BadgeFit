@@ -5,6 +5,7 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
+import { HaydenMark } from '../components/HaydenBot.jsx'
 import { exerciseNameFor } from '../lib/i18n-core.js'
 import { EXIDX } from '../lib/exercises.js'
 import { seenPatch, comfort } from '../lib/police/first-steps.js'
@@ -147,7 +148,7 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
 
     <StatusStrip S={S} P={P} ready={ready} setTab={setTab} />
     <div className="card pf-jarvis">
-      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">Your trainer</span></div>
+      <div className="pf-jarvis-h"><HaydenMark /><b>{BRAND.coach}</b><span className="pf-sub">Your trainer</span></div>
       {lines.slice(1, 3).map((l, i) => <p key={i}>{l}</p>)}
       {!fresh && <JarvisSwitches S={S} P={P} />}
     </div>
@@ -827,7 +828,7 @@ function Care() {
   const hits = findCare(q)
   return <>
     <div className="card pf-jarvis">
-      <div className="pf-jarvis-h"><span className="pf-orb" aria-hidden="true" /><b>{BRAND.coach}</b><span className="pf-sub">on aches and pains</span></div>
+      <div className="pf-jarvis-h"><HaydenMark /><b>{BRAND.coach}</b><span className="pf-sub">on aches and pains</span></div>
       <p>{RUN_CARE_INTRO}</p>
       <label>What is bothering you?<TextField value={q} placeholder="e.g. my shins hurt after running" onChange={e => setQ(e.target.value)} /></label>
       {q && !hits.length && <p className="pf-sub">Nothing matched. Try one word: shin, heel, knee, ankle, chafe, stitch, tired.</p>}

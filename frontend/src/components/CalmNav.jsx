@@ -12,6 +12,7 @@ import { effectiveRoutineIds } from '../lib/history.js'
 import { startFlow } from '../sheets.jsx'
 import Icon from './Icon.jsx'
 import HaydenQuick from './HaydenQuick.jsx'
+import { HaydenMark } from './HaydenBot.jsx'
 
 /** Which of the bar's places a screen belongs to. */
 export function navKey(pathname, search) {
@@ -48,7 +49,7 @@ export default function CalmNav() {
   return <nav className="calm-nav" aria-label="BadgeFit">
     {tab('today', 'house', 'Today', '/home')}
     {tab('plan', 'calendar', 'Plan', '/police?tab=plan')}
-    <button className="calm-nav-h" onClick={hayden} aria-label="Hayden"><span className="pf-orb" aria-hidden="true" /><span>Hayden</span></button>
+    <button className="calm-nav-h" onClick={hayden} aria-label="Hayden"><HaydenMark size={38} /><span>Hayden</span></button>
     {tab('tests', 'target', testName, '/police?tab=tests')}
     {tab('more', 'list', 'More', '/police?tab=more')}
   </nav>
