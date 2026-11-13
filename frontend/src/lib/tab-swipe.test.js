@@ -38,3 +38,13 @@ describe('tab swipe', () => {
     expect(swipeTarget('/police', '?tab=food', 1)).toBe(null) // a page under More: not a tab
   })
 })
+
+import { swipeStep as ss } from './tab-swipe.js'
+describe('BadgeFit: top of the screen only', () => {
+  it('changes tab from the title, not from the middle or the bottom', () => {
+    const base = { dx: -120, dy: 4, ms: 200, startX: 200, width: 390, top: 170 }
+    expect(ss({ ...base, startY: 90 })).toBe(1)
+    expect(ss({ ...base, startY: 400 })).toBe(0)
+    expect(ss({ ...base, startY: 780 })).toBe(0)
+  })
+})

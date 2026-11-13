@@ -4,6 +4,7 @@
 //   · fewer reps than the bottom of the range  → move DOWN next set
 //   · inside the range, short of the top       → STAY at this weight
 //   · the top of the range or more             → move UP next set (+5 lb / +2.5 kg)
+//   · 10 or more reps past the top              → far too light: UP at least 10 kg / 20 lb
 // Week to week the same rule carries over: the weight you finished on is where you start.
 
 export const REP_RANGES = [
@@ -19,6 +20,9 @@ export const rangeById = id => REP_RANGES.find(r => r.id === id) || null
 export const stepFor = unit => (unit === 'lb' ? 5 : 2.5)
 
 const round = (n, step) => Math.round(n / step) * step
+/** The jump when a set went 10 or more reps past the top: 2.5 kg would barely be felt. */
+export const bigStepFor = unit => (unit === 'lb' ? 20 : 10)
+export const BIG_OVER = 10
 
 /**
  * What to do next set. `range` is { min, max }. Returns
@@ -31,7 +35,7 @@ export function nextSetAdvice({ reps, weight, range, unit = 'kg' }) {
   let action = 'stay'
   if (r < range.min) action = 'down'
   else if (r >= range.max) action = 'up'
-  const delta = action === 'up' ? step : action === 'down' ? -step : 0
+  const delta = action === 'up' ? (r >= range.max + BIG_OVER ? bigStepFor(unit) : step) : action === 'down' ? -step : 0
   return { action, delta, weight: Math.max(0, round(w + delta, step / 2)) }
 }
 

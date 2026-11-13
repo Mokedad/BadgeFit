@@ -52,3 +52,12 @@ describe('liveAdvice: the rule inside a workout', () => {
     expect(liveAdvice([{ w: 0, r: 12, done: true }], { min: 8, max: 12 })).toBeNull()
   })
 })
+
+import { nextSetAdvice as nsa } from './set-advice.js'
+describe('far too light', () => {
+  it('jumps at least 10 kg (20 lb) when the reps go 10 or more past the top', () => {
+    expect(nsa({ reps: 25, weight: 20, range: { min: 12, max: 15 } })).toEqual({ action: 'up', delta: 10, weight: 30 })
+    expect(nsa({ reps: 24, weight: 20, range: { min: 12, max: 15 } }).delta).toBe(2.5)
+    expect(nsa({ reps: 18, weight: 45, range: { min: 6, max: 8 }, unit: 'lb' }).delta).toBe(20)
+  })
+})

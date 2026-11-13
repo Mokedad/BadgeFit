@@ -841,3 +841,7 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .rp-why.gone{opacity:0;max-height:0;margin:-7px 0}
 .rp-hb.hb-toggle{width:38px;height:38px;background:rgba(255,255,255,.18);box-shadow:none}
 .rp-mini-m .runner-ic{color:currentColor;flex:none}
+
+/* BadgeFit workout: a finished exercise greys out, with Redo last set */
+.card.ex-done{opacity:.45;filter:grayscale(1)}
+.ex-redo{display:flex;align-items:center;gap:6px;margin:10px auto 0;border:0;border-radius:999px;padding:9px 16px;background:var(--surface-2,var(--surface));color:var(--label);font-weight:600;font-size:15px}

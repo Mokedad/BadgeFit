@@ -275,7 +275,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const ex = exOr(entry.id)
   // BadgeFit: the picture big (it says more than words), and a guest gets the plan as given.
   const bf = !!S.police?.level
-  const bfGuest = isBadgeFitGuest(S, null, useStore(s => s.user))
+  const bfUser = useStore(s => s.user)
+  const bfGuest = isBadgeFitGuest(S, null, bfUser)
+  // A member's workout has one menu, beside Finish; the owner (an admin) keeps every menu.
+  const bfPlain = bf && !bfUser?.admin
   const thumb = !dense && !bf && S.gifSize === 'mini' && hasWorkoutMedia(ex)
   const mode = modeOf({ ...(entry.target || {}), id: entry.id })
   const cardio = mode === 'cardio'
@@ -843,7 +846,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc-ink)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="note" /></button>}
-        {!bfGuest && <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>}
+        {!bfPlain && <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>}
       </div>
     </div>
     {/* Kept out of progression: by hand for this session (the ⋯ menu, with its undo right here),
@@ -894,7 +897,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}{guidance.prog?.rpe != null && <> · {t('aim for {0}', (r => `${r.k} ${fmtNum(r.v)}`)(rpeAs(guidance.prog.rpe, effortOf(S))))}</>}</span>
     </button>}
     </>}
-    <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
+    {/* BadgeFit: a finished exercise greys out; swiped back to, Redo last set unticks it. */}
+    {(() => { const lastDone = bf && !editing && entry.sets.length && entry.sets.every(s => s.done) ? entry.sets.length - 1 : -1
+      return lastDone >= 0 && <button type="button" className="ex-redo" onClick={() => onToggle(lastDone)}><Icon name="undo" />Redo last set</button> })()}
+    <div className={'card' + (bf && !editing && entry.sets.length && entry.sets.every(s => s.done) ? ' ex-done' : '')} style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns; over L/R rows it also has to skip the side badge that sits in front of the weight cell */}
       <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
@@ -1147,7 +1153,10 @@ function JarvisMic({ coach }) {
 }
 
 function ActiveWorkout() {
-  const bfGuest = isBadgeFitGuest(useStore(s => s.S), null, useStore(s => s.user))
+  const bfUser = useStore(s => s.user)
+  const bfGuest = isBadgeFitGuest(useStore(s => s.S), null, bfUser)
+  const bfOn = useStore(s => !!s.S.police?.level)
+  const bfPlain = bfOn && !bfUser?.admin
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -1183,7 +1192,8 @@ function ActiveWorkout() {
   // auto-advance share one path. Unknown/absent values read as cards, keeping every
   // pre-existing profile (and a session started before this field) as it was.
   const requestedView = A.workoutView || S.workoutView
-  const workoutView = ['list', 'compact', 'focus'].includes(requestedView) ? requestedView : 'cards'
+  // BadgeFit: always one exercise at a time, swiped (no list to scroll).
+  const workoutView = !bfOn && ['list', 'compact', 'focus'].includes(requestedView) ? requestedView : 'cards'
   const listMode = workoutView === 'list' || workoutView === 'compact'
   const focusMode = workoutView === 'focus'
   const dense = workoutView === 'compact'
@@ -1200,7 +1210,8 @@ function ActiveWorkout() {
   // way the layout itself does, so someone who always wants it switches it on once.
   const collapseOn = listMode && !!(A.collapseCompleted ?? S.collapseCompleted)
   // Cards and Focus: Prev, Next and the swipe jump over finished exercises (#523).
-  const skipDone = !listMode && S.skipCompleted === true
+  // BadgeFit swipes back onto a finished exercise (greyed, with Redo last set).
+  const skipDone = !listMode && !bfOn && S.skipCompleted === true
   // Cards and Focus: when the rest after a timed exercise's last set runs out, the next exercise
   // comes up on its own (#532, lib/supersetFlow.js advanceAfterTimedRest). Once per rest.
   useEffect(() => {
@@ -1825,7 +1836,20 @@ function ActiveWorkout() {
   // session away: that is the Finish sheet's (#751).
   // Layout here stays this session's own (s.active.workoutView); the settings sheet's Layout is
   // the saved one.
-  const openViewMenu = () => menuSheet({
+  // BadgeFit member: the one menu, beside Finish, on the exercise in view. Remove first.
+  const openPlainMenu = () => menuSheet({
+    title: A.entries[cur] ? exerciseNameFor(exOr(A.entries[cur].id)) : undefined,
+    titleClass: A.entries[cur] ? exerciseNameClass(exOr(A.entries[cur].id)) : '',
+    sections: [
+      { items: [A.entries[cur] && { icon: 'trash', danger: true, label: t('Remove exercise'), onClick: removeExerciseSheet }] },
+      { items: [
+        A.entries[cur] && { icon: 'swap', label: t('Swap exercise'), onClick: () => swapExercise(cur) },
+        A.entries[cur] && { icon: 'timer', label: t('Rest timer'), onClick: () => openExerciseRest(cur) },
+        { icon: 'sparkles', label: 'Hayden on screen', on: haydenOn(S), onClick: () => update(s => { s.police = { ...(s.police || {}), haydenOff: haydenOn(s) ? true : undefined } }) },
+      ] },
+    ],
+  })
+  const openViewMenu = () => bfPlain ? openPlainMenu() : menuSheet({
     sections: [
       { items: [
         { icon: 'gear', accent: true, chevron: true, label: t('Workout settings'),
@@ -2549,7 +2573,7 @@ function ActiveWorkout() {
         : <span className="whdr-gym"><Icon name="house" />{gymShown}</span>)}</div>
       {!chipRow && sessionMap}
       {S.police?.level && !editing && <JarvisMic coach={isOn(S, 'coach')} />}
-      <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
+      {!bfGuest && <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>}
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
         title={editing ? undefined : 'Tap to finish · hold for pause, change or cancel'}
         {...(editing ? {} : finishHold)}
@@ -2741,7 +2765,7 @@ function ActiveWorkout() {
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
-      return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={finishWorkout}>
+      return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={bfOn && !editing && !allDone ? () => finishWorkoutSheet({ onDiscard: discardWorkout }) : finishWorkout}>
         {editing ? t('Save changes') : allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
       </button>
     })()}

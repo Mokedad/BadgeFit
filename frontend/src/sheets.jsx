@@ -4152,6 +4152,12 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
   if (!A) return
   const done = setsDoneActive(A)
   const total = setUnitsTotal(A.entries)
+  // BadgeFit, finishing early: every exercise with a set done is ticked to be saved. Untick one
+  // and it is left out, as if it was never started: its stats and next weights stay as they were.
+  if (S().police?.level && done > 0 && done < total) {
+    ui().openSheet(close => <FinishPick close={close} onDiscard={onDiscard} />)
+    return
+  }
   menuSheet({
     title: !done ? t('Nothing logged yet') : done < total ? t('Finish early?') : t('Finish workout?'),
     subtitle: !done ? t('You haven’t checked off any sets. Finish the workout anyway?')
@@ -4161,6 +4167,33 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
       { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
     ],
   })
+}
+function FinishPick({ close, onDiscard }) {
+  const A = S().active
+  const started = (A?.entries || []).map((e, i) => ({ e, i })).filter(x => x.e.sets.some(s => s.done))
+  const [keep, setKeep] = useState(() => new Set(started.map(x => x.i)))
+  const flip = i => setKeep(k => { const n = new Set(k); n.has(i) ? n.delete(i) : n.add(i); return n })
+  const save = () => {
+    close()
+    if (!keep.size) { onDiscard?.(); return }
+    // Unticked: back to how it was, every set unticked, so nothing of it is saved.
+    update(s => { s.active?.entries.forEach((e, i) => { if (!keep.has(i)) e.sets.forEach(x => { x.done = false }) }) })
+    doFinishWorkout()
+  }
+  return <>
+    <h3 style={{ marginBottom: 2 }}>Save what you did</h3>
+    <div className="muted small" style={{ marginBottom: 10 }}>Untick an exercise to leave it out.</div>
+    <div className="list menu-list">
+      {started.map(({ e, i }) => <div key={i} className="item menu-item" {...tappable(() => flip(i))} role="checkbox" aria-checked={keep.has(i)}>
+        <div className="grow"><div className={'tt ' + exerciseNameClass(exOr(e.id))}>{exerciseNameText(exOr(e.id))}</div>
+          <div className="ss">{e.sets.filter(s => s.done).length} of {e.sets.length} sets</div></div>
+        <span className={'menu-on' + (keep.has(i) ? ' is-on' : '')}><Icon name="check" /></span>
+      </div>)}
+    </div>
+    <div style={{ height: 14 }} />
+    <button className="btn primary" onClick={save}>{t('Finish and save')}</button>
+    {onDiscard && <><div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { close(); onDiscard() }}>{t('Discard workout')}</Button></>}
+  </>
 }
 // Finish and save without a question: the Apple Watch's Finish (lib/watch-sync.js) runs exactly
 // what the phone's Finish and save runs.

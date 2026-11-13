@@ -9,10 +9,15 @@ export const HUB_TABS = ['today', 'plan', 'tests', 'more']
 export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 'plan' }, { path: '/police', tab: 'tests' }, { path: '/police', tab: 'more' }]
 
 const EDGE = 28, MIN = 70, MAX_MS = 700
+/** How far down the screen (px, under the status bar) a BadgeFit tab swipe may start. */
+export const TOP_BAND = 170
 
 /** -1 (to the tab on the left), +1 (right) or 0 for a touch that is not a tab swipe. */
-export function swipeStep({ dx, dy, ms, startX, width }) {
+export function swipeStep({ dx, dy, ms, startX, width, startY = 0, top = null }) {
   if (startX < EDGE || startX > width - EDGE) return 0
+  // BadgeFit: only a swipe across the top of the screen (the page's title) changes tab, so a
+  // sideways move in the middle or at the bottom never takes you somewhere else.
+  if (top != null && startY > top) return 0
   if (ms > MAX_MS || Math.abs(dx) < MIN || Math.abs(dx) < Math.abs(dy) * 2.2) return 0
   return dx < 0 ? 1 : -1
 }
@@ -66,9 +71,10 @@ export function installTabSwipe(where, go, calm = () => false) {
     const s = t0; t0 = null
     const t = e.changedTouches?.[0]
     if (!s || !t) return
-    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth })
+    const isCalm = calm()
+    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth, startY: s.y, top: isCalm ? TOP_BAND : null })
     const { pathname, search } = where()
-    const to = swipeTarget(pathname, search, step, calm())
+    const to = swipeTarget(pathname, search, step, isCalm)
     if (to) go(to)
   }
   const cancel = () => { t0 = null }
