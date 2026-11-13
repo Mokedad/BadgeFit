@@ -38,6 +38,7 @@ import { runMinutes } from '../lib/police/runs.js'
 import { sessionMinutes } from '../lib/police/session-length.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { tapJarvis } from '../store/useJarvis.js'
+import HaydenQuick from '../components/HaydenQuick.jsx'
 import { useRun } from '../store/useRun.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
@@ -204,7 +205,11 @@ export default function Home() {
     const guest = isBadgeFitGuest(S, config, user)
     const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
     const facts = [bfPlan?.week && !bfPlan.after ? `Week ${bfPlan.week} of ${bfPlan.last}` : null,
-      left != null && left >= 0 ? (left === 0 ? `${(P.testName || 'PCT').trim()} today` : `${left} ${left === 1 ? 'day' : 'days'} to your ${(P.testName || 'PCT').trim()}`) : null].filter(Boolean)
+      today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
+    // Hayden from Home: the common training questions, answered from the plan with no AI call
+    // (components/HaydenQuick.jsx). The AI coach is one step further, for a question of your own.
+    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close}
+      onTalk={coachHere ? () => tapJarvis() : null} onAsk={coachHere ? () => nav('/coach') : null} />)
     const mins = S.active || doneToday || !routine ? null
       : bfRun ? runMinutes(bfRun) : sessionMinutes(buildCombinedEntries(S, effectiveRoutineIds(S, todayISO())).entries)
     const line = S.active ? `${S.active.name} is under way.`
@@ -223,7 +228,7 @@ export default function Home() {
     ] }] })
     return <div className="narrow calm">
       <div className="calm-top">
-        <button className="calm-rb" onClick={menu} aria-label="Menu"><Icon name="list" /></button>
+        <span />
         {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
           : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
       </div>
@@ -231,6 +236,10 @@ export default function Home() {
       <div className="calm-mid">
         <BadgeLogo size={54} />
         <h1 className="calm-hi">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
+        {/* The countdown, for a booked test: the number that matters most, said big. */}
+        {left != null && left >= 0 && <div className="calm-count" aria-label={`${left} days to your ${(P.testName || 'PCT').trim()}`}>
+          <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
+        </div>}
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
         <p className="calm-line">{line}</p>
         {doneToday && !S.active
@@ -246,10 +255,15 @@ export default function Home() {
         <div className="calm-week">{weekNav}</div>
       </div>
 
-      {coachHere && !runOn && <div className="calm-ask">
-        <button className="calm-ask-t" onClick={() => nav('/coach')}>Ask Hayden anything</button>
-        <button className="calm-ask-m" onClick={() => tapJarvis()} aria-label="Talk to Hayden">🎙</button>
-      </div>}
+      {/* The bar: four places and Hayden in the middle. No box to type into: his quick answers
+          come from the plan, free; the AI coach is inside, for when it is needed. */}
+      {!runOn && <nav className="calm-nav" aria-label="BadgeFit">
+        <button className="on"><Icon name="house" /><span>Today</span></button>
+        <button onClick={() => nav('/police?tab=plan')}><Icon name="calendar" /><span>Plan</span></button>
+        <button className="calm-nav-h" onClick={hayden} aria-label="Hayden"><span className="pf-orb" aria-hidden="true" /><span>Hayden</span></button>
+        <button onClick={() => nav('/police?tab=tests')}><Icon name="target" /><span>{(P.testName || 'PCT').trim()}</span></button>
+        <button onClick={menu}><Icon name="list" /><span>More</span></button>
+      </nav>}
     </div>
   }
 
