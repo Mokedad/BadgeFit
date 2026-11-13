@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { todayNow } from '../lib/police/today-now.js'
+import { seenPatch } from '../lib/police/first-steps.js'
 import Icon from './Icon.jsx'
 import HaydenQuick from './HaydenQuick.jsx'
 
@@ -28,6 +29,9 @@ export default function CalmNav() {
   const go = to => () => nav(to, { replace: true })
   const hayden = () => {
     const now = todayNow(useStore.getState().S, todayISO())
+    // Meeting Hayden ticks it off Home's first steps (lib/police/first-steps.js).
+    const patch = seenPatch(useStore.getState().S.police, 'hayden')
+    if (patch) useStore.getState().update(s => { s.police = { ...(s.police || {}), ...patch } })
     useUI.getState().openSheet(close => <HaydenQuick close={close} today={now.today} done={now.done} />)
   }
   const tab = (k, icon, label, to) => <button className={key === k ? 'on' : ''} aria-current={key === k ? 'page' : undefined} onClick={go(to)}><Icon name={icon} /><span>{label}</span></button>

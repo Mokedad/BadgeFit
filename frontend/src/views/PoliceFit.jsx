@@ -5,6 +5,7 @@
 //
 // Copy here is English only: the programme is written for Australian police applicants. It is
 // kept out of t() on purpose so the locale checks do not ask nineteen packs to translate it.
+import { PAGE_INTRO, seenPatch, comfort } from '../lib/police/first-steps.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -49,10 +50,10 @@ const TABS = [
   { value: 'more', label: 'More', sym: '➕' },
 ]
 const MORE = [
-  { value: 'run', label: 'Runs', sym: '🏃', sub: 'Guided runs: base, intervals, VO2' },
-  { value: 'strength', label: 'Strength', sym: '🏋️', sub: 'The rep range rule, your next set, warm-up' },
-  { value: 'food', label: 'Food', sym: '🍽️', sub: 'Meals, protein, meal reminders' },
-  { value: 'care', label: 'Care', sym: '🩹', sub: 'Sore shins, knees, recovery' },
+  { value: 'run', label: 'Runs', sym: '🏃', sub: 'Hayden tells you when to run and when to walk' },
+  { value: 'strength', label: 'Strength', sym: '🏋️', sub: 'How heavy to lift, and a warm-up' },
+  { value: 'food', label: 'Food', sym: '🍽️', sub: 'What to eat to train well' },
+  { value: 'care', label: 'Care', sym: '🩹', sub: 'Something sore? Start here' },
 ]
 const ALL_TABS = [...TABS, ...MORE]
 // The calm header's title for each page (the one bar is components/CalmNav.jsx).
@@ -550,7 +551,37 @@ function Plan({ S, P }) {
   const [week, setWeek] = useState(Math.min(current, pw.last))
   const plan = weekPlan(level, week, P.age, planOptsOf(P))
   const z2 = zone2(P.age)
+  // The simple plan first (lib/police/first-steps.js): someone new sees this week only, in plain
+  // words, until five sessions are done. Then the weeks ahead and the other plans open.
+  const ease = comfort(S)
+  if (P.start && !ease.ready) {
+    const now = weekPlan(level, Math.min(current, pw.last), P.age, planOptsOf(P))
+    return <>
+      <div className="card">
+        <h3>This week</h3>
+        <p className="pf-sub">Go light and finish each session. Learning the moves is the whole job right now.</p>
+      </div>
+      {/* Plain names for someone new: "VO2 max" means nothing yet, "Interval run" does. */}
+      {now.days.map(d => <DayCard key={d.day} d={{ ...d, title: String(d.title).replace(/^VO2 max:\s*/i, 'Interval run: ') }} today={d.day === new Date().getDay()} />)}
+      <div className="card pf-ease">
+        <div className="row between"><b>{ease.sessions} of {ease.need} sessions done</b><span className="pf-sub">then more opens up</span></div>
+        <div className="pf-bar"><span style={{ width: (ease.sessions / ease.need) * 100 + '%' }} /></div>
+        <p className="pf-sub">Finish five and Hayden shows you the weeks ahead and the other plans: more running, or one built around you.</p>
+        <button className="pf-link" onClick={() => setP(p => seenPatch(p, 'full') || {})}>Show me everything now</button>
+      </div>
+    </>
+  }
+  const openPlans = () => { try { localStorage.setItem('badgefit_fold_plansettings', '1') } catch { /* private mode */ } setP(p => seenPatch(p, 'moreplans') || {}) }
   return <>
+    {/* The habit is there: the other plans are offered once, then live under Change my plan. */}
+    {P.start && level === 'beginner' && !P.seen?.moreplans && (S.workouts || []).length >= ease.need && <div className="card pf-ease">
+      <b>Five sessions done. You have the habit.</b>
+      <p className="pf-sub">There are other plans when you want one: more running, or a plan Hayden builds around you. Your simple plan carries on if you leave it.</p>
+      <div className="row" style={{ gap: 8 }}>
+        <Button size="sm" variant="primary" onClick={openPlans}>See the plans</Button>
+        <Button size="sm" variant="ghost" onClick={() => setP(p => seenPatch(p, 'moreplans') || {})}>Not now</Button>
+      </div>
+    </div>}
     <div className="pf-weekgrid" role="tablist" aria-label="Weeks of the plan">
       {phaseRows(level, pw.last).map(row => <div key={row.from} className="pf-phase-row">
         <div className="pf-phase-l"><b>Phase {row.phase}</b><span>{PHASE_WORDS[row.phase].split(':')[0]} · {row.from === row.to ? `week ${row.from}` : `weeks ${row.from}-${row.to}`}</span></div>
@@ -565,7 +596,7 @@ function Plan({ S, P }) {
     </div>
     {plan.days.map(d => <DayCard key={d.day} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
-    <Fold id="plansettings" title="Change my plan">
+    <Fold key={'ps' + (P.seen?.moreplans ? 1 : 0)} id="plansettings" title="Change my plan">
       <PlanChoice S={S} P={P} />
       <Segmented options={LEVELS.map(l => ({ value: l.id, label: l.name }))} value={level} onChange={l => guest && l !== 'beginner' ? membersOnly() : setP({ level: l })} />
       <div className="card">
@@ -890,6 +921,8 @@ export default function PoliceFit() {
   const setP = usePolice()
   // With a plan set up the hub wears the calm look: one title, the one bar, no tabs of its own.
   const calm = !!P.start
+  // Opening Plan or the test for the first time ticks it off Home's first steps.
+  useEffect(() => { const patch = seenPatch(P, tab); if (patch) setP(patch) }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
   const under = tab === 'today' || MORE.some(m => m.value === tab)
   // A run asked for in the link (Start, Home): the guided run opens (components/RunHost.jsx).
   const runParam = params.get('run')
@@ -937,6 +970,8 @@ export default function PoliceFit() {
       </div>
       <PfTabs value={tab} onChange={setTab} />
     </>}
+    {/* One plain line on what this page is, for someone new to all of it. */}
+    {calm && PAGE_INTRO[tab] && <p className="calm-intro">{PAGE_INTRO[tab]}</p>}
     {tab === 'today' && <Today S={S} user={user} P={P} setTab={setTab} startRun={setRunning} openTest={() => setOverlay('test')} />}
     {tab === 'run' && <RunTab S={S} P={P} startRun={setRunning} />}
     {tab === 'tests' && <Tests S={S} P={P} openBeep={() => setOverlay('beep')} openTest={() => setOverlay('test')} />}

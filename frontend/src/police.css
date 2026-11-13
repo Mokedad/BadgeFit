@@ -689,3 +689,17 @@ body:has(.calm-nav) #app{padding-bottom:calc(118px + var(--sab))}
 .pf-fold-b>.pf-count{background:none!important;border:0!important;box-shadow:none!important;padding:0;margin:0}
 .pf-ds{font-size:20px}
 .pf-ready b{white-space:nowrap}
+.calm-intro{color:var(--label-2);font-size:16px;line-height:1.4;margin:-6px 4px 14px}
+.calm-first{width:100%;max-width:420px;margin-top:22px;text-align:start;background:var(--surface);border-radius:18px;padding:12px 14px}
+.calm-first-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.calm-first-h span{color:var(--label-2);font-size:13px}
+.calm-first button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;color:inherit;text-align:start;padding:9px 0}
+.calm-first button>span:last-child{display:flex;flex-direction:column;gap:1px}
+.calm-first button b{font-weight:600;font-size:15px}
+.calm-first button small{color:var(--label-2);font-size:13px}
+.calm-first button.done b{color:var(--label-2);font-weight:500;text-decoration:line-through}
+.calm-first-o{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--surface-3,rgba(128,128,128,.4));display:grid;place-items:center;font-size:13px;color:#fff}
+.calm-first .done .calm-first-o{background:var(--green);border-color:var(--green)}
+.calm-first .next .calm-first-o{border-color:var(--acc)}
+.pf-ease .pf-bar{margin:10px 0}
+.pf-ease .row{margin-top:6px}

@@ -35,6 +35,7 @@ import { isOn } from '../lib/modules.js'
 import { BRAND } from '../lib/police/brand.js'
 import { planWeekOf, daysUntil } from '../lib/police/programme.js'
 import { todayNow } from '../lib/police/today-now.js'
+import { firstStepsView } from '../lib/police/first-steps.js'
 import { shareSession } from '../lib/police/share-card.js'
 import { durationMinOf } from '../lib/workout-date.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
@@ -204,6 +205,7 @@ export default function Home() {
       today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
     // What today really is (lib/police/today-now.js): the same source Hayden reads from.
     const now = todayNow(S, todayISO())
+    const first = firstStepsView(S)
     const nowName = now.name
     const mins = S.active || doneToday || !routine ? null : now.minutes
     const line = S.active ? `${S.active.name} is under way.`
@@ -248,6 +250,16 @@ export default function Home() {
           </button>)}
         </div>}
         <div className="calm-week">{weekNav}</div>
+        {/* New here: four small things to try, each a tap into another part of the app. Gone for
+            good once all four are ticked (lib/police/first-steps.js). */}
+        {first && <div className="calm-first">
+          <div className="calm-first-h"><b>Getting started</b><span>{first.done} of {first.total}</span></div>
+          {first.steps.map(st => <button key={st.id} className={st.done ? 'done' : st === first.next ? 'next' : ''} disabled={st.done}
+            onClick={() => (st.to === 'hayden' ? document.querySelector('.calm-nav-h')?.click() : st.to ? nav(st.to) : onToday())}>
+            <span className="calm-first-o" aria-hidden="true">{st.done ? <Icon name="check" /> : null}</span>
+            <span><b>{st.label}</b>{!st.done && <small>{st.hint}</small>}</span>
+          </button>)}
+        </div>}
       </div>
     </div>
   }
