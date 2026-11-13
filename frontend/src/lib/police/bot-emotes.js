@@ -18,3 +18,18 @@ export function nextEmote(last = -1, rand = Math.random) {
 }
 
 export const haydenOn = S => !S?.police?.haydenOff
+
+/** Which exercise Hayden copies when tapped mid-workout: run, bench, squat, curl, pull or press
+ *  (components/HaydenBot.jsx acts), from the exercise's English name; null for anything else. */
+export function exerciseAct(ex) {
+  const n = String(ex?.n || ex?.name || '').toLowerCase()
+  if (!n) return null
+  if (/\b(run|jog|sprint|shuttle|beep|treadmill|walk)/.test(n) || ex?.cat === 'cardio') return 'run'
+  if (/bench|chest press|push.?up|\bfly|\bflye|\bdip/.test(n)) return 'bench'
+  if (/squat|lunge|leg press|deadlift|step.?up|hip thrust/.test(n)) return 'squat'
+  if (/curl/.test(n)) return 'curl'
+  if (/pulldown|pull.?down|pull.?up|chin.?up|\brow\b|\brows\b|rowing|\bpull/.test(n)) return 'pull'
+  if (/press|raise|extension|pushdown|push.?down/.test(n)) return 'press'
+  return null
+}
+export const ACT_MS = 2600

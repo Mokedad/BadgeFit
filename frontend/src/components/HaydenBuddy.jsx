@@ -1,11 +1,13 @@
-// BadgeFit: Hayden floats in the corner of Home, the hub's pages and a workout, blinking and
+// BadgeFit: Hayden floats in the corner of Home, the hub's pages, a run and a workout, blinking and
 // bobbing. Tap him and he does a move (lib/police/bot-emotes.js). The 🤖/🚷 switch
 // (HaydenToggle: his head, crossed out when off) turns him off or on for this member.
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { EMOTES, IDLE, EMOTE_MS, nextEmote, haydenOn } from '../lib/police/bot-emotes.js'
+import { EMOTES, IDLE, EMOTE_MS, ACT_MS, nextEmote, haydenOn, exerciseAct } from '../lib/police/bot-emotes.js'
+import { EXIDX } from '../lib/exercises.js'
+import { useRun } from '../store/useRun.js'
 import HaydenBot, { HaydenMark } from './HaydenBot.jsx'
 
 export function HaydenToggle({ className = '' }) {
@@ -27,15 +29,22 @@ export default function HaydenBuddy() {
   const [look, setLook] = useState(IDLE)
   const last = useRef(-1), timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
-  const place = loc.pathname === '/home' || loc.pathname === '/workout'
-    || (loc.pathname === '/police' && !new URLSearchParams(loc.search).get('run'))
+  // The guided run (RunHost) covers the screen: he floats over it, and runs when tapped.
+  const running = useRun(s => !!s.run && !s.minimized)
+  const place = running || loc.pathname === '/home' || loc.pathname === '/workout' || loc.pathname === '/police'
   if (!on || !place || covered) return null
+  // In a workout he does the exercise you are on (bench press, squat, curls...), on a run he runs;
+  // anywhere else, or on an exercise he has no move for, one of his moves.
   const tap = () => {
+    const A = useStore.getState().S.active
+    const act = running ? 'run' : loc.pathname === '/workout' && A ? exerciseAct(EXIDX[A.entries?.[A.cur]?.id]) : null
+    clearTimeout(timer.current)
+    if (act) { setLook({ act }); timer.current = setTimeout(() => setLook(IDLE), ACT_MS); return }
     const i = nextEmote(last.current); last.current = i
-    setLook(EMOTES[i]); clearTimeout(timer.current)
+    setLook(EMOTES[i])
     timer.current = setTimeout(() => setLook(IDLE), EMOTE_MS)
   }
-  return <button type="button" className={'hb-buddy' + (loc.pathname === '/workout' ? ' in-workout' : '')} onClick={tap} aria-label="Hayden">
+  return <button type="button" className={'hb-buddy' + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')} onClick={tap} aria-label="Hayden">
     <HaydenBot size={62} {...look} />
   </button>
 }

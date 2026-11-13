@@ -806,3 +806,27 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .hb-toggle-x{position:absolute;left:50%;top:50%;width:30px;height:2.5px;border-radius:2px;background:var(--label);transform:translate(-50%,-50%) rotate(-45deg)}
 .hb-toggle.iconbtn{box-shadow:none;background:none;width:40px;height:40px}
 .calm-right{display:flex;align-items:center;gap:8px}
+
+/* BadgeFit workout: the picture as big as the screen allows, the sets still in view */
+.exmedia.big img,.exmedia.big video{height:clamp(190px,calc(100dvh - 540px),380px);width:100%;object-fit:contain}
+
+/* Hayden doing the exercise (HaydenBot act) */
+.hb-act g{transform-box:view-box}
+.hb-runbob{animation:hb-runbob .36s ease-in-out infinite alternate}
+.hb-swing-a{animation:hb-swing .36s ease-in-out infinite alternate}
+.hb-swing-b{animation:hb-swing .36s ease-in-out infinite alternate-reverse}
+.hb-benchpress{animation:hb-benchpress 1.1s ease-in-out infinite alternate}
+.hb-curl-a{animation:hb-curl 1s ease-in-out infinite alternate}
+.hb-curl-b{animation:hb-curl 1s ease-in-out infinite alternate-reverse}
+.hb-squat-move{animation:hb-squat 1.2s ease-in-out infinite alternate}
+.hb-press-move{animation:hb-press 1s ease-in-out infinite alternate}
+.hb-pull-move{animation:hb-pull 1s ease-in-out infinite alternate}
+@keyframes hb-runbob{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+@keyframes hb-swing{from{transform:rotate(-40deg)}to{transform:rotate(40deg)}}
+@keyframes hb-benchpress{from{transform:translateY(0)}to{transform:translateY(22px)}}
+@keyframes hb-curl{from{transform:scaleY(1)}to{transform:scaleY(.5)}}
+@keyframes hb-squat{from{transform:translateY(0)}to{transform:translateY(16px)}}
+@keyframes hb-press{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+@keyframes hb-pull{from{transform:translateY(0)}to{transform:translateY(-14px)}}
+@media (prefers-reduced-motion:reduce){.hb-act *{animation:none!important}}
+.hb-buddy.on-run{z-index:210;bottom:calc(var(--sab) + 20px)}

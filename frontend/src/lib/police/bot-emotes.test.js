@@ -14,3 +14,19 @@ describe('Hayden moves', () => {
     expect(haydenOn({ police: { haydenOff: true } })).toBe(false)
   })
 })
+
+import { exerciseAct } from './bot-emotes.js'
+describe('Hayden copies the exercise', () => {
+  it('knows the common lifts and runs', () => {
+    expect(exerciseAct({ n: 'barbell bench press' })).toBe('bench')
+    expect(exerciseAct({ n: 'push-up' })).toBe('bench')
+    expect(exerciseAct({ n: 'barbell full squat' })).toBe('squat')
+    expect(exerciseAct({ n: 'dumbbell biceps curl' })).toBe('curl')
+    expect(exerciseAct({ n: 'cable wide grip lat pulldown' })).toBe('pull')
+    expect(exerciseAct({ n: 'cable rope seated row' })).toBe('pull')
+    expect(exerciseAct({ n: 'dumbbell seated shoulder press' })).toBe('press')
+    expect(exerciseAct({ n: 'run' })).toBe('run')
+    expect(exerciseAct({ n: 'plank' })).toBe(null)
+    expect(exerciseAct(null)).toBe(null)
+  })
+})

@@ -11,7 +11,8 @@ import { lineColour, earnedGear } from '../lib/police/bot-look.js'
 
 const SHELL = '#eef0ec', SHADE = '#d3d8d4', EDGE = '#8f99aa', VISOR = '#0b1a36', VISOR2 = '#16294f', NAVY = '#16305c', GOLD = '#f2b81a'
 
-export function botSvg({ eyes = 'open', pose = 'idle', gear = [], tilt = 0, line = GOLD, talking = false, head: headOnly = false } = {}) {
+export function botSvg({ eyes = 'open', pose = 'idle', gear = [], tilt = 0, line = GOLD, talking = false, head: headOnly = false, act = null } = {}) {
+  if (act && ACTS[act]) { eyes = ACTS[act].eyes; tilt = ACTS[act].tilt || 0 }
   const g = new Set(gear)
   const eye = x => ({
     open: `<rect x="${x - 7}" y="74" width="14" height="24" rx="7" fill="${line}"/>`,
@@ -59,8 +60,46 @@ export function botSvg({ eyes = 'open', pose = 'idle', gear = [], tilt = 0, line
       ${g.has('headband') && !g.has('cap') ? `<rect x="42" y="47" width="116" height="9" rx="4" fill="${GOLD}"/>` : ''}
       ${g.has('bolt') ? `<path d="M168 34 l-10 16 h8 l-4 14 12-18 h-8 l6-12z" fill="${GOLD}"/>` : ''}
     </g>`
+  if (act && ACTS[act]) return actSvg(act, { head, line })
   const front = headOnly ? '' : (low(P[0]) ? '' : arm('l', P[0])) + (low(P[1]) ? '' : arm('r', P[1]))
   return `<svg viewBox="${headOnly ? '24 18 156 126' : '0 0 200 250'}" xmlns="http://www.w3.org/2000/svg"><g class="${headOnly ? '' : 'hb-float'}">${body}${head}${front}</g></svg>`
+}
+
+// Hayden doing the exercise (lib/police/bot-emotes.js exerciseAct): run, bench, squat, curl,
+// pull (pulldown, row) and press, each a short loop. Drawn front on, except the bench (side on).
+const ACTS = { run: { eyes: 'determined', tilt: 6 }, bench: { eyes: 'determined' }, squat: { eyes: 'determined' },
+  curl: { eyes: 'determined' }, pull: { eyes: 'determined' }, press: { eyes: 'determined' } }
+const TORSO = `<path d="M64 150 Q64 132 100 132 Q136 132 136 150 L132 194 Q126 220 100 222 Q74 220 68 194 Z" fill="${SHELL}" stroke="${EDGE}" stroke-width="1.5"/>
+  <path d="M71 198 Q100 212 129 198 Q125 218 100 220 Q75 218 71 198 Z" fill="${SHADE}"/>`
+const limb = (sx, rot, len = 46, cls = '', hand = '') => `<g class="${cls}" style="transform-origin:${sx}px 146px"><g transform="rotate(${rot} ${sx} 146)">`
+  + `<rect x="${sx - 11}" y="144" width="22" height="${len}" rx="11" fill="${SHELL}" stroke="${EDGE}" stroke-width="1.5"/>`
+  + `<rect x="${sx - 11}" y="${144 + len - 16}" width="22" height="16" rx="8" fill="${SHADE}"/>${hand.replace(/HY/g, 144 + len - 4)}</g></g>`
+const BELL = `<rect x="-20" y="-5" width="40" height="10" rx="3" fill="${NAVY}"/><rect x="-24" y="-11" width="8" height="22" rx="2" fill="${NAVY}"/><rect x="16" y="-11" width="8" height="22" rx="2" fill="${NAVY}"/>`
+const dumbbell = sx => `<g transform="translate(${sx} HY) rotate(90)">${BELL}</g>`
+const barAt = (y, cable) => (cable ? `<line x1="100" y1="0" x2="100" y2="${y}" stroke="${EDGE}" stroke-width="2"/>` : '')
+  + `<rect x="12" y="${y - 3}" width="176" height="6" rx="3" fill="${NAVY}"/><rect x="14" y="${y - 18}" width="12" height="36" rx="3" fill="${NAVY}"/><rect x="174" y="${y - 18}" width="12" height="36" rx="3" fill="${NAVY}"/>`
+function actSvg(act, { head, line }) {
+  const ring = `<circle cx="100" cy="166" r="11" fill="none" stroke="${line}" stroke-width="3"/>`
+  const shadow = w => `<ellipse cx="100" cy="240" rx="${w}" ry="6" fill="${EDGE}" opacity=".35"/>`
+  const svg = (inner, cls) => `<svg viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg"><g class="hb-act hb-${cls}">${inner}</g></svg>`
+  if (act === 'run') return svg(`${shadow(30)}
+    <path d="M14 158h30M6 176h34M16 194h26" stroke="${EDGE}" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+    <g class="hb-runbob" style="transform-origin:100px 150px">
+      ${limb(60, 30, 46, 'hb-swing-a')}${TORSO}${ring}${head}${limb(140, -30, 46, 'hb-swing-b')}</g>`, 'run')
+  if (act === 'bench') return svg(`
+    <rect x="70" y="190" width="124" height="10" rx="4" fill="${NAVY}"/><rect x="84" y="198" width="8" height="40" fill="${NAVY}"/><rect x="176" y="198" width="8" height="40" fill="${NAVY}"/>
+    <ellipse cx="132" cy="240" rx="56" ry="5" fill="${EDGE}" opacity=".35"/>
+    <g transform="translate(0 4) rotate(-90 100 150)">${TORSO}${ring}${head}</g>
+    <g class="hb-benchpress" style="transform-origin:116px 110px">
+      <rect x="106" y="66" width="20" height="50" rx="10" fill="${SHELL}" stroke="${EDGE}" stroke-width="1.5"/>
+      <rect x="106" y="66" width="20" height="16" rx="8" fill="${SHADE}"/>
+      <circle cx="116" cy="60" r="20" fill="${NAVY}"/><circle cx="116" cy="60" r="5" fill="${EDGE}"/></g>`, 'bench')
+  if (act === 'curl') return svg(`${shadow(34)}${TORSO}${ring}${head}
+    ${limb(60, 8, 46, 'hb-curl-a', dumbbell(60))}${limb(140, -8, 46, 'hb-curl-b', dumbbell(140))}`, 'curl')
+  const y = act === 'squat' ? 128 : 78
+  const len = act === 'squat' ? 26 : 68
+  const rot = act === 'squat' ? 150 : 168
+  return svg(`${shadow(34)}<g class="hb-${act}-move">${barAt(y, act === 'pull')}${limb(60, rot, len)}${limb(140, -rot, len)}${TORSO}${ring}${head}</g>`, act)
 }
 
 /** This member's look: their line colour and earned gear (a guest: grey, none). */
