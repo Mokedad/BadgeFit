@@ -9,6 +9,7 @@ import { pocketKeep } from '../lib/police/pocket.js'
 import { effectiveRoutineIds } from '../lib/history.js'
 import { runCredits, runWorkout } from '../lib/police/run-workout.js'
 import { stampWorkout } from '../lib/sync-merge.js'
+import { daysUntil } from '../lib/police/programme.js'
 
 const RunPlayer = lazy(() => import('./RunPlayer.jsx'))
 
@@ -56,6 +57,7 @@ export default function RunHost() {
   return <Suspense fallback={null}><div className="pf">
     <RunPlayer key={run.id} run={run} age={P.age} runLog={P.runLog || []} gps={!!P.gpsRuns} onGps={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), gpsRuns: on } })}
       musicMode={!!P.musicMode} onMusic={on => useStore.getState().update(s => { s.police = { ...(s.police || {}), musicMode: on } })}
+      daysLeft={P.testDate ? daysUntil(P.testDate, todayISO()) : null}
       minimized={minimized} onMinimize={() => useRun.getState().minimize()} onRestore={() => useRun.getState().restore()}
       onClose={() => useRun.getState().close()} onLog={log} onUpdate={update} onUnlog={unlog} />
   </div></Suspense>

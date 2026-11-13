@@ -38,6 +38,8 @@ import { runMinutes } from '../lib/police/runs.js'
 import { sessionMinutes } from '../lib/police/session-length.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import HaydenQuick from '../components/HaydenQuick.jsx'
+import { shareSession } from '../lib/police/share-card.js'
+import { durationMinOf } from '../lib/workout-date.js'
 import { useRun } from '../store/useRun.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import EventCountdown from '../components/EventCountdown.jsx'
@@ -221,6 +223,15 @@ export default function Home() {
       : doneToday ? 'Today is done. Good work.'
       : routine ? `Today: ${nowName}${mins ? `, about ${mins} min` : ''}.`
       : next ? `Rest day. Next up: ${t(DAYN[next.weekday])}, ${next.routine.name}.` : 'Rest day. Recover well.'
+    const shareToday = () => {
+      const all = loggedToday
+      const runKm = (P.runLog || []).filter(r => r.at === todayISO()).reduce((a, r) => a + (Number(r.km) || 0), 0)
+      shareSession({
+        title: [...new Set(all.map(w => w.name).filter(Boolean))].join(' + ') || 'Training',
+        minutes: all.reduce((a, w) => a + durationMinOf(w), 0), km: runKm || null,
+        daysToTest: left, testName: P.testName, week: bfPlan?.week && !bfPlan.after ? bfPlan.week : null, weeks: bfPlan?.last || null,
+      }, useUI.getState().toast)
+    }
     const menu = () => menuSheet({ title: 'BadgeFit', sections: [{ items: [
       { icon: 'calendar', label: 'My plan', sub: 'This week and the weeks ahead', onClick: () => nav('/police?tab=plan') },
       { icon: 'target', label: (P.testName || 'PCT').trim() + ' tests', sub: 'Standards, beep test, test day', onClick: () => nav('/police?tab=tests') },
@@ -251,6 +262,9 @@ export default function Home() {
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onToday}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
+        {/* A picture of today's session for a story or a message, through the phone's own share
+            sheet: no account linked, no map (lib/police/share-card.js). */}
+        {doneToday && !S.active && <button className="calm-share" onClick={shareToday}><Icon name="share" /> Share today</button>}
         {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
         {extraDone.length > 0 && <div className="done-today">
           {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>

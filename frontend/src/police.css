@@ -630,6 +630,7 @@
 .calm-go{border:0;border-radius:999px;padding:15px 44px;background:var(--acc);color:var(--on-acc,#111);font-size:18px;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,.14)}
 .calm-go:active{transform:scale(.97)}
 .calm-done{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:13px 26px;font-weight:600;color:var(--green);background:rgba(52,199,89,.14)}
+.calm-share{display:inline-flex;align-items:center;gap:8px;margin-top:12px;border:0;border-radius:999px;padding:12px 22px;background:var(--acc);color:var(--on-acc,#111);font-weight:700;font-size:16px}
 .calm-link{border:0;background:none;color:var(--label-2);font-size:14px;padding:8px;text-decoration:underline;text-underline-offset:3px}
 .calm-week{width:100%;max-width:420px;margin-top:22px}
 .calm .done-today{width:100%;max-width:420px}
@@ -660,3 +661,4 @@
 .hq-a{font-size:19px;line-height:1.45;margin:8px 0 6px;text-align:start}
 .hq-open{font-size:17px}
 .hq-note{color:var(--label-2);font-size:13px;margin-top:14px}
+.rp-share{border:1.5px solid rgba(255,255,255,.5);border-radius:999px;background:none;color:#fff;font-weight:700;font-size:17px;padding:13px 30px;min-width:220px;margin-bottom:10px}

@@ -4,6 +4,7 @@
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
 import { useEffect, useRef, useState } from 'react'
 import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
+import { shareSession } from '../lib/police/share-card.js'
 import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
 import { NumberField } from './ui.jsx'
 import { emptyTrack, addFix, paceOf, fmtPace, kmOf, livePace, thinRoute, routePath } from '../lib/police/gps.js'
@@ -38,7 +39,7 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, gps = false, onGps, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, gps = false, onGps, minimized = false, onMinimize, onRestore }) {
   // Read through a ref: the timers' callbacks see a switch made mid-run.
   const musicRef = useRef(musicMode)
   musicRef.current = musicMode
@@ -300,6 +301,7 @@ export default function RunPlayer({ run, age, onClose, onLog, onUpdate, onUnlog,
         {gpsTrack.current.splits.length > 0 && <ol className="rp-splits">{gpsTrack.current.splits.map(sp => <li key={sp.km}><span>km {sp.km}</span><b>{fmtPace(sp.sec)}</b></li>)}</ol>}
       </div>}
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
+      <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
       <button className="rp-main" onClick={onClose}>Done 🥳</button>
     </div>
   </div>
