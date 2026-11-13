@@ -4,9 +4,10 @@ For after the PCT. Sketches: https://claude.ai/artifact/GdnAEE3C1cm1UoXBu9j22b (
 
 ## The owner's decisions
 
-- Hayden becomes an animated coach bot in place of the sparkles: a coach in a headset, not a cute
-  pet, and an original character (nothing like Astro or any game character, no real police
-  insignia).
+- Hayden becomes an animated coach bot in place of the sparkles: white and cute (the owner's
+  references: a glossy white bot with a dark visor and headphones), an original character, not a
+  copy of Astro or any game character, and no real police insignia.
+- No mouth: his eyes and his body language carry every mood (owner, 13 November 2026).
 - Everyone starts with the same Hayden. He earns gear as the member trains and passes things:
   for example the academy cap once the PCT is passed. Like outfits in Pokémon GO or Fortnite.
 - Only the owner designs the gear. Cosmetic gear can later be sold in the app (bought once);
@@ -18,11 +19,14 @@ For after the PCT. Sketches: https://claude.ai/artifact/GdnAEE3C1cm1UoXBu9j22b (
 
 ## The bot
 
-Navy body, gold trim, a dark visor with two gold eye lights and a mouth line, a headset with a mic
-boom, a chest plate where badges go. Built from simple parts so gear snaps on (head, arm, chest).
+Glossy white shell, a navy visor with two big gold eyes, navy headphones with a small antenna,
+a floating body (no legs) with short rounded arms, and a gold ring on the chest where the earned
+badge goes. Built from simple parts so gear snaps on (head, arm, chest).
 
-States, nothing more: hello (wave on open), idle (blink), listening (eyes wide, lean in), talking
-(mouth lights move with his voice), session done (fist up, eyes smile). Calmer with Reduce Motion;
+States, carried by the eyes and the pose: hello (wave, head tilt, happy eyes), listening (hand
+to ear, lean, wide eyes), thinking (hand to chin, eyes glance up), go time (fist up, set eyes),
+you did it (both arms up, bounce), rest day (eyes closed, floating low), idle (blink, float).
+While he talks, his eyes pulse with his voice. Calmer with Reduce Motion;
 a setting keeps the plain mark for anyone who prefers it.
 
 ## First gear ladder (sketch)
