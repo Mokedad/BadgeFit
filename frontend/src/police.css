@@ -777,3 +777,4 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 .pf-fold-sm{padding-top:8px;padding-bottom:8px;background:none!important;border:0!important;box-shadow:none!important}
 .pf-fold-sm summary{justify-content:center;gap:6px;font-size:15px;font-weight:600;color:var(--label-2)}
 .pf-fold-sm[open]{background:var(--surface)!important}
+.hq-chips .hq-start{background:var(--acc);color:var(--on-acc,#111);font-weight:700}

@@ -8,6 +8,8 @@ import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { todayNow } from '../lib/police/today-now.js'
 import { seenPatch } from '../lib/police/first-steps.js'
+import { effectiveRoutineIds } from '../lib/history.js'
+import { startFlow } from '../sheets.jsx'
 import Icon from './Icon.jsx'
 import HaydenQuick from './HaydenQuick.jsx'
 
@@ -32,7 +34,15 @@ export default function CalmNav() {
     // Meeting Hayden ticks it off Home's first steps (lib/police/first-steps.js).
     const patch = seenPatch(useStore.getState().S.police, 'hayden')
     if (patch) useStore.getState().update(s => { s.police = { ...(s.police || {}), ...patch } })
-    useUI.getState().openSheet(close => <HaydenQuick close={close} today={now.today} done={now.done} />)
+    useUI.getState().openSheet(close => <HaydenQuick close={close} today={now.today} done={now.done} onCommand={cmd => {
+      if (cmd === 'plan') return nav('/police?tab=plan', { replace: true })
+      if (cmd === 'tests') return nav('/police?tab=tests', { replace: true })
+      // Start: straight in, today's session fitted to the time (no list to tap through).
+      const st = useStore.getState().S
+      if (st.active) return nav('/workout')
+      const ids = effectiveRoutineIds(st, todayISO())
+      if (ids.length) startFlow(ids, { auto: true }); else nav('/workout')
+    }} />)
   }
   const tab = (k, icon, label, to) => <button className={key === k ? 'on' : ''} aria-current={key === k ? 'page' : undefined} onClick={go(to)}><Icon name={icon} /><span>{label}</span></button>
   return <nav className="calm-nav" aria-label="BadgeFit">

@@ -68,6 +68,12 @@ export default function CoachChat() {
   // A BadgeFit guest (no account) asks questions only: no intake, no plans, nothing kept on the
   // server. Plans and reviews come with an account.
   const guest = !user && !DEMO && coachMode !== 'byok'
+  // BadgeFit keeps no conversations: the chat is cleared when it is left, so nothing anyone wrote
+  // stays on the phone or the server. Plans the Coach built stay (they are training, not talk).
+  useEffect(() => () => {
+    const st = useStore.getState()
+    if (st.S?.police?.level && (st.S.coach?.chat || []).length) st.update(s => { if (s.coach) s.coach.chat = [] })
+  }, [])
   const ready = ok && (guest || (hasConsent(S) && !!S.coach?.profile))
   // Not before the store has loaded: a cold start straight on #/coach would otherwise read an
   // empty state, decide there is no consent, and bounce a consenting user into the intake. Nor

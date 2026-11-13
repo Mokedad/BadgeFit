@@ -12,6 +12,7 @@ import { openingLine } from '../lib/police/hayden-opening.js'
 import { listenOnce } from '../lib/police/listen.js'
 import { say, stopSpeaking, primeSpeech } from '../lib/police/voice.js'
 import { MOBILE } from '../lib/mobile.js'
+import { haydenCommand } from '../lib/police/hayden-commands.js'
 
 const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 
@@ -33,7 +34,7 @@ export function quickAnswer(question, brief) {
   return /^I cannot get to my full brain/.test(a) ? HELP : a
 }
 
-export default function HaydenQuick({ close, today = null, done = null }) {
+export default function HaydenQuick({ close, today = null, done = null, onCommand = null }) {
   // `today`: what today is as it stands now (Home works it out: a swap or an added workout
   // included), so Hayden never names the plan's day when the member changed it.
   const brief = () => { const b = policeBrief(useStore.getState().S, todayISO()); return today ? { ...b, today, todayRun: null } : b }
@@ -69,10 +70,20 @@ export default function HaydenQuick({ close, today = null, done = null }) {
     const mine = ++turn.current
     rec.current?.cancel(); rec.current = null
     stopSpeaking(); setPhase('speaking')
-    await say(text).catch(() => {})
+    const heardOk = await say(text).catch(() => false)
+    // Nothing played (no voice from the server and none on the phone): say so, once.
+    if (heardOk === false && !gone.current) setNote('Hayden could not be heard. Check the phone is off silent and the volume is up.')
     if (!gone.current && turn.current === mine) listen()
   }
   const answer = (ask, shown) => {
+    // An order is done, not answered: "start", "let's go" start today's session at once.
+    const cmd = onCommand && haydenCommand(ask)
+    if (cmd) {
+      turn.current++; rec.current?.cancel(); rec.current = null
+      const line = cmd === 'start' ? (today?.kind === 'rest' ? 'Rest day today. Here is something easy.' : "Let's go.") : 'Here it is.'
+      say(line).catch(() => {})
+      close(); onCommand(cmd); return
+    }
     const a = quickAnswer(ask, brief())
     setNote(''); setView({ q: shown, a }); speak(a)
   }
@@ -114,6 +125,7 @@ export default function HaydenQuick({ close, today = null, done = null }) {
     </> : <>
       {/* His opening is said, not shown: a coach talks to you, he does not hand you a page. */}
       <div className="hq-chips">
+        {onCommand && today?.kind !== 'rest' && !done && <button className="hq-start" onClick={() => answer('start', 'Start')}>Start today</button>}
         {QUICK.map(x => <button key={x.q} onClick={() => answer(x.ask, x.q)}>{x.q}</button>)}
       </div>
     </>}

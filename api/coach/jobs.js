@@ -456,7 +456,8 @@ export function resolvePending(uid, { accepted = [], rejected = [], dismissed = 
   }].slice(-HISTORY_MAX);
   // A read answer gives back the proposal it was asked beside (core/pending.js).
   const back = rec.pending.kind === 'ask' || rec.pending.kind === 'adapt' ? waitingProposal(rec.pending.prev) : null;
-  writeUser(uid, { ...rec, pending: back, history });
+  // A guest's record keeps only today's count: no history, no answer left behind.
+  writeUser(uid, isGuestUid(uid) ? { ...rec, pending: null, history: [] } : { ...rec, pending: back, history });
   return { ok: true };
 }
 

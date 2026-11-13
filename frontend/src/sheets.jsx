@@ -1,4 +1,5 @@
 import SessionPreview from './components/SessionPreview.jsx'
+import { fitSession } from './lib/police/session-length.js'
 import { RUNS, CATEGORIES as RUN_CATEGORIES, runMinutes } from './lib/police/runs.js'
 import { ensureRunRoutine, runForRoutine } from './lib/police/run-routines.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
@@ -3490,7 +3491,7 @@ export function DayNoteRow({ iso, note }) {
 /* ============================ workout lifecycle ============================ */
 // `routineIds` accepts `string | string[] | null` — `[r.id]` for one routine,
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
-export function startFlow(routineIds) {
+export function startFlow(routineIds, { auto = false } = {}) {
   // BadgeFit: a run (one picked in the planner, or the plan's run day) is not a gym session with
   // a duration row: it opens as the guided run with Hayden and the countdown, from every Start.
   const P = S().police
@@ -3509,6 +3510,8 @@ export function startFlow(routineIds) {
   const full = P?.level ? buildCombinedEntries(S(), routineIds).entries : []
   if (full.some(e => !(e.sets || []).some(x => x?.mode === 'cardio'))) {
     const cap = P.sessionCap ?? 45
+    // Told to Hayden ("start", "let's go"): straight in, fitted to the usual time.
+    if (auto) { begin(entries => fitSession(entries, cap)); return }
     ui().openSheet(close => <SessionPreview entries={full} cap={cap} close={close}
       start={(list, c) => { update(s => { if (s.police) s.police.sessionCap = c }); const keep = list; begin(() => keep) }} />)
     return
