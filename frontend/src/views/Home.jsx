@@ -37,7 +37,6 @@ import { planWeekOf, daysUntil } from '../lib/police/programme.js'
 import { runMinutes } from '../lib/police/runs.js'
 import { sessionMinutes } from '../lib/police/session-length.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
-import { tapJarvis } from '../store/useJarvis.js'
 import HaydenQuick from '../components/HaydenQuick.jsx'
 import { useRun } from '../store/useRun.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
@@ -208,8 +207,7 @@ export default function Home() {
       today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
     // Hayden from Home: the common training questions, answered from the plan with no AI call
     // (components/HaydenQuick.jsx). The AI coach is one step further, for a question of your own.
-    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close}
-      onTalk={coachHere ? () => tapJarvis() : null} onAsk={coachHere ? () => nav('/coach') : null} />)
+    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close} />)
     const mins = S.active || doneToday || !routine ? null
       : bfRun ? runMinutes(bfRun) : sessionMinutes(buildCombinedEntries(S, effectiveRoutineIds(S, todayISO())).entries)
     const line = S.active ? `${S.active.name} is under way.`

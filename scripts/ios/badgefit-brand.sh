@@ -27,6 +27,9 @@ sed -i '' 's/openGym/BadgeFit/g' "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName BadgeFit" "$PLIST"
 # badgefit:// links: the website hands the app its sign-in this way (views/LinkApp.jsx).
 /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes: string badgefit" "$PLIST"
+# Talking to Hayden: the microphone and the phone's speech recognition, said in BadgeFit's words.
+/usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription Used to hear you when you talk to Hayden, your coach, and to record the sound of a set you film." "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :NSSpeechRecognitionUsageDescription string Used to understand what you say to Hayden, your coach, so you can talk instead of typing." "$PLIST"
 # Hayden with the screen locked (RunCuesPlugin.swift): the app may play audio in the background.
 /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes: string audio" "$PLIST"
 # Links to the BadgeFit app domain open in the app.

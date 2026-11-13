@@ -5,6 +5,7 @@
 // (lib/police/listen.js); where it is missing or blocked, a small card lets you type instead. The answer comes from the
 // app's AI Coach (lib/coach-api.js askCoach), which answers as Hayden for a BadgeFit member
 // (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
+import { MOBILE } from '../lib/mobile.js'
 import { useEffect, useRef, useState } from 'react'
 import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, disclosure, coachVia } from '../lib/coach-api.js'
 import { consentTarget, allowAi } from '../lib/coach-consent.js'
@@ -100,7 +101,7 @@ export default function JarvisLive() {
     if (closed.current) return
     if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
       setPhase('idle')
-      setNote('Microphone blocked. Allow it in Settings → Safari → Microphone, or type.')
+      setNote(MOBILE ? 'Microphone blocked. Allow the microphone and speech for BadgeFit in your phone’s Settings, or type.' : 'Microphone blocked. Allow it in Settings → Safari → Microphone, or type.')
       useJarvis.setState({ panel: true }); return
     }
     if (out.text) { ask(out.text); return }
