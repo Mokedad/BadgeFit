@@ -18,7 +18,9 @@ import { t } from '../lib/i18n.js'
 // Functions, so each word is a literal t() call the string checks can see.
 const STATE_WORD = { done: () => t('Finished'), partial: () => t('Started'), todo: () => t('Not started yet') }
 
-export default function WorkoutChips({ entries, cur, onPick }) {
+// `onHold` (BadgeFit): press and hold a chip for its options (remove, or cancel).
+export default function WorkoutChips({ entries, cur, onPick, onHold }) {
+  const held = useRef(null), heldFired = useRef(false)
   const strip = useRef(null)
   const chips = exerciseChips(entries, cur)
   const curKey = chips.find(c => c.current)?.key
@@ -38,7 +40,12 @@ export default function WorkoutChips({ entries, cur, onPick }) {
         : t('Exercise {0}: {1} ({2})', c.n, names, STATE_WORD[c.state]())
       return <button key={c.key} type="button" className={'wchip ' + c.state + (c.current ? ' cur' : '')}
         data-unit-key={c.key} aria-current={c.current ? 'step' : undefined} aria-label={label} title={names}
-        onClick={() => onPick(c)}>
+        onPointerDown={onHold ? () => { heldFired.current = false; clearTimeout(held.current); held.current = setTimeout(() => { heldFired.current = true; navigator.vibrate?.(15); onHold(c) }, 500) } : undefined}
+        onPointerUp={onHold ? () => clearTimeout(held.current) : undefined}
+        onPointerLeave={onHold ? () => clearTimeout(held.current) : undefined}
+        onPointerCancel={onHold ? () => clearTimeout(held.current) : undefined}
+        onContextMenu={onHold ? e => e.preventDefault() : undefined}
+        onClick={() => { if (heldFired.current) { heldFired.current = false; return } onPick(c) }}>
         <span>{c.n}</span>{c.unit.length > 1 && <Icon name="link" />}
       </button>
     })}

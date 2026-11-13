@@ -2433,8 +2433,17 @@ function ActiveWorkout() {
   // than it and scrolls sideways anyway, so it costs no height; the header bar has no width to
   // spare on a phone (a second line under the name). With the chips off it sits in the header.
   const sessionMap = wc.muscleMap ? <SessionMapButton entries={A.entries} body={S.body} /> : null
+  // BadgeFit: hold an exercise's number for Remove, or Cancel.
+  const holdChip = c => menuSheet({
+    title: c.unit.map(idx => exerciseNameFor(exOr(A.entries[idx]?.id))).join(' + '),
+    titleClass: exerciseNameClass(exOr(A.entries[c.unit[0]]?.id)),
+    sections: [
+      { items: c.unit.map(idx => ({ icon: 'trash', danger: true, label: c.unit.length > 1 ? t('Remove {0}', exerciseNameText(exOr(A.entries[idx]?.id))) : t('Remove exercise'), onClick: () => confirmRemoveExercise(idx) })) },
+      { items: [{ icon: 'xmark', label: t('Cancel'), onClick: () => {} }] },
+    ],
+  })
   const chipRow = wc.exerciseChips && A.entries.length > 0
-    ? <div className="wchips-row"><WorkoutChips entries={A.entries} cur={listMode ? visibleExercise : cur} onPick={pickChip} />{sessionMap}</div>
+    ? <div className="wchips-row"><WorkoutChips entries={A.entries} cur={listMode ? visibleExercise : cur} onPick={pickChip} onHold={bfOn && !bfGuest && !editing ? holdChip : undefined} />{sessionMap}</div>
     : null
 
   // Hardware keys (issue #133, lib/workout-keys.js): Space or Enter ticks the next set, ← and →
