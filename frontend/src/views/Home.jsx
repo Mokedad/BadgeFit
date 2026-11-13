@@ -207,12 +207,19 @@ export default function Home() {
       today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean)
     // Hayden from Home: the common training questions, answered from the plan with no AI call
     // (components/HaydenQuick.jsx). The AI coach is one step further, for a question of your own.
-    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close} />)
+    const hayden = () => useUI.getState().openSheet(close => <HaydenQuick close={close} today={todayNow} done={!!doneToday && !S.active} />)
+    // What today really is: every routine on today as it stands now (a swap, a removal or an
+    // added one included), a run by its own name, and the time of all of it together. Home's
+    // line and Hayden's words are both made from this, so they always say the same thing.
+    const runOf = r => runForRoutine(P, r.id, todayISO())
+    const nowName = todayRoutines.map(r => runOf(r)?.name || r.name).join(' + ')
+    const gymIds = todayRoutines.filter(r => !runOf(r)).map(r => r.id)
     const mins = S.active || doneToday || !routine ? null
-      : bfRun ? runMinutes(bfRun) : sessionMinutes(buildCombinedEntries(S, effectiveRoutineIds(S, todayISO())).entries)
+      : todayRoutines.reduce((a, r) => a + (runOf(r) ? runMinutes(runOf(r)) : 0), 0) + (gymIds.length ? sessionMinutes(buildCombinedEntries(S, gymIds).entries) : 0)
+    const todayNow = S.active ? { kind: 'gym', title: S.active.name } : routine ? { kind: gymIds.length ? 'gym' : 'run', title: nowName, minutes: mins || undefined } : { kind: 'rest' }
     const line = S.active ? `${S.active.name} is under way.`
       : doneToday ? 'Today is done. Good work.'
-      : routine ? `Today: ${bfRun ? bfRun.name : todayName}${mins ? `, about ${mins} min` : ''}.`
+      : routine ? `Today: ${nowName}${mins ? `, about ${mins} min` : ''}.`
       : next ? `Rest day. Next up: ${t(DAYN[next.weekday])}, ${next.routine.name}.` : 'Rest day. Recover well.'
     const menu = () => menuSheet({ title: 'BadgeFit', sections: [{ items: [
       { icon: 'calendar', label: 'My plan', sub: 'This week and the weeks ahead', onClick: () => nav('/police?tab=plan') },

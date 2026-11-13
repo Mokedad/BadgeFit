@@ -1,5 +1,5 @@
 // Hayden, opened from Home (BadgeFit): a personal coach, not a menu. He opens with his own words
-// about this person today (lib/police/hayden-opening.js), says them, and then listens. A question,
+// about this person today (lib/police/hayden-opening.js), spoken only, and then listens. A question,
 // spoken or tapped, is answered from the plan and the test results on the phone with no AI call
 // (lib/police/offline-jarvis.js), shown and read out. Back (or a swipe right) returns to the
 // questions. The ball is the microphone: tap it to make him listen again, or to stop him.
@@ -33,12 +33,14 @@ export function quickAnswer(question, brief) {
   return /^I cannot get to my full brain/.test(a) ? HELP : a
 }
 
-export default function HaydenQuick({ close }) {
-  const brief = () => policeBrief(useStore.getState().S, todayISO())
+export default function HaydenQuick({ close, today = null, done = null }) {
+  // `today`: what today is as it stands now (Home works it out: a swap or an added workout
+  // included), so Hayden never names the plan's day when the member changed it.
+  const brief = () => { const b = policeBrief(useStore.getState().S, todayISO()); return today ? { ...b, today, todayRun: null } : b }
   const [opening] = useState(() => {
     const st = useStore.getState(), now = new Date()
     return openingLine(brief(), { name: st.user?.name || '', hour: now.getHours(), seed: Math.floor(now.getTime() / 86400000),
-      done: (st.S.workouts || []).some(w => w.d === todayISO()) })
+      done: done ?? (st.S.workouts || []).some(w => w.d === todayISO()) })
   })
   const [view, setView] = useState(null) // null: the opening and the questions; { q, a }: an answer
   const [phase, setPhase] = useState('idle') // 'speaking' | 'listening' | 'idle'
@@ -110,7 +112,7 @@ export default function HaydenQuick({ close }) {
       <div className="hq-q">{view.q}</div>
       <p className="hq-a">{view.a}</p>
     </> : <>
-      <p className="hq-a hq-open">{opening}</p>
+      {/* His opening is said, not shown: a coach talks to you, he does not hand you a page. */}
       <div className="hq-chips">
         {QUICK.map(x => <button key={x.q} onClick={() => answer(x.ask, x.q)}>{x.q}</button>)}
       </div>
