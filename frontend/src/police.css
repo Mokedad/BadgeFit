@@ -830,3 +830,14 @@ button.pf-tile{width:100%;text-align:start;color:inherit}
 @keyframes hb-pull{from{transform:translateY(0)}to{transform:translateY(-14px)}}
 @media (prefers-reduced-motion:reduce){.hb-act *{animation:none!important}}
 .hb-buddy.on-run{z-index:210;bottom:calc(var(--sab) + 20px)}
+
+/* Run screen (BadgeFit): a drawn runner and flag, no title in the bar, the pep talk fades */
+.rp-gap{flex:1}
+.rp-emoji .runner-ic{color:#fff;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
+.rp-runner .runner-ic{color:#fff;display:block}
+.rp-runner{transform:translate(-50%,-62%)!important}
+.rp-flag .finish-ic{color:#fff;display:block}
+.rp-why{max-height:8em;overflow:hidden;transition:opacity .8s ease,max-height .6s ease .8s,margin .6s ease .8s}
+.rp-why.gone{opacity:0;max-height:0;margin:-7px 0}
+.rp-hb.hb-toggle{width:38px;height:38px;background:rgba(255,255,255,.18);box-shadow:none}
+.rp-mini-m .runner-ic{color:currentColor;flex:none}

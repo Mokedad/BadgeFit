@@ -2,6 +2,8 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
+import { HaydenToggle } from './HaydenBuddy.jsx'
 import { HaydenMark } from './HaydenBot.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
@@ -52,6 +54,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   // Hayden keeps talking (a web page goes quiet once the phone locks). Hold to unlock.
   const [locked, setLocked] = useState(false)
   const [hold, setHold] = useState(0)
+  const [whyGone, setWhyGone] = useState(false)
+  useEffect(() => { const id = setTimeout(() => setWhyGone(true), 10000); return () => clearTimeout(id) }, [])
   const holdT = useRef(null)
   const [now, setNow] = useState(Date.now())
   const [done, setDone] = useState(false)
@@ -273,7 +277,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     const t = started ? fmt(((paused ? pausedAt.current : now) - runStart.current) / 1000) : ''
     return <div className="rp-mini" role="region" aria-label={run.name}>
       <button className="rp-mini-m" onClick={onRestore} aria-label="Open the run">
-        <span aria-hidden="true">🏃</span>
+        <RunnerIcon size={28} />
         <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
       </button>
       <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}>{paused ? '▶' : '⏸'}</button>
@@ -311,12 +315,13 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   return <div className={'rp rp-' + (seg?.kind || 'warm') + (paused ? ' paused' : '')} role="dialog" aria-label={run.name}>
     <div className="rp-top">
       <button className="rp-x" onClick={leave} aria-label={started ? 'Minimise, the run keeps going' : 'Close'} title={started ? 'Minimise, the run keeps going' : 'Close'}>{started ? '⌄' : '✕'}</button>
-      <span>{run.name}</span>
+      <span className="rp-gap" />
       {onMusic && <button type="button" className={'rp-music' + (musicMode ? ' on' : '')} onClick={() => onMusic(!musicMode)} aria-pressed={musicMode}
         title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}>🎵 {musicMode ? 'On' : 'Off'}</button>}
       {onGps && <button type="button" className={'rp-music' + (gps ? ' on' : '')} onClick={() => onGps(!gps)} aria-pressed={gps}
         title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}>📍 {gps ? 'On' : 'Off'}</button>}
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
+      <HaydenToggle className="rp-hb" />
     </div>
     {/* The runner crosses the track as the run goes, start to finish; drag him to move the time. */}
     <div className={'rp-track' + (started ? ' live' : '')} ref={track}
@@ -325,15 +330,14 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       onPointerUp={started ? endDrag : undefined} onPointerCancel={started ? endDrag : undefined}
       role={started ? 'slider' : undefined} aria-label="Run progress" aria-valuemin={0} aria-valuemax={totalSec} aria-valuenow={Math.round(atSec)}>
       <span className="rp-track-fill" style={{ width: pct + '%' }} />
-      <span className="rp-runner" style={{ left: pct + '%' }} aria-hidden="true">🏃</span>
-      <span className="rp-flag" aria-hidden="true">🏁</span>
+      <span className="rp-runner" style={{ left: pct + '%' }} aria-hidden="true"><RunnerIcon size={30} /></span>
+      <span className="rp-flag" aria-hidden="true"><FinishFlag /></span>
     </div>
     {!started ? <div className="rp-body">
-      <div className="rp-emoji" aria-hidden="true">🏃</div>
+      <div className="rp-emoji"><RunnerIcon size={84} lines /></div>
       <h2>{run.name}</h2>
-      <p className="rp-sub">{run.why}</p>
-      <ol className="rp-steps">{segs.filter(s => !s.round || s.round === 1).slice(0, 10).map((s, i) => <li key={i}><b>{KIND[s.kind]}</b> {s.label}{s.of ? ` ×${s.of}` : ''}</li>)}</ol>
-      <p className="rp-hint">{musicMode ? '🎵 Music mode: start Spotify or YouTube first, then tap Start. Hayden talks over your music.' : '🎧 Hayden talks you through each change, with a check-in at 2, 5, 7 and 10 minutes. Playing music? Tap 🎵 at the top to turn on Music mode.'} Outdoors? Tap 📍 for distance, pace and your route.</p>
+      {/* The pep talk shows for 10 seconds, fades, and Start moves up into its place. */}
+      <p className={'rp-sub rp-why' + (whyGone ? ' gone' : '')}>{run.why}</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
       <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>
