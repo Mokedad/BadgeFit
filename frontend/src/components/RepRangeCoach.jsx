@@ -23,7 +23,8 @@ export default function RepRangeCoach({ entry, unit, onApply }) {
 
   if (!a) return null
   const w = v => `${fmtNum(v)} ${unit}`
-  if (a.firstTime) return <div className="rrc first">🎯 Range {range.min}-{range.max}: pick a weight you can lift {range.min}-{range.max} times. Log the set and I set the next one.</div>
+  const reps = range.min === range.max ? `${range.max}` : `${range.min}-${range.max}`
+  if (a.firstTime) return <div className="rrc first">🎯 Pick a weight you can lift {reps} times</div>
   const { action, weight } = a.advice
   const text = action === 'up' ? `⬆️ ${a.reps} reps: top of the range. Move up to ${w(weight)}`
     : action === 'down' ? `⬇️ ${a.reps} reps: under the range. Move down to ${w(weight)}`

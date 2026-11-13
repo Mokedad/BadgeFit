@@ -455,7 +455,8 @@
 .pf-voice option{color:#111}
 .pf-sym.jv-live>span{padding:0;overflow:hidden}
 .pf-sym.jv-live .jo{width:100%;height:100%}
-.jarvis-ask{background:#0d1b33!important;border-radius:50%}
+.jarvis-ask{background:var(--surface-2,var(--surface))!important;border-radius:50%}
+.jarvis-ask .hb{filter:none}
 .jarvis-ask .jarvis-fab-orb{width:20px;height:20px}
 .jarvis-ask .jo-waves{height:18px;gap:2px}.jarvis-ask .jo-waves i{width:3px}
 .pf-more-list{padding:4px 0}

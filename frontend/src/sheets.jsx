@@ -176,23 +176,36 @@ export function askAddDeviceData(extras) {
 // so nothing is hidden without a hint; a tap opens the groups right there, in place of the row,
 // and moves focus to the first of them. A fold with a single item left in it is not worth a
 // tap and shows that item as is; with none it is left out like any empty group.
+// A section can also be `{ fold: true, title, items }`: a row that opens its items in place, and
+// closes again when another fold is opened (one open at a time).
 const menuGroups = list => (list || [])
-  .map(g => g.more ? g : { title: g.title, items: (g.items || []).filter(Boolean) })
+  .map(g => g.more ? g : { title: g.title, fold: g.fold, items: (g.items || []).filter(Boolean) })
   .filter(g => g.more || g.items.length)
 function MenuSheet({ title, titleClass = '', subtitle, items, sections, close }) {
   const [open, setOpen] = useState(false)
+  const [folded, setFolded] = useState(-1)
   const firstMore = useRef(null)
   useEffect(() => { if (open) firstMore.current?.focus() }, [open])
   const groups = []
-  for (const g of menuGroups(sections || [{ items }])) {
-    if (!g.more) { groups.push(g); continue }
+  menuGroups(sections || [{ items }]).forEach((g, fi) => {
+    if (g.fold) {
+      const on = folded === fi
+      groups.push({ items: [{ icon: on ? 'chevronUp' : 'chevronDown', label: g.title, fold: true, expanded: on, onClick: () => setFolded(on ? -1 : fi) }, ...(on ? g.items : [])] })
+      return
+    }
+    groups.push(...menuFold(g))
+  })
+  function menuFold(g) {
+    const groups = []
+    if (!g.more) { groups.push(g); return groups }
     const inner = menuGroups(g.more)
     const all = inner.flatMap(x => x.items)
-    if (!all.length) continue
-    if (all.length === 1) { groups.push({ items: all }); continue }
-    if (open) { inner.forEach((x, i) => groups.push({ ...x, first: i === 0 })); continue }
+    if (!all.length) return groups
+    if (all.length === 1) { groups.push({ items: all }); return groups }
+    if (open) { inner.forEach((x, i) => groups.push({ ...x, first: i === 0 })); return groups }
     groups.push({ items: [{ icon: 'more', label: g.label || t('More'), sub: all.map(x => x.label).join(', '),
       fold: true, expanded: false, onClick: () => setOpen(true) }] })
+    return groups
   }
   return <>
     {title && <h3 className={titleClass || undefined} style={{ marginBottom: subtitle ? 2 : 10 }}>{title}</h3>}
@@ -203,13 +216,13 @@ function MenuSheet({ title, titleClass = '', subtitle, items, sections, close })
         {g.items.map((it, i) => <div key={i} ref={g.first && i === 0 ? firstMore : undefined}
           className={'item menu-item' + (it.danger ? ' danger' : '') + (it.disabled ? ' disabled' : '') + (it.accent ? ' accent' : '') + (it.fold ? ' menu-more' : '')}
           aria-disabled={it.disabled || undefined}
-          aria-expanded={it.fold ? false : undefined}
+          aria-expanded={it.fold ? !!it.expanded : undefined}
           {...tappable(it.disabled ? null : it.fold ? it.onClick : () => { close(); it.onClick && it.onClick() })}>
           {it.icon && <span className="lrow-i"><Icon name={it.icon} /></span>}
           <div className="grow"><div className="tt">{it.label}</div>{it.sub && <div className="ss">{it.sub}</div>}</div>
           {it.on != null && <span className={'menu-on' + (it.on ? ' is-on' : '')}><Icon name="check" /></span>}
           {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
-          {it.fold && <Icon name="chevronDown" className="menu-chev" />}
+          {it.fold && it.icon !== 'chevronUp' && it.icon !== 'chevronDown' && <Icon name="chevronDown" className="menu-chev" />}
         </div>)}
       </div>
     </div>)}

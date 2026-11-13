@@ -1,8 +1,9 @@
-import { HaydenToggle } from '../components/HaydenBuddy.jsx'
+import { isBadgeFitGuest } from '../lib/police/guest.js'
+import { haydenOn } from '../lib/police/bot-emotes.js'
 import { Fragment, useEffect, useId, useRef, useState } from 'react'
 import { workoutControlsSheet, leaveWorkoutSheet, isPaused, resumeWorkout } from '../workout-controls.jsx'
 import RepRangeCoach from '../components/RepRangeCoach.jsx'
-import JarvisOrb from '../components/JarvisOrb.jsx'
+import { HaydenMark } from '../components/HaydenBot.jsx'
 import { tapJarvis, useJarvis } from '../store/useJarvis.js'
 import { startHandsFree, stopHandsFree, handsFreeAvailable } from '../components/JarvisHandsFree.jsx'
 import { upNext } from '../lib/police/workout-voice.js'
@@ -272,7 +273,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     return { ...setClusterAt(row, ci, { r: v }), r: Math.max(0, (row.r || 0) + delta) }
   })
   const ex = exOr(entry.id)
-  const thumb = !dense && S.gifSize === 'mini' && hasWorkoutMedia(ex)
+  // BadgeFit: the picture big (it says more than words), and a guest gets the plan as given.
+  const bf = !!S.police?.level
+  const bfGuest = isBadgeFitGuest(S, null, useStore(s => s.user))
+  const thumb = !dense && !bf && S.gifSize === 'mini' && hasWorkoutMedia(ex)
   const mode = modeOf({ ...(entry.target || {}), id: entry.id })
   const cardio = mode === 'cardio'
   const timed = mode === 'time'
@@ -509,7 +513,40 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     const at = setSpanAt(entry.sets, i)[0]
     filmSetSheet({ entry: entryIdx, set: at }, t('Film {0}', setTitle(entry.sets[at], at)))
   }
-  const openMore = () => menuSheet({
+  // BadgeFit: Remove first (the one most people come for; the next exercise takes its place),
+  // the gym things, then the rest in folds that open one at a time.
+  const openMoreBf = () => menuSheet({
+    title: exerciseNameFor(ex),
+    titleClass: exerciseNameClass(ex),
+    sections: [
+      { items: [onRemoveExercise && { icon: 'trash', label: t('Remove exercise'), onClick: onRemoveExercise, danger: true, disabled: busy }] },
+      { items: [
+        onSwap && { icon: 'swap', label: t('Swap exercise'), onClick: onSwap, disabled: busy },
+        ...(onSwapBackup ? backups.map(b => ({ icon: 'swap', label: t('Swap to {0}', exerciseNameText(b)), onClick: () => onSwapBackup(b.id), disabled: busy })) : []),
+        { icon: 'info', label: t('How to do it'), onClick: () => exerciseDetailSheet(ex) },
+        onRest && { icon: 'timer', label: t('Rest timer'), sub: restSub, onClick: onRest },
+      ] },
+      { fold: true, title: t('More'), items: [
+        { icon: 'note', label: entry.note ? t('Edit note') : t('Add note'), onClick: () => exerciseNoteSheet(entryIdx) },
+        { icon: 'sunrise', label: t('Add warm-up set'), onClick: onAddWarmup },
+        { icon: 'history', label: t('History'), sub: last ? t('Last time') + ' ' + fmtDate(last.d) : undefined, onClick: () => exerciseHistorySheet(entry.id) },
+        onAskCoach && { icon: 'sparkles', label: 'Ask Hayden', onClick: onAskCoach },
+        youtubeSearchUrl(ex) && { icon: 'play', label: t('Watch on YouTube'), onClick: () => openExternal(youtubeSearchUrl(ex)) },
+      ] },
+      { fold: true, title: t('Settings'), items: [
+        onProgressionSettings && { icon: 'slider', label: t('Exercise settings'), sub: guidance ? t(guidance.policyLabel) : undefined, onClick: onProgressionSettings },
+        plateLoading && { icon: 'plate', label: t('Plate loading'), sub: loadSummary, onClick: () => barWeightSheet(entry.id, cfg) },
+        routineUpdate && { icon: 'clipboard', label: t('Update routine'), sub: routineUpdate.sub, onClick: routineUpdate.run },
+      ] },
+      { fold: true, title: t('Order and supersets'), items: [
+        onPairPrev && { icon: 'link', label: t('Make superset with previous'), onClick: onPairPrev },
+        onPairNext && { icon: 'link', label: t('Make superset with next'), onClick: onPairNext },
+        onMoveUp && { icon: 'chevronUp', label: t('Move up'), onClick: onMoveUp, disabled: busy || !canMoveUp },
+        onMoveDown && { icon: 'chevronDown', label: t('Move down'), onClick: onMoveDown, disabled: busy || !canMoveDown },
+      ] },
+    ],
+  })
+  const openMore = () => bf ? openMoreBf() : menuSheet({
     title: exerciseNameFor(ex),
     titleClass: exerciseNameClass(ex),
     sections: [
@@ -806,7 +843,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc-ink)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="note" /></button>}
-        <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>
+        {!bfGuest && <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>}
       </div>
     </div>
     {/* Kept out of progression: by hand for this session (the ⋯ menu, with its undo right here),
@@ -825,7 +862,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {/* compact view drops everything from here to the sets card — it is all still on the ⋯ menu
         (note, details, history, bar weight, progression) or is display-only (tags, "last time"). */}
     {!dense && <>
-    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+    {!bf && <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
       {cardio && <span className="tag acc"><Icon name="figureRun" />{t('Cardio')}</span>}
       {/* A unilateral exercise is logged per side directly (the L/R rows below for reps, a
           "Left"/"Right" tag on each doubled row for a timed hold), so the old "{n} per side"
@@ -835,7 +872,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {(ex.tg || ex.bp) && <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span>}
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
-    </div>
+    </div>}
     {/* Three notes can apply to one exercise and they are not interchangeable, so each keeps its
         own line and its own icon: the plan's instruction (cfg.note, from the routine), the
         standing fact about the movement (exNotes), and the message you pinned to yourself last
@@ -851,7 +888,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {/* BadgeFit (components/RepRangeCoach.jsx): the rep-range rule after every set, from the first workout. */}
     {S.police?.level && !editing && mode === 'reps' && <RepRangeCoach entry={entry} unit={S.unit} onApply={(i, w) => mutSet(i, x => ({ ...x, w }))} />}
     {refLine}
-    {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
+    {!bf && guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
       aria-label={t('Open exercise settings')} onClick={onProgressionSettings}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' || plan.prog?.deload ? 'arrowDown' : plan.kind === 'programme' ? 'calendar' : 'lightbulb'} />
       <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}{guidance.prog?.rpe != null && <> · {t('aim for {0}', (r => `${r.k} ${fmtNum(r.v)}`)(rpeAs(guidance.prog.rpe, effortOf(S))))}</>}</span>
@@ -1103,13 +1140,14 @@ const coveredTop = () => {
 // cannot listen it opens the typing card instead (with the Coach on).
 function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
-  if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><JarvisOrb /></button> : null
+  if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
     onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('🎧 Hayden is listening. Say "Hayden", "Hey" or "H", then "20 kilos, 4 reps"') } }}
-    aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><JarvisOrb /></button>
+    aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button>
 }
 
 function ActiveWorkout() {
+  const bfGuest = isBadgeFitGuest(useStore(s => s.S), null, useStore(s => s.user))
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -1796,9 +1834,11 @@ function ActiveWorkout() {
       ] },
       { items: [
         A.backfill && A.entries.length > 0 && { icon: 'checkCircle', label: t('Mark all sets done'), onClick: markAllDone },
-        { icon: 'plusCircle', label: t('Add exercise'), onClick: addExercise },
+        !bfGuest && { icon: 'plusCircle', label: t('Add exercise'), onClick: addExercise },
         { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
-        { icon: 'layout', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
+        // BadgeFit: Hayden floating on screen (components/HaydenBuddy.jsx), on or off.
+        S.police?.level && { icon: 'sparkles', label: 'Hayden on screen', on: haydenOn(S), onClick: () => update(s => { s.police = { ...(s.police || {}), haydenOff: haydenOn(s) ? true : undefined } }) },
+        !S.police?.level && { icon: 'layout', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
       ] },
       { more: [{ items: [
         !editing && { icon: 'clipboard', label: t('Add routine'), sub: t('Bring another routine into this session'), onClick: addRoutineToSessionSheet },
@@ -2508,7 +2548,6 @@ function ActiveWorkout() {
         ? <button type="button" className="whdr-gym" onClick={openGymMenu} aria-label={t('Gym: {0}', gymShown)}><Icon name="house" />{gymShown}</button>
         : <span className="whdr-gym"><Icon name="house" />{gymShown}</span>)}</div>
       {!chipRow && sessionMap}
-      {S.police?.level && !editing && <HaydenToggle className="iconbtn" />}
       {S.police?.level && !editing && <JarvisMic coach={isOn(S, 'coach')} />}
       <button className="iconbtn" data-tour="workout-more" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" data-tour="finish" aria-label={editing ? t('Save changes') : undefined}
@@ -2664,10 +2703,10 @@ function ActiveWorkout() {
         under them is the one thing that stands out. Wrapping up is when you know how the session
         went, so the note sits here with the finish rather than in the header. */}
     <div className="sect-b wk-end">
-      <button type="button" className="lrow tap wk-end-row acc" onClick={addExercise}>
+      {!bfGuest && <button type="button" className="lrow tap wk-end-row acc" onClick={addExercise}>
         <Icon name="plusCircle" className="wk-end-i" />
         <span className="lrow-m"><span className="lrow-t">{t('Add exercise')}</span></span>
-      </button>
+      </button>}
       {/* BadgeFit keeps the workout lean: the session note lives in the ⋯ menu only. */}
       {!S.police?.level && <button type="button" className={'lrow tap wk-end-row' + (A.note ? ' has-note' : '')} onClick={sessionNoteSheet}>
         <Icon name="note" className="wk-end-i" />
