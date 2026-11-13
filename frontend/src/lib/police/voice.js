@@ -57,7 +57,7 @@ export function loadVoices() {
 }
 
 // A coach's delivery: a touch slower and lower than the default, short pauses between sentences.
-export const DELIVERY = { rate: 0.97, pitch: 0.92 }
+export const DELIVERY = { rate: 0.95, pitch: 0.82 }
 
 /**
  * Says `text` in Hayden's voice: one natural male voice, no options. Resolves when it has

@@ -12,12 +12,12 @@ import crypto from 'node:crypto';
 import * as cfgStore from './config.js';
 import { baseUrlFor } from './core/providers.js';
 
-// Orus: Gemini's firm, deeper male voice (Puck read too light), no accent asked for;
-// COACH_TTS_VOICE picks another (Fenrir, Charon and Alnilam are male too).
-export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Orus';
+// Algenib: Gemini's low, gravelly male voice, the deepest of them (Orus read too bright, Puck too
+// light), no accent asked for; COACH_TTS_VOICE picks another (Charon, Orus and Alnilam are male).
+export const TTS_VOICE = process.env.COACH_TTS_VOICE || 'Algenib';
 export const TTS_MODELS = (process.env.COACH_TTS_MODEL || 'gemini-2.5-flash-preview-tts,gemini-2.5-pro-preview-tts')
   .split(',').map(s => s.trim()).filter(Boolean);
-export const STYLE = 'Say this as a confident male personal trainer motivating someone mid-workout: strong, energetic and encouraging, natural and human, not like reading. Say exactly these words and nothing else:';
+export const STYLE = 'Say this in a deep, low, warm male voice, like a calm and confident personal trainer talking to one person standing next to him: natural and unhurried, with real warmth, never shouting, never like reading a script. Say exactly these words and nothing else:';
 export const MAX_CHARS = 700;
 const PER_WINDOW = 60, WINDOW_MS = 10 * 60 * 1000, CACHE_MAX = 300, TIMEOUT_MS = 30000;
 

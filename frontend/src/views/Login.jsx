@@ -107,8 +107,7 @@ function SimpleLogin({ config }) {
     <button className="ls-link" onClick={openLostAccess}>Forgot password?</button>
     {/* A look around first: the simple plan and a few questions a day with Hayden, nothing saved
         to an account (ALLOW_GUEST on the server). */}
-    {guestAllowed(config) && <button className="ls-link" onClick={() => useStore.getState().setGuest(true)}>Try as guest</button>}
-    <p className="ls-fine"><a href="privacy.html" target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy</a></p>
+    {guestAllowed(config) && <button className="ls-guest" onClick={() => useStore.getState().setGuest(true)}>Guest</button>}
   </div></div>
 }
 

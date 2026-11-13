@@ -183,8 +183,8 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         session(duck: true)
         let u = AVSpeechUtterance(string: text)
         u.voice = RunCuesPlugin.voice()
-        u.rate = AVSpeechUtteranceDefaultSpeechRate * 0.97
-        u.pitchMultiplier = 0.92
+        u.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
+        u.pitchMultiplier = 0.8
         speech.speak(u)
     }
 
@@ -192,7 +192,9 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     private static func voice() -> AVSpeechSynthesisVoice? {
         let english = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("en") }
         let male = english.filter { $0.gender == .male }
-        let best = male.sorted { $0.quality.rawValue > $1.quality.rawValue }.first
+        // The best-sounding male voice (premium, then enhanced), Australian or British first.
+        let order: (AVSpeechSynthesisVoice) -> Int = { v in (v.language == "en-AU" ? 2 : v.language == "en-GB" ? 1 : 0) }
+        let best = male.sorted { ($0.quality.rawValue, order($0)) > ($1.quality.rawValue, order($1)) }.first
         return best ?? AVSpeechSynthesisVoice(language: "en-AU") ?? AVSpeechSynthesisVoice(language: "en-US")
     }
 

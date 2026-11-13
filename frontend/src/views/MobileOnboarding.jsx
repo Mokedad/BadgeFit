@@ -197,10 +197,9 @@ function BadgeFitOnboarding() {
     {social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
     {social.includes('google') && <><Button variant="primary" onClick={() => signIn('google')} disabled={busy}>Continue with Google</Button><div style={{ height: 10 }} /></>}
     {/* One word a button, nothing to read: log in, or look around first. */}
-    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : social.length ? 'Log in with password' : 'Log in'}</Button>
-    <div style={{ height: 22 }} />
-    <Button variant="ghost" className="dim" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>{returning ? 'Back as guest' : 'Try as guest'}</Button>
-    <a className="dim small" style={{ marginTop: 18, textDecoration: 'underline' }} href={`https://${BRAND.server}/privacy.html`} target="_blank" rel="noopener">Privacy policy</a>
+    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
+    <div style={{ height: 28 }} />
+    <button className="ls-guest" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>Guest</button>
   </div>
 }
 

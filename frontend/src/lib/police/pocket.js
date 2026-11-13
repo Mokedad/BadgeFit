@@ -103,7 +103,8 @@ export async function withClips(cues, clipOf, budget = 6e6) {
 
 /** Says one line through the pocket session (it survives the lock screen); false when not kept. */
 export async function pocketSay(text) {
-  if (!keeping) return false
+  // Any time, not only during a session: this is the phone voice that is male and low (it picks
+  // one), where the other native voice is the phone's default.
   const p = await native()
   if (!p) return false
   try { await p.say({ text: String(text) }); return true } catch { return false }

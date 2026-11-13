@@ -42,6 +42,8 @@ import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
+import PlanDays from '../components/PlanDays.jsx'
+import { isBadgeFit } from '../lib/police/guest.js'
 import '../police.css'
 
 // The lean hub: the workout of the day, the plan to the test, the test itself. The rest is kept
@@ -371,15 +373,14 @@ function Setup({ S, P }) {
     useUI.getState().toast(date ? 'Week 1 starts now. Your plan ends on your test week.' : 'Your 12 weeks start today. Let us get to work.')
   }
   return <div className="card pf-welcome">
-    <h3>Let's set you up</h3>
-    <p className="pf-q">1. How fit are you now?</p>
+    <p className="pf-q">1. Where are you now?</p>
     <div className="pf-choice">
-      <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>🌱 New to training</b><small>Gym or running is new, or it has been a while</small></button>
-      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? '🔒' : '💪'} I train regularly</b><small>{guest ? 'Sign up free to unlock this plan' : 'Training for 6 months or more'}</small></button>
+      <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>New to training</b><small>Or it has been a while</small></button>
+      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? 'Members' : 'I train regularly'}</b><small>{guest ? 'Sign up to unlock' : '6 months or more'}</small></button>
     </div>
-    <p className="pf-q">2. When is your PCT? <small>(skip if not booked)</small></p>
+    <p className="pf-q">2. Test date <small>(if booked)</small></p>
     <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="PCT date" />
-    <p className="pf-q">3. Your weight in kg <small>(for food targets)</small></p>
+    <p className="pf-q">3. Weight in kg</p>
     <NumberField value={kg} nullable onChange={setKg} aria-label="Weight in kg" />
     <button className="pf-go" onClick={build}>Start my plan</button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
@@ -573,8 +574,7 @@ function Plan({ S, P }) {
   if (P.start && !ease.ready) {
     const now = weekPlan(level, Math.min(current, pw.last), P.age, planOptsOf(P))
     return <>
-      {/* Plain names for someone new: "VO2 max" means nothing yet, "Interval run" does. */}
-      {now.days.map(d => <DayCard key={d.day} S={S} P={P} d={{ ...d, title: String(d.title).replace(/^VO2 max:\s*/i, 'Interval run: ') }} today={d.day === new Date().getDay()} />)}
+      <PlanDays />
       <div className="pf-ease-line">
         <div className="pf-bar"><span style={{ width: (ease.sessions / ease.need) * 100 + '%' }} /></div>
         <span>{ease.sessions} of {ease.need}</span>
@@ -593,18 +593,8 @@ function Plan({ S, P }) {
         <Button size="sm" variant="ghost" onClick={() => setP(p => seenPatch(p, 'moreplans') || {})}>Not now</Button>
       </div>
     </div>}
-    <div className="pf-weekgrid" role="tablist" aria-label="Weeks of the plan">
-      {phaseRows(level, pw.last).map(row => <div key={row.from} className="pf-phase-row">
-        <div className="pf-phase-l"><b>Phase {row.phase}</b><span>{PHASE_WORDS[row.phase].split(':')[0]} · {row.from === row.to ? `week ${row.from}` : `weeks ${row.from}-${row.to}`}</span></div>
-        <div className="pf-weeks">{row.weeks.map(n =>
-          <button key={n} className={(n === week ? 'on ' : '') + (n === current && P.start && !pw.after && !pw.before ? 'now ' : '') + (n === pw.last && P.testDate ? 'final' : '')} onClick={() => setWeek(n)} aria-pressed={n === week}>
-            <small>{n === pw.last && P.testDate ? 'Final' : 'Week'}</small>{n}</button>)}</div>
-      </div>)}
-    </div>
-    <div className="card">
-      <div className="row between"><h3>{plan.final ? `Final week (week ${week})` : `Week ${week}`}</h3><span className="pf-chip">Phase {plan.phase.n}: {plan.phase.range} reps</span></div>
-    </div>
-    {plan.days.map(d => <DayCard key={d.day} S={S} P={P} d={d} today={P.start && week === current && d.day === new Date().getDay()} />)}
+    {/* A day at a time, read from the schedule as it is, so it matches Home (components/PlanDays.jsx). */}
+    <PlanDays />
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
     <Fold key={'ps' + (P.seen?.moreplans ? 1 : 0)} id="plansettings" title="Change my plan">
       <PlanChoice S={S} P={P} />
@@ -923,6 +913,13 @@ export default function PoliceFit() {
   const setP = usePolice()
   // With a plan set up the hub wears the calm look: one title, the one bar, no tabs of its own.
   const calm = !!P.start
+  // A guest (no account) gets the simple plan at once: no questions, straight to Home.
+  const isGuest = !user && !DEMO
+  useEffect(() => {
+    if (P.start || !isGuest) return
+    installPlan(useStore.getState().update, P, { level: 'beginner', choice: 'badgefit' })
+    nav('/home', { replace: true })
+  }, [P.start, isGuest]) // eslint-disable-line react-hooks/exhaustive-deps
   // Opening Plan or the test for the first time ticks it off Home's first steps.
   useEffect(() => { const patch = seenPatch(P, tab); if (patch) setP(patch) }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
   const under = tab === 'today' || MORE.some(m => m.value === tab)
@@ -950,6 +947,11 @@ export default function PoliceFit() {
       s.police = next
     })
   }, [P.planV, P.level, P.start])
+  // No plan yet: the setup on its own, in the same calm look (no tabs, nothing else to read).
+  if (!P.start && !DEMO && isBadgeFit(S, useStore.getState().config)) return <div className="narrow pf">
+    <div className="calm-head"><span className="calm-back-gap" /><h1>Let's set you up</h1></div>
+    <Setup S={S} P={P} />
+  </div>
   return <div className="narrow pf">
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
       setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
@@ -981,6 +983,6 @@ export default function PoliceFit() {
     {tab === 'care' && <Care />}
     {tab === 'more' && <More setTab={setTab} calm={calm} />}
     {/* Said once, on More (and before a plan is set up), not under every page. */}
-    {(!calm || tab === 'more') && <p className="pf-sub pf-pad">Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>}
+    {(!calm || tab === 'more') && <p className="pf-sub pf-pad"><a href={`${MOBILE ? 'https://' + BRAND.server + '/' : ''}privacy.html`} target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy</a> · Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>}
   </div>
 }

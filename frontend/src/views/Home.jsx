@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
 import { todayChoiceSheet } from '../workout-controls.jsx'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW } from '../lib/history.js'
 import { streakInfo } from '../lib/streak.js'
@@ -198,6 +198,8 @@ export default function Home() {
   // BadgeFit with a plan: the calm Home. One screen that reads like a trainer, not an app: a
   // welcome, what today is, one button, the week's dates, and Hayden at the bottom. Everything
   // else (plan, tests, stats, exercises, settings) is behind the menu, top left.
+  // BadgeFit without a plan: Home is the setup (the calm look starts with the plan).
+  if (!S.police?.start && !DEMO && isBadgeFit(S, config)) return <Navigate to="/police" replace />
   if (S.police?.start) {
     const P = S.police
     const guest = isBadgeFitGuest(S, config, user)
