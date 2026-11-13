@@ -239,11 +239,10 @@ export default function Home() {
           <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
         </div>}
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
-        <p className="calm-line">{line}</p>
+        <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onToday}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
-        {swipeable && <button className="calm-link" onClick={holdToday}>Change today</button>}
         {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
         {extraDone.length > 0 && <div className="done-today">
           {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>
