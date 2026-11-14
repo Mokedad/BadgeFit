@@ -31,8 +31,6 @@ export function backTarget(pathname, search) {
   if (['/measurements', '/progress-photos', '/coach', '/workout', '/admin'].includes(pathname)) return null
   return pathname.startsWith('/settings/') || pathname.startsWith('/exercise/') ? { history: true, back: true } : null
 }
-/** How far down a back swipe may start: the middle of the screen up. */
-export const BACK_BAND = 0.55
 
 /** Where a swipe by `step` lands: { path, search } to go to, or null (no tab that way, not a tab screen). */
 export function swipeTarget(pathname, search, step, calm = false) {
@@ -90,8 +88,9 @@ export function installTabSwipe(where, go, calm = () => false) {
     const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth })
     const { pathname, search } = where()
     const to = swipeTarget(pathname, search, step, isCalm)
-    // BadgeFit: a tab change only from the title band at the top; a back swipe from the middle up.
-    if (to && isCalm && s.y > (to.back ? window.innerHeight * BACK_BAND : TOP_BAND)) return
+    // BadgeFit: a back swipe from anywhere on the screen; a tab change only from the title band
+    // at the top, so a sideways move mid-page never jumps to another tab.
+    if (to && isCalm && !to.back && s.y > TOP_BAND) return
     if (to) go(to)
   }
   const cancel = () => { t0 = null }
