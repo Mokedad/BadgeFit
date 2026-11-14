@@ -55,7 +55,7 @@ export function stopHandsFree(remember = true) {
 
 async function loop() {
   running = true
-  let armedUntil = 0, failures = 0, held = '', armedShort = false
+  let armedUntil = 0, failures = 0, held = '', armedShort = false, quick = 0
   while (useJarvis.getState().handsFree) {
     const S = useStore.getState().S
     if (!S.active) { stopHandsFree(false); break }
@@ -63,9 +63,21 @@ async function loop() {
     const l = listenOnce(Recognition, { timing: TIMING })
     current = l
     const off = onSpeaking(on => { if (on) l.cancel() })
+    const began = Date.now()
     const out = await l.done
     off(); current = null
     if (!useJarvis.getState().handsFree) break
+    // A listen that ended at once with nothing heard (the phone's recognition refusing, or busy
+    // with other audio) must not restart at once: on an iPhone a tight loop of restarts drained
+    // the battery and could make iOS restart the app. Wait longer each time, and give up after a
+    // run of them until Hayden is tapped on again.
+    if (!out.text && Date.now() - began < 1500) {
+      quick++
+      if (quick >= 12) { stopHandsFree(false); useUI.getState().toast('Hayden could not hear on this phone just now. Tap him to try again'); break }
+      await wait(Math.min(10000, 600 * quick))
+      continue
+    }
+    quick = 0
     if (out.error === 'not-allowed' || out.error === 'service-not-allowed') {
       stopHandsFree(false)
       useUI.getState().toast('Tap the mic in your workout to let Hayden listen')
@@ -109,6 +121,12 @@ async function loop() {
 }
 
 export default function JarvisHandsFree() {
+  // Off screen, the microphone lets go at once (the loop waits until the app is back).
+  useEffect(() => {
+    const hide = () => { if (document.hidden) current?.cancel() }
+    document.addEventListener('visibilitychange', hide)
+    return () => document.removeEventListener('visibilitychange', hide)
+  }, [])
   useEffect(() => useStore.subscribe((st, prev) => {
     const A = st.S.active, B = prev.S.active
     // A new workout with hands-free on last time: listen again (the start was a tap).

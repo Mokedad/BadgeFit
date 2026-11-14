@@ -1,3 +1,5 @@
+import { restoreTarget, rememberable } from './lib/police/last-route.js'
+const LAST_ROUTE = 'badgefit_last_route'
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import JarvisFab from './components/JarvisFab.jsx'
 import JarvisWorkout from './components/JarvisWorkout.jsx'
@@ -321,6 +323,22 @@ function Shell() {
   const authed = user || isGuest
   // Swipe left or right between the tabs, as well as tapping them (lib/tab-swipe.js). Not during
   // a workout, the first-run screens or with something open over the page.
+  // BadgeFit: the screen you are on is remembered, so if iOS restarts the app behind your back
+  // (short of memory) it opens on that screen again, not at the start (lib/police/last-route.js).
+  const restored = useRef(false)
+  useEffect(() => {
+    if (!useStore.getState().S.police?.level) return
+    const h = window.location.hash
+    if (!restored.current) {
+      restored.current = true
+      let saved = null
+      try { saved = JSON.parse(localStorage.getItem(LAST_ROUTE) || 'null') } catch { /* none */ }
+      const to = restoreTarget(saved, h)
+      if (to) { navigate(to.replace(/^#/, ''), { replace: true }); return }
+    }
+    if (rememberable(h)) try { localStorage.setItem(LAST_ROUTE, JSON.stringify({ h, at: Date.now() })) } catch { /* private mode */ }
+    else try { localStorage.removeItem(LAST_ROUTE) } catch { /* private mode */ }
+  }, [loc.pathname, loc.search]) // eslint-disable-line react-hooks/exhaustive-deps
   const swipeRef = useRef({})
   swipeRef.current = { loc, ok: authed && !noTabs }
   useEffect(() => installTabSwipe(

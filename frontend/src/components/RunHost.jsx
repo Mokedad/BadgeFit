@@ -19,7 +19,9 @@ export default function RunHost() {
   const P = useStore(s => s.S.police) || {}
   // Hayden in your pocket (the iPhone app): awake behind the lock screen for as long as a run, a
   // walk or a gym session is on, so his lines still play (lib/police/pocket.js).
-  const training = useStore(s => !!s.S.active) || !!run
+  // Not for a workout left open and forgotten: one started over 5 hours ago no longer keeps the
+  // app awake in the background (it stayed awake, and iOS woke it, for as long as it sat there).
+  const training = useStore(s => !!s.S.active && !s.S.active.backfill && Date.now() - (Number(s.S.active.start) || 0) < 5 * 3600000) || !!run
   useEffect(() => { pocketKeep(training) }, [training])
   if (!run) return null
   // Saved the moment the run ends (finished or stopped early), so it counts; the effort and the
