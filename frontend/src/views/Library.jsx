@@ -12,7 +12,7 @@ import { MUSCLE_NAME } from '../lib/muscles.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { bestWeightFor } from '../lib/history.js'
 import { fmtNum, exCount } from '../lib/format.js'
-import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
+import { t, tn, exerciseNameFor, exerciseNameClass, eqName } from '../lib/i18n.js'
 import { Thumb } from '../components/Media.jsx'
 import { exerciseDetailSheet, addToRoutineSheet, customExSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -84,7 +84,7 @@ export default function Library() {
     // a sibling above it (card dismiss pass), so neither tap can land on the other.
     return <div key={e.id} className="item tap-host">
       <Thumb ex={e} />
-      <button type="button" className="grow item-open tap-main" aria-haspopup="dialog" onClick={() => exerciseDetailSheet(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(S, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</span></button>
+      <button type="button" className="grow item-open tap-main" aria-haspopup="dialog" onClick={() => exerciseDetailSheet(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(S, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {eqName(e.eq)}</span></button>
       {best > 0 && <span className="tag acc">{fmtNum(best)}</span>}
       {/* a quiet trailing button (P7): the accent stays on the one action of the screen */}
       <button type="button" className="iconbtn lib-add" aria-label={t('Add to my plan')} title={t('Add to my plan')}
@@ -168,7 +168,7 @@ function LibraryFilters({ close, cat, eq, filtersFor, onChange }) {
       <h4 className="sec">{t('Equipment')}</h4>
       <div className="chips wrap">
         <button type="button" className={'chip nocap' + (!eqOn ? ' on' : '')} aria-pressed={!eqOn} onClick={() => set(c, '')}>{t('Any equipment')}</button>
-        {eqOpts.map(x => <button type="button" key={x} className={'chip' + (eqOn === x ? ' on' : '')} aria-pressed={eqOn === x} onClick={() => set(c, x)}>{t(x)}</button>)}
+        {eqOpts.map(x => <button type="button" key={x} className={'chip' + (eqOn === x ? ' on' : '')} aria-pressed={eqOn === x} onClick={() => set(c, x)}>{eqName(x)}</button>)}
       </div>
     </>}
     <div style={{ height: 16 }} />

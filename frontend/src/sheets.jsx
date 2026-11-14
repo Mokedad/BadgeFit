@@ -17,7 +17,7 @@ import { usesBar, hasBarOverride, isNoBar, barTypeWeight, ownBarDefault, barPick
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
-import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
+import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang, eqName } from './lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
@@ -1307,7 +1307,7 @@ export function detailTags(ex) {
   add(t(ex.bp), { acc: true })
   if (ex.bp === 'cardio') add(t(MUSCLE_NAME['cardiovascular system']), { icon: 'figureStrength' })
   else for (const s of (ex.primaries?.length ? ex.primaries : (ex.tg ? [ex.tg] : [])).filter(trainedBy(ex))) add(t(MUSCLE_NAME[s] || s), { icon: 'figureStrength' })
-  add(t(ex.eq), { icon: 'kettlebell' })
+  add(eqName(ex.eq), { icon: 'kettlebell' })
   let helpers = 0
   for (const s of (ex.secondaries?.length ? ex.secondaries : smOf(ex)).filter(trainedBy(ex))) {
     if (helpers >= 3) break
@@ -1797,7 +1797,7 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
     : []
   // The name opens the config sheet, stretched over the row; the quick add is its sibling (card dismiss pass).
   const pickRow = e => <div key={e.id} className="item tap-host">
-        <Thumb ex={e} /><button type="button" className="grow item-open tap-main" onClick={() => onPick(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</span></button>
+        <Thumb ex={e} /><button type="button" className="grow item-open tap-main" onClick={() => onPick(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {eqName(e.eq)}</span></button>
         {/* Accent tag = already in a routine/log ("Chosen"); the yellow star by the name = favourite. */}
         {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}
         {/* A "+" or "swap" glyph reads as "commit this now" — it used to just open the same detail sheet as
@@ -1858,7 +1858,7 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
     </div>}
     {eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
       <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</button>
-      {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</button>)}
+      {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{eqName(x)}</button>)}
     </div>}
     {/* The slot's planned substitutes, first, while nothing is typed: the plan already knows. */}
     {backupList.length > 0 && !q.trim() && <>
@@ -2382,7 +2382,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         turns into a translatable label. */}
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0 14px' }}>
       {cardio && <span className="tag acc"><Icon name="figureRun" />{t('Cardio')}</span>}
-      <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span><span className="tag">{t(ex.eq)}</span>
+      <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span><span className="tag">{eqName(ex.eq)}</span>
       {!cardio && (ex.secondaries?.length ? ex.secondaries : smOf(ex)).filter(trainedBy(ex)).slice(0, 3)
         .map((s, i) => <span key={i} className="tag dim">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>

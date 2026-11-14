@@ -6,7 +6,7 @@ import { bestWeightFor } from '../lib/history.js'
 import { fmtNum, exCount } from '../lib/format.js'
 import { MUSCLES, MUSCLE_NAME, musclesOf, loadOfWorkouts, muscleBalanceWindow } from '../lib/muscles.js'
 import { weekStartOf } from '../lib/format.js'
-import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
+import { t, exerciseNameFor, exerciseNameClass, eqName } from '../lib/i18n.js'
 import BodyMap from './BodyMap.jsx'
 import '../police.css'
 import { Thumb } from './Media.jsx'
@@ -103,7 +103,7 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan, pickIcon = 'p
       </div>
       {eqOpts.length > 1 && <div className="chips" style={{ marginBottom: 12 }}>
         <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(40) }}>{t('Any equipment')}</button>
-        {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(40) }}>{t(x)}</button>)}
+        {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(40) }}>{eqName(x)}</button>)}
       </div>}
       <div className={'list' + (S.exerciseView === 'cards' ? ' ex-grid' : '')}>
         {exercises.slice(0, shown).map(e => {
@@ -112,7 +112,7 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan, pickIcon = 'p
           // The name is the row's button, stretched over it; Plan is its sibling (card dismiss pass).
           return <div key={e.id} className="item tap-host">
             <Thumb ex={e} />
-            <button type="button" className="grow item-open tap-main" onClick={() => choose(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(S, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss">{t(primary ? 'Primary target' : 'Also trains')} · <span className="capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</span></span></button>
+            <button type="button" className="grow item-open tap-main" onClick={() => choose(e)}><span className={`tt ${exerciseNameClass(e)}`}>{isFav(S, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</span><span className="ss">{t(primary ? 'Primary target' : 'Also trains')} · <span className="capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {eqName(e.eq)}</span></span></button>
             {onPick ? <Icon name={pickIcon} className="chev" /> : <>
               {best > 0 && <span className="tag acc">{fmtNum(best)}</span>}
               <Button size="sm" variant="tinted" icon="plus" onClick={() => onPlan(e)}>{t('Plan')}</Button>

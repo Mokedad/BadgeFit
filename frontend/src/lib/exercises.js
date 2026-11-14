@@ -59,10 +59,18 @@ export const BODYPARTS = [...new Set(CATALOGUE.map(e => e.bp))].sort()
 // Equipment options present in a given list of exercises, most common first (issue #6).
 // Deriving them from the *already filtered* list keeps the chip row short and means
 // every body-part × equipment combination on screen has results behind it.
+// The equipment filters in the order a gym has it, most used first: the machines, the bars, the
+// dumbbells and cables, then the rest, the odd kit last. Anything not named here follows, by how
+// many exercises use it.
+export const GYM_ORDER = ['leverage machine', 'smith machine', 'sled machine', 'barbell', 'ez barbell', 'olympic barbell', 'trap bar',
+  'dumbbell', 'cable', 'kettlebell', 'weight plate', 'body weight', 'assisted', 'weighted', 'landmine', 'band', 'resistance band',
+  'suspension trainer', 'medicine ball', 'stability ball', 'bosu ball', 'rope', 'sandbag', 'stationary bike', 'elliptical machine',
+  'stepmill machine', 'skierg machine', 'upper body ergometer', 'roller', 'massage ball', 'wheel roller', 'tire', 'hammer', 'macebell']
 export function equipmentOf(list) {
   const c = {}
   list.forEach(e => { if (e.eq) c[e.eq] = (c[e.eq] || 0) + 1 })
-  return Object.keys(c).sort((a, b) => c[b] - c[a] || (a < b ? -1 : 1))
+  const at = x => { const i = GYM_ORDER.indexOf(x); return i < 0 ? GYM_ORDER.length : i }
+  return Object.keys(c).sort((a, b) => at(a) - at(b) || c[b] - c[a] || (a < b ? -1 : 1))
 }
 
 // Kinds of exercise (catalogue "category") present in a list, in a fixed order that reads from

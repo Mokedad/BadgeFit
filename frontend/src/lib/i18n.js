@@ -87,3 +87,8 @@ export function onLangChange(fn) { subs.add(fn); return () => subs.delete(fn) }
 export function useLang() {
   return useSyncExternalStore(fn => { subs.add(fn); return () => subs.delete(fn) }, getVersion)
 }
+
+// What equipment is called in a gym, in English: the catalogue's "leverage machine" is the weight
+// machine everyone means. Other languages keep their own packs' words.
+const EQ_EN = { 'leverage machine': 'weight machine', 'sled machine': 'leg press machine' }
+export const eqName = x => (getLang() === 'en' && EQ_EN[x]) || t(x)
