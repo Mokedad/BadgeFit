@@ -10,7 +10,7 @@ export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 
 
 const EDGE = 28, MIN = 70, MAX_MS = 700
 // BadgeFit: an easier swipe (shorter, slower, less straight will do), from the edges too.
-const CALM = { min: 45, ms: 1000, ratio: 1.4 }
+const CALM = { min: 45, ratio: 1.3 }
 /** How far down the screen (px, under the status bar) a BadgeFit tab swipe may start. */
 export const TOP_BAND = 170
 
@@ -18,7 +18,7 @@ export const TOP_BAND = 170
 export function swipeStep({ dx, dy, ms, startX, width, startY = 0, top = null, easy = false, edges = false }) {
   if (easy) {
     if (!edges && (startX < EDGE || startX > width - EDGE)) return 0
-    if (ms > CALM.ms || Math.abs(dx) < CALM.min || Math.abs(dx) < Math.abs(dy) * CALM.ratio) return 0
+    if (Math.abs(dx) < CALM.min || Math.abs(dx) < Math.abs(dy) * CALM.ratio) return 0
     return dx < 0 ? 1 : -1
   }
   if (startX < EDGE || startX > width - EDGE) return 0
@@ -65,7 +65,7 @@ export function swipeTarget(pathname, search, step, calm = false) {
   return next ? { path: next, search: '' } : null
 }
 
-const OWN = 'input, textarea, select, [contenteditable], .tswipe, .sheet, .rp, .rp-mini, .bfi, .tour, canvas, [role="slider"], [data-noswipe]'
+const OWN = 'input, textarea, select, [contenteditable], .tswipe, .sheet, .rp, .rp-mini, .bfi, .tour, canvas, [role="slider"], [data-noswipe], .hb-buddy'
 
 /** Whether the touched element, or something around it, uses sideways movement itself. */
 export function ownsSideways(el) {
@@ -94,28 +94,46 @@ export function installTabSwipe(where, go, calm = () => false) {
     // scrolled to its start (nothing for it to do): that one is still the page's back swipe.
     const own = e.target?.closest?.(OWN)
     const box = own ? null : sideScroller(e.target)
-    t0 = own ? null : { x: t.clientX, y: t.clientY, at: Date.now(), box, atStart: !box || box.scrollLeft <= 1 }
+    t0 = own ? null : { x: t.clientX, y: t.clientY, at: Date.now(), box, atStart: !box || box.scrollLeft <= 1, lx: t.clientX, ly: t.clientY, locked: false }
   }
-  const end = e => {
-    const s = t0; t0 = null
-    const t = e.changedTouches?.[0]
+  // BadgeFit: once a finger is clearly moving sideways, the swipe is held as a swipe, so the page
+  // does not start scrolling up or down under it and take the touch away (the phone then cancels
+  // it). Only where the swipe can go somewhere, and never on a strip that scrolls sideways itself.
+  const move = e => {
+    const s = t0, t = e.touches?.[0]
     if (!s || !t) return
+    s.lx = t.clientX; s.ly = t.clientY
+    if (!calm() || s.box) return
+    const dx = t.clientX - s.x, dy = t.clientY - s.y
+    if (!s.locked && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      const { pathname, search } = where()
+      s.locked = !!swipeTarget(pathname, search, dx < 0 ? 1 : -1, true)
+    }
+    if (s.locked && e.cancelable) e.preventDefault()
+  }
+  const decide = (s, x, y) => {
     const isCalm = calm()
     // BadgeFit: from the edges too, unless the page has an iPhone edge swipe back of its own
     // (a [data-back] arrow, lib/edge-swipe-back.js), which the edges are left to.
     const edges = isCalm && !document.querySelector('[data-back]')
-    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth, easy: isCalm, edges })
+    const step = swipeStep({ dx: x - s.x, dy: y - s.y, ms: isCalm ? 0 : Date.now() - s.at, startX: s.x, width: window.innerWidth, easy: isCalm, edges })
     if (s.box && !(step < 0 && s.atStart && s.box.scrollLeft <= 1)) return
     const { pathname, search } = where()
     const to = swipeTarget(pathname, search, step, isCalm)
-    // BadgeFit: left to right (back, or the tab before) works from anywhere on the screen; right
-    // to left, onto the next tab, only from the title band at the top.
-    if (to && isCalm && !to.back && step > 0 && s.y > TOP_BAND) return
     if (to) go(to)
   }
-  const cancel = () => { t0 = null }
+  const end = e => {
+    const s = t0; t0 = null
+    const t = e.changedTouches?.[0]
+    if (!s) return
+    decide(s, t ? t.clientX : s.lx, t ? t.clientY : s.ly)
+  }
+  // The phone took the touch (it started a scroll): a swipe already held as one still counts,
+  // from the last place the finger was.
+  const cancel = () => { const s = t0; t0 = null; if (s?.locked) decide(s, s.lx, s.ly) }
   document.addEventListener('touchstart', start, { passive: true })
+  document.addEventListener('touchmove', move, { passive: false })
   document.addEventListener('touchend', end, { passive: true })
   document.addEventListener('touchcancel', cancel, { passive: true })
-  return () => { document.removeEventListener('touchstart', start); document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', cancel) }
+  return () => { document.removeEventListener('touchstart', start); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); document.removeEventListener('touchcancel', cancel) }
 }
