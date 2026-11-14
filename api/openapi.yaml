@@ -3384,6 +3384,108 @@ paths:
         outcome as the Google return.
       responses:
         '302': { description: Back to the app, signed in, or with ?login=<reason> }
+  /api/nearby:
+    post:
+      tags: [community]
+      operationId: postNearby
+      summary: Say where you are, and see the bots nearby (BadgeFit)
+      description: |
+        For members who switched "Meet bots nearby" on. The position is kept in memory for three
+        minutes and never written down or sent to anyone; the answer lists other members within
+        about 300 m (first name, bot colour and gear, three shared numbers, an opaque handle),
+        never a distance, a direction or an account id, and the likes and loves that came in.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lon]
+              properties:
+                lat: { type: number }
+                lon: { type: number }
+                card: { type: object, description: 'What is shared: name, colour, gear, stats { week, ready, streak }' }
+      responses:
+        '200': { description: '`{ near: [...], inbox: [...] }`' }
+        '400': { description: No location }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/nearby/leave:
+    post:
+      tags: [community]
+      operationId: postNearbyLeave
+      summary: Stop showing your bot nearby, at once
+      responses:
+        '200': { description: Gone }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/nearby/cheer:
+    post:
+      tags: [community]
+      operationId: postNearbyCheer
+      summary: Send a like or a love to a bot nearby or followed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, kind]
+              properties:
+                id: { type: string, description: The handle from /api/nearby or /api/bell }
+                kind: { type: string, enum: [like, love] }
+      responses:
+        '200': { description: Sent }
+        '400': { description: Not a like or a love }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not nearby or followed }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/nearby/follow:
+    post:
+      tags: [community]
+      operationId: postNearbyFollow
+      summary: Follow a bot (the bell), or stop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+                on: { type: boolean, default: true }
+      responses:
+        '200': { description: '`{ ok, followed }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not nearby or followed }
+  /api/nearby/hide:
+    post:
+      tags: [community]
+      operationId: postNearbyHide
+      summary: Hide a bot for good, both ways
+      description: Swiped away. Neither sees the other again, and any follow between them ends.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+      responses:
+        '200': { description: Hidden }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not nearby or followed }
+  /api/bell:
+    get:
+      tags: [community]
+      operationId: getBell
+      summary: The bell, everyone you follow (BadgeFit)
+      description: Active ones first (BadgeFit open in the last three minutes), with their shared numbers while active.
+      responses:
+        '200': { description: '`{ people: [...] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/community:
     get:
       tags: [community]

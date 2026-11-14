@@ -105,6 +105,18 @@ export default function HaydenBuddy() {
     return () => { clearTimeout(t); clearTimeout(st); window.removeEventListener('scroll', onScroll); document.removeEventListener('click', onTap, true) }
   }, [loc.pathname, loc.search]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(hopT.current); clearTimeout(holdT.current) }, [])
+  // Told to react from elsewhere (a bot nearby to greet, a love that came in): NearbyBots.jsx.
+  useEffect(() => {
+    const on = e => {
+      const { sym, mood = 'happy', ms = 1800 } = e.detail || {}
+      const pose = sym === '👋' ? 'wave' : sym === '❤️' ? 'cheer' : 'idle'
+      setLook({ eyes: 'happy', pose, sym }); clearTimeout(timer.current)
+      beep(mood, beepVolume(useStore.getState().S.police))
+      timer.current = setTimeout(() => setLook(IDLE), ms)
+    }
+    window.addEventListener('hayden-react', on)
+    return () => window.removeEventListener('hayden-react', on)
+  }, [])
   // The guided run (RunHost) covers the screen: he floats over it, and runs when tapped.
   const running = useRun(s => !!s.run && !s.minimized)
   const place = running || loc.pathname === '/home' || loc.pathname === '/workout' || loc.pathname === '/police'

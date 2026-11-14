@@ -214,6 +214,9 @@ function JarvisSwitches({ S, P }) {
     }}>Hear Hayden</button>
     <label className="pf-jsw-row"><span><b>Music mode</b><small>Training to Spotify or YouTube: Hayden keeps it short and uses the phone's voice, which talks over your music</small></span>
       <Switch checked={!!P.musicMode} onChange={() => setP({ musicMode: !P.musicMode })} aria-label="Music mode" /></label>
+    {/* Other members' Haydens nearby (components/NearbyBots.jsx): off unless switched on. */}
+    {user && <label className="pf-jsw-row"><span><b>Meet bots nearby</b><small>Other members with BadgeFit open within about 300 m see your Hayden, your first name and three numbers (sessions this week, PCT ready, weeks in a row), and you see theirs. Where you are is never shown or kept</small></span>
+      <Switch checked={!!P.nearbyOn} onChange={() => setP({ nearbyOn: !P.nearbyOn })} aria-label="Meet bots nearby" /></label>}
     {/* His robot beeps when you tap him (lib/police/bot-voice.js): off, quiet or loud. */}
     <div className="pf-jsw-row"><span><b>Hayden's beeps</b><small>The little robot sounds he makes when you tap him</small></span>
       <Segmented options={CHIRP_LEVELS} value={CHIRP_LEVELS.find(l => l.value === beepVolume(P))?.value ?? 0.35}

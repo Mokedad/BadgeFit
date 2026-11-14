@@ -905,3 +905,29 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .sr-row button{height:48px;border-radius:14px;border:0;background:var(--surface-2,var(--surface));color:var(--label);display:grid;place-items:center;font-size:20px}
 .sr-row span{text-align:center;font-size:24px;font-weight:700}
 .pf-unload{color:var(--red,#c0262d);margin-top:8px}
+/* Bots nearby (components/NearbyBots.jsx) */
+.nb-row{position:fixed;left:10px;bottom:calc(var(--sab) + 96px);z-index:39;display:flex;gap:6px;pointer-events:none}
+.nb-bot{pointer-events:auto;position:relative;border:0;background:none;padding:0;width:46px;display:flex;flex-direction:column;align-items:center;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:opacity .2s}
+.nb-svg{display:block;width:46px;line-height:0;filter:drop-shadow(0 3px 6px rgba(20,32,58,.2))}
+.nb-svg svg{width:100%;height:auto;display:block}
+.nb-bot small{font-size:11px;font-weight:600;color:var(--label-2);max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nb-say{left:auto;right:-16px;top:-16px;min-width:28px;height:28px;font-size:16px}
+.nb-bell{position:absolute;top:-4px;left:-4px;font-size:13px}
+.nb-card{display:grid;justify-items:center;gap:10px;text-align:center}
+.nb-card h3{margin:0}
+.nb-card-bot{width:110px;line-height:0}
+.nb-card-bot svg{width:100%;height:auto}
+.nb-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.nb-tile{background:var(--surface);border-radius:14px;padding:10px 6px;display:grid;gap:2px}
+.nb-tile b{font-size:22px}
+.nb-tile span{font-size:12px;color:var(--label-2)}
+.nb-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.nb-acts .pf-go{grid-column:1 / -1}
+.nb-hide{color:var(--red,#c0262d)}
+.nb-bell-list{display:grid;gap:8px}
+.nb-person{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--surface);border-radius:14px;padding:8px 12px;text-align:left;color:var(--label)}
+.nb-person .nb-svg{width:38px}
+.nb-person b{flex:1}
+.nb-dot{width:9px;height:9px;border-radius:50%;background:#2fd39a;box-shadow:0 0 0 3px rgba(47,211,154,.2)}
+.nb-person small{color:var(--label-2)}
+.nb-acts .nb-hide{color:var(--red,#c0262d)!important}

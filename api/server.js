@@ -39,6 +39,7 @@ import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
 import * as community from './community.js';
+import * as nearby from './nearby.js';
 import * as social from './social-login.js';
 import { cleanMealReminders, dueMeals, mealPush } from './meal-reminders.js';
 import { cleanPushPlan, duePlanned, plannedKey, plannedPush } from './badgefit-plan-push.js';
@@ -1384,6 +1385,8 @@ function removeAccount(u) {
   db.users = db.users.filter(x => x.id !== u.id);
   // Their community posts, replies, cheers and reports (community.js).
   try { const feed = loadCommunity(); community.forgetUser(feed, u.id); saveCommunity(feed); } catch { /* no feed yet */ }
+  // Out of the bots nearby, and every follow and hide (nearby.js).
+  try { nearby.forgetUser(NEAR, loadBots(), u.id); saveBots(); } catch { /* none */ }
   db.creds = (db.creds || []).filter(c => c.userId !== u.id);
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
   dropDeviceLinks(db, u.id);
@@ -2207,6 +2210,22 @@ function communityGuard(req, res, budget) {
   return user;
 }
 const communityAnswer = (res, r, ok = 200) => (r.error ? json(res, r.status || 400, { error: r.error }) : json(res, ok, r));
+
+/* ---------- bots nearby (nearby.js) ----------
+   Where people are lives in memory only (NEAR), never on disk; follows and hides are kept in
+   DATA_DIR/bots.json, loaded once and written on each change. */
+const NEAR = nearby.emptyState();
+const botsFile = () => path.join(DATA, 'bots.json');
+let BOTS = null;
+function loadBots() {
+  if (BOTS) return BOTS;
+  try { const f = JSON.parse(fs.readFileSync(botsFile(), 'utf8')); BOTS = { ...nearby.emptySocial(), ...(f && typeof f === 'object' ? f : {}) }; }
+  catch { BOTS = nearby.emptySocial(); }
+  return BOTS;
+}
+function saveBots() { durableWrite(botsFile(), JSON.stringify(loadBots())); }
+const NEAR_PINGS = createWindow({ max: 240, windowMs: 3600000 });
+setInterval(() => NEAR_PINGS.sweep(), 600000).unref();
 
 const routes = {
   // 503 rather than a flag in a 200: the container healthcheck is `wget --spider`, which reads
@@ -3118,6 +3137,40 @@ const routes = {
   'POST /api/auth/apple/callback': async (req, res) => {
     const f = await readForm(req);
     await socialFinish('apple', req, res, { code: f.code, state: f.state, user: f.user, error: f.error });
+  },
+
+  /* ---------- bots nearby ---------- */
+  'POST /api/nearby': async (req, res) => {
+    const user = communityGuard(req, res, NEAR_PINGS); if (!user) return;
+    const body = await readBody(req);
+    communityAnswer(res, nearby.ping(NEAR, loadBots(), user, { lat: body.lat, lon: body.lon, card: body.card }));
+  },
+  'POST /api/nearby/leave': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    communityAnswer(res, nearby.leave(NEAR, user));
+  },
+  'POST /api/nearby/cheer': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    communityAnswer(res, nearby.cheer(NEAR, loadBots(), user, { id: body.id, kind: body.kind }));
+  },
+  'POST /api/nearby/follow': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const r = nearby.follow(NEAR, loadBots(), user, { id: body.id, on: body.on !== false });
+    if (!r.error) saveBots();
+    communityAnswer(res, r);
+  },
+  'POST /api/nearby/hide': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const r = nearby.hide(NEAR, loadBots(), user, { id: body.id });
+    if (!r.error) saveBots();
+    communityAnswer(res, r);
+  },
+  'GET /api/bell': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    json(res, 200, nearby.bell(NEAR, loadBots(), user));
   },
 
   /* ---------- community ---------- */

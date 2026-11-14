@@ -10,7 +10,33 @@ import { api } from '../lib/api.js'
 import { BRAND } from '../lib/police/brand.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Segmented, TextArea, TextField } from '../components/ui.jsx'
+import { useNearby, openBotCard } from '../components/NearbyBots.jsx'
+import { botSvg } from '../components/HaydenBot.jsx'
 import '../police.css'
+
+/** The bell: everyone you follow (active ones first, a green dot), and the bots nearby now. */
+function Bell() {
+  const [people, setPeople] = useState(null)
+  const near = useNearby(s => s.near)
+  const on = useStore(s => !!s.S.police?.nearbyOn)
+  const load = () => api('/api/bell').then(r => setPeople(r?.people || [])).catch(() => setPeople([]))
+  useEffect(() => { load() }, [])
+  const row = (b, live) => <button key={b.id} type="button" className="nb-person" onClick={() => openBotCard(b, load)}>
+    <span className="nb-svg" dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, gear: b.gear || [], head: true }) }} />
+    <b>{b.name}</b>{live ? <span className="nb-dot" aria-label="Active now" /> : <small>away</small>}
+  </button>
+  const nearOnly = near.filter(b => !(people || []).some(p => p.id === b.id))
+  return <div className="card">
+    <h3><Icon name="bell" /> Your bell</h3>
+    {people == null ? <p className="pf-sub">Loading</p>
+      : !people.length && !nearOnly.length ? <p className="pf-sub">{on ? 'Hold a bot nearby to follow them. They show up here.' : 'Switch on Meet bots nearby in Hayden\'s settings, then hold a bot nearby to follow them.'}</p>
+      : <div className="nb-bell-list">
+        {people.map(b => row(b, b.active))}
+        {nearOnly.length > 0 && <p className="muted small" style={{ margin: '6px 0 0' }}>Nearby now</p>}
+        {nearOnly.map(b => row(b, true))}
+      </div>}
+  </div>
+}
 
 const TOPICS = [
   { value: 'win', label: 'Win', emoji: '🏆' },
@@ -125,6 +151,7 @@ export default function Community() {
     {!user || error === 'signin'
       ? <div className="card"><h3>Sign in to join the {BRAND.name} community</h3><p className="pf-sub">The community lives on the server, so you need an account there. Sign in, or pair this phone with your server in Settings.</p></div>
       : <>
+        <Bell />
         <div className="card cm-new">
           <Segmented options={TOPICS.map(x => ({ value: x.value, label: x.emoji + ' ' + x.label }))} value={topic} onChange={setTopic} />
           <TextArea value={text} maxLength={1000} rows={3} placeholder={topic === 'win' ? 'Hit a PB? Passed a standard? Tell us!' : topic === 'question' ? 'Ask the people who have been there' : topic === 'motivation' ? 'Something that keeps you going' : 'Where you are on the road to the badge'} onChange={e => setText(e.target.value)} />
