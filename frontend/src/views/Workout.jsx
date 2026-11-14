@@ -821,8 +821,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // could otherwise end up showing another set.
   // BadgeFit: no set-row swipe, so a swipe anywhere on the exercise turns to the next or previous one.
   const swipeOn = !bf && !!(wc.swipeSets && onCopySetAt && onRemoveSetAt)
+  // BadgeFit: planned sets leave the swipe to the exercise (next or previous one), but a set added
+  // past the plan can be swiped away again, to remove it (no copy).
+  const plannedN = Number(entry.planned?.sets ?? entry.target?.sets) || 0
+  const warmN = entry.sets.filter(isWarmupRow).length
+  const addedRow = i => bf && !editing && !!onRemoveSetAt && plannedN > 0 && i >= warmN + plannedN
   const dismissHint = () => { if (useUI.getState().swipeHint) setUI({ swipeHint: null }) }
   const swipeRow = (s, i, row) => {
+    if (addedRow(i)) return <SwipeRow canDelete onDelete={() => onRemoveSetAt(i)}
+      closeKey={[entry.sets.length, s.done ? 1 : 0, S.active.cur].join('|')}>{row}</SwipeRow>
     if (!swipeOn) return row
     // A timed per-side pair comes here once, at its L row, and stands for both rows.
     const [from, count] = setSpanAt(entry.sets, i)
