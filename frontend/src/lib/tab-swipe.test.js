@@ -53,3 +53,12 @@ describe('BadgeFit: top of the screen only', () => {
     expect(ss({ ...base, startY: 780 })).toBe(0)
   })
 })
+
+describe('BadgeFit: an easy swipe', () => {
+  it('a shorter, slower, less straight swipe counts, from the edge too', () => {
+    expect(ss({ dx: 55, dy: 30, ms: 900, startX: 10, width: 390, easy: true, edges: true })).toBe(-1)
+    expect(ss({ dx: 55, dy: 30, ms: 900, startX: 10, width: 390 })).toBe(0)
+    expect(ss({ dx: 30, dy: 0, ms: 200, startX: 200, width: 390, easy: true })).toBe(0)
+    expect(ss({ dx: 80, dy: 70, ms: 200, startX: 200, width: 390, easy: true })).toBe(0)
+  })
+})

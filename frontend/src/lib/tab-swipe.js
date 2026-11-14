@@ -9,11 +9,18 @@ export const HUB_TABS = ['today', 'plan', 'tests', 'more']
 export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 'plan' }, { path: '/police', tab: 'tests' }, { path: '/police', tab: 'more' }]
 
 const EDGE = 28, MIN = 70, MAX_MS = 700
+// BadgeFit: an easier swipe (shorter, slower, less straight will do), from the edges too.
+const CALM = { min: 45, ms: 1000, ratio: 1.4 }
 /** How far down the screen (px, under the status bar) a BadgeFit tab swipe may start. */
 export const TOP_BAND = 170
 
 /** -1 (to the tab on the left), +1 (right) or 0 for a touch that is not a tab swipe. */
-export function swipeStep({ dx, dy, ms, startX, width, startY = 0, top = null }) {
+export function swipeStep({ dx, dy, ms, startX, width, startY = 0, top = null, easy = false, edges = false }) {
+  if (easy) {
+    if (!edges && (startX < EDGE || startX > width - EDGE)) return 0
+    if (ms > CALM.ms || Math.abs(dx) < CALM.min || Math.abs(dx) < Math.abs(dy) * CALM.ratio) return 0
+    return dx < 0 ? 1 : -1
+  }
   if (startX < EDGE || startX > width - EDGE) return 0
   // BadgeFit: only a swipe across the top of the screen (the page's title) changes tab, so a
   // sideways move in the middle or at the bottom never takes you somewhere else.
@@ -64,13 +71,17 @@ const OWN = 'input, textarea, select, [contenteditable], .tswipe, .sheet, .rp, .
 export function ownsSideways(el) {
   if (!el || !el.closest) return false
   if (el.closest(OWN)) return true
+  return !!sideScroller(el)
+}
+/** The sideways-scrolling box around `el` (a strip, a heat map), or null. */
+export function sideScroller(el) {
   for (let n = el; n && n !== document.body; n = n.parentElement) {
     if (n.scrollWidth > n.clientWidth + 8) {
       const o = getComputedStyle(n).overflowX
-      if (o === 'auto' || o === 'scroll') return true
+      if (o === 'auto' || o === 'scroll') return n
     }
   }
-  return false
+  return null
 }
 
 /** Listens for tab swipes; `go({ path, search })` moves there. Returns the uninstall. */
@@ -78,19 +89,28 @@ export function installTabSwipe(where, go, calm = () => false) {
   let t0 = null
   const start = e => {
     const t = e.touches?.[0]
-    t0 = e.touches?.length === 1 && t && !ownsSideways(e.target) ? { x: t.clientX, y: t.clientY, at: Date.now() } : null
+    if (e.touches?.length !== 1 || !t) { t0 = null; return }
+    // A strip that scrolls sideways keeps its swipe, except a left-to-right one when it is already
+    // scrolled to its start (nothing for it to do): that one is still the page's back swipe.
+    const own = e.target?.closest?.(OWN)
+    const box = own ? null : sideScroller(e.target)
+    t0 = own ? null : { x: t.clientX, y: t.clientY, at: Date.now(), box, atStart: !box || box.scrollLeft <= 1 }
   }
   const end = e => {
     const s = t0; t0 = null
     const t = e.changedTouches?.[0]
     if (!s || !t) return
     const isCalm = calm()
-    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth })
+    // BadgeFit: from the edges too, unless the page has an iPhone edge swipe back of its own
+    // (a [data-back] arrow, lib/edge-swipe-back.js), which the edges are left to.
+    const edges = isCalm && !document.querySelector('[data-back]')
+    const step = swipeStep({ dx: t.clientX - s.x, dy: t.clientY - s.y, ms: Date.now() - s.at, startX: s.x, width: window.innerWidth, easy: isCalm, edges })
+    if (s.box && !(step < 0 && s.atStart && s.box.scrollLeft <= 1)) return
     const { pathname, search } = where()
     const to = swipeTarget(pathname, search, step, isCalm)
-    // BadgeFit: a back swipe from anywhere on the screen; a tab change only from the title band
-    // at the top, so a sideways move mid-page never jumps to another tab.
-    if (to && isCalm && !to.back && s.y > TOP_BAND) return
+    // BadgeFit: left to right (back, or the tab before) works from anywhere on the screen; right
+    // to left, onto the next tab, only from the title band at the top.
+    if (to && isCalm && !to.back && step > 0 && s.y > TOP_BAND) return
     if (to) go(to)
   }
   const cancel = () => { t0 = null }

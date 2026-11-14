@@ -1,6 +1,7 @@
 // Today's box on Home (BadgeFit): swipe it left for Remove, or hold it for Remove / Swap, the way
 // a list row is cleared on a phone. Remove makes today a rest day (nothing is deleted from the
 // history). A tap still reaches the row inside.
+import Icon from './Icon.jsx'
 import { useRef, useState } from 'react'
 
 const OPEN = 96, HOLD_MS = 550
@@ -36,7 +37,7 @@ export default function TodaySwipe({ enabled, onRemove, onHold, children }) {
     if (dx !== 0) { e.stopPropagation(); e.preventDefault(); setDx(0) }
   }
   return <div className="tswipe">
-    <button type="button" className="tswipe-del" onClick={() => { setDx(0); onRemove() }} tabIndex={dx ? 0 : -1} aria-hidden={dx ? undefined : true}>🗑<span>Remove</span></button>
+    <button type="button" className="tswipe-del" onClick={() => { setDx(0); onRemove() }} tabIndex={dx ? 0 : -1} aria-hidden={dx ? undefined : true}><Icon name="trash" /><span>Remove</span></button>
     <div className="tswipe-fg" style={{ transform: `translateX(${dx}px)`, transition: g.current ? 'none' : 'transform .2s' }}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClickCapture={click}
       onContextMenu={e => e.preventDefault()}>{children}</div>

@@ -1,7 +1,7 @@
 // BadgeFit: Hayden floats in the corner of Home, the hub's pages, a run and a workout, blinking and
 // bobbing. Tap him and he does a move and "says" it: one symbol in a bubble and a few robot beeps
 // (lib/police/bot-voice.js, volume in Hayden's settings). In a workout he does the exercise you are
-// on. Double tap: he hops to another spot at random. Press and hold him (a second, a ring fills)
+// on. Double tap: he hops to another spot at random. Press and hold him (half a second, a ring fills)
 // and he lifts up: drag him anywhere, and he is happy where you put him down. The switch
 // (HaydenToggle: his head, crossed out when off) turns him off or on.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'

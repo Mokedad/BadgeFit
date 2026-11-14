@@ -116,13 +116,13 @@ export default function PlanDays({ first = null }) {
   const next = [1, 2].map(n => dayInfo(S, shiftISO(focus, n)))
   // What fits today's time (45 minutes unless more was chosen): the rest shows faint.
   const fits = new Set(d.gym.length ? fitSession(buildCombinedEntries(S, d.gym.map(r => r.id)).entries, S.police?.sessionCap ?? 45).map(e => `${e.rid}:${e.id}`) : [])
-  return <div className="pd" data-noswipe>
+  return <div className="pd">
     <div className="pd-nav">
       <button className="calm-back" onClick={() => go(-1)} disabled={shiftISO(focus, -1) < floor} aria-label="Day before"><Icon name="chevronLeft" /></button>
       <b>{label(focus, today)}</b>
       <button className="calm-back" onClick={() => go(1)} aria-label="Next day"><Icon name="chevronRight" /></button>
     </div>
-    <div className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={down} onPointerUp={up}>
+    <div data-noswipe className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={down} onPointerUp={up}>
       <div className="pd-h">
         <span className="pd-m"><b>{d.name}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
         {d.trained ? (focus === today
