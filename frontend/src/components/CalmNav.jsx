@@ -13,6 +13,14 @@ import { startFlow } from '../sheets.jsx'
 import Icon from './Icon.jsx'
 import HaydenQuick from './HaydenQuick.jsx'
 import { HaydenMark } from './HaydenBot.jsx'
+import ProgramUpload from './ProgramUpload.jsx'
+import { DEMO } from '../lib/demo.js'
+
+/** Hayden's "upload my own program": a member's own plan from a file or pasted text. */
+export function uploadProgram() {
+  if (!useStore.getState().user && !DEMO) { useUI.getState().toast('Sign up to upload your own program'); return }
+  useUI.getState().openSheet(close => <ProgramUpload close={close} />)
+}
 
 /** Which of the bar's places a screen belongs to. */
 export function navKey(pathname, search) {
@@ -36,6 +44,7 @@ export default function CalmNav() {
     const patch = seenPatch(useStore.getState().S.police, 'hayden')
     if (patch) useStore.getState().update(s => { s.police = { ...(s.police || {}), ...patch } })
     useUI.getState().openSheet(close => <HaydenQuick close={close} today={now.today} done={now.done} onCommand={cmd => {
+      if (cmd === 'upload') return uploadProgram()
       if (cmd === 'plan') return nav('/police?tab=plan', { replace: true })
       if (cmd === 'tests') return nav('/police?tab=tests', { replace: true })
       // Start: straight in, today's session fitted to the time (no list to tap through).

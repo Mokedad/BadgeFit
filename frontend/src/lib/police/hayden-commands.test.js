@@ -16,3 +16,12 @@ describe('Hayden takes orders', () => {
     expect(haydenCommand('')).toBe(null)
   })
 })
+
+describe('upload my program', () => {
+  it('hears it however it is said', () => {
+    for (const q of ['I want to upload my own program', 'I want to upload my program', 'upload my plan', 'Can I upload my programme?', 'import my training plan', 'use my own plan'])
+      expect(haydenCommand(q)).toBe('upload')
+    expect(haydenCommand('show my plan')).toBe('plan')
+    expect(haydenCommand("let's go")).toBe('start')
+  })
+})

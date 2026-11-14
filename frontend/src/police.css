@@ -882,3 +882,18 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .hdr .calm-back{flex:none;margin-inline-end:10px}
 .hb-buddy,.hb-buddy *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .hb-buddy.say-right .hb-say{left:auto;right:-14px;border-radius:17px 17px 4px 17px}
+/* Upload my own program (components/ProgramUpload.jsx) */
+.pu{display:grid;gap:12px}
+.pu h3{margin:0}
+.pu p{margin:0}
+.pu-paste{width:100%;border-radius:14px;border:1px solid var(--sep);background:var(--surface);color:var(--label);padding:12px;font:inherit;font-size:15px;resize:vertical}
+.pu-days{display:grid;gap:10px;max-height:46vh;overflow:auto}
+.pu-day{background:var(--surface);border-radius:14px;padding:10px 12px}
+.pu-dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pu-dh span{font-size:13px;font-weight:600;color:var(--acc-ink)}
+.pu-ex{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid var(--sep);font-size:15px}
+.pu-ex span{text-transform:capitalize}
+.pu-ex small{color:var(--label-2);white-space:nowrap}
+.pu-left{color:var(--gold-ink,#9a6b00)}
+.pu-mine{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pu-mine small{display:block;color:var(--label-2)}

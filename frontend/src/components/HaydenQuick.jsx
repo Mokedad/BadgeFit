@@ -81,7 +81,7 @@ export default function HaydenQuick({ close, today = null, done = null, onComman
     const cmd = onCommand && haydenCommand(ask)
     if (cmd) {
       turn.current++; rec.current?.cancel(); rec.current = null
-      const line = cmd === 'start' ? (today?.kind === 'rest' ? 'Rest day today. Here is something easy.' : "Let's go.") : 'Here it is.'
+      const line = cmd === 'start' ? (today?.kind === 'rest' ? 'Rest day today. Here is something easy.' : "Let's go.") : cmd === 'upload' ? 'Send it over.' : 'Here it is.'
       say(line).catch(() => {})
       close(); onCommand(cmd); return
     }
@@ -129,6 +129,7 @@ export default function HaydenQuick({ close, today = null, done = null, onComman
       {/* His opening is said, not shown: a coach talks to you, he does not hand you a page. */}
       <div className="hq-chips">
         {onCommand && today?.kind !== 'rest' && !done && <button className="hq-start" onClick={() => answer('start', 'Start')}>Start today</button>}
+        {onCommand && <button onClick={() => answer('upload my program', 'Upload my program')}>Upload my program</button>}
         {QUICK.map(x => <button key={x.q} onClick={() => answer(x.ask, x.q)}>{x.q}</button>)}
       </div>
     </>}

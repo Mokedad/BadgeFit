@@ -376,7 +376,8 @@ function PlanChoice({ S, P }) {
   }
   return <div className="card pf-planpick">
     <h3>Your plan</h3>
-    {!onHome && P.planChoice !== 'own' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
+    {!onHome && P.planChoice === 'upload' && <p className="pf-sub">Home follows the program you uploaded. Pick another below any time.</p>}
+    {!onHome && P.planChoice !== 'own' && P.planChoice !== 'upload' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
     {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Hayden built you. Pick another below any time.</p>}
     <div className="pf-choice">{PLAN_CHOICES.map(c => { const locked = guest && c.id !== 'badgefit'; return <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : locked ? 'locked' : ''} onClick={() => (locked ? membersOnly() : pick(c.id))}><b>{c.title}</b><small>{locked ? 'Members' : c.sub}</small></button> })}</div>
   </div>

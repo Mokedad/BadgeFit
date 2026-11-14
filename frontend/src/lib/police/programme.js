@@ -89,6 +89,10 @@ const GYM = {
   },
 }
 
+/** Every exercise the BadgeFit plan uses: the plain, filmed versions, which an uploaded program's
+ *  names prefer when the library offers several (lib/police/find-exercise.js). */
+export const PLAN_EXERCISES = new Set(Object.values(GYM).flatMap(d => (Array.isArray(d) ? d : d.ex || []).map(x => x[0])))
+
 const BW_REPS = { beginner: [8, 12], intermediate: [12, 20] }
 
 function gymExercise([id, setsB, setsI, kind], level, range) {
