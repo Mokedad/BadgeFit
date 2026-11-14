@@ -33,28 +33,32 @@ let posNow = null
 
 const SIZE = 62
 // What he must not sit on: anything you can tap or type in, and the bars.
-const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], .tappable, .calm-nav, #timer, .rp-mini'
+// Pictures you hold (Plan's exercise pictures), the week strip's days and fold headers count too.
+const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], [role=checkbox], .tappable, .calm-nav, #timer, .rp-mini, figure, .wday, summary, label'
 const hits = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
-/** Whether the box `r` (his) covers something tappable on the page. */
-function blocks(me, r) {
+/** How much of the tappable page the box `r` (his) covers, in square pixels; 0 when nothing. */
+function covered(me, r) {
+  let area = 0
   for (const el of document.querySelectorAll(TAPPABLE)) {
     if (me.contains(el) || el.contains(me) || el.closest('[aria-hidden=true]')) continue
     const b = el.getBoundingClientRect()
     if (b.width < 2 || b.height < 2 || b.bottom < 0 || b.top > innerHeight) continue
-    if (hits(r, b)) return true
+    if (hits(r, b)) area += (Math.min(r.right, b.right) - Math.max(r.left, b.left)) * (Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top))
   }
-  return false
+  return area
 }
-/** The first spot, from `order`, where he covers nothing; `fallback` when every one does. */
-function freeSpot(me, order, fallback) {
+/** The first spot, from `order`, where he covers nothing; else the one where he covers least. */
+function freeSpot(me, order) {
   const was = me.className
-  let found = null
+  let best = null, least = Infinity
   for (const sp of order) {
     me.className = was.replace(/\bspot-\w+/, '') + ' spot-' + sp
-    if (!blocks(me, me.getBoundingClientRect())) { found = sp; break }
+    const a = covered(me, me.getBoundingClientRect())
+    if (a < least) { least = a; best = sp }
+    if (a === 0) break
   }
   me.className = was
-  return found || fallback
+  return best || order[0]
 }
 const clampPos = (x, y) => ({ x: Math.max(4, Math.min(window.innerWidth - SIZE - 4, x)), y: Math.max(40, Math.min(window.innerHeight - SIZE * 1.3 - 8, y)) })
 
@@ -86,7 +90,7 @@ export default function HaydenBuddy() {
   useLayoutEffect(() => {
     const look = () => {
       if (!me.current || posNow) return
-      const sp = freeSpot(me.current, [spotNow, ...SPOTS.filter(x => x !== spotNow)], spotNow)
+      const sp = freeSpot(me.current, [spotNow, ...SPOTS.filter(x => x !== spotNow)])
       if (sp !== spotNow) { spotNow = sp; setSpot(sp) }
     }
     look()
@@ -95,7 +99,10 @@ export default function HaydenBuddy() {
     let st = 0
     const onScroll = () => { clearTimeout(st); st = setTimeout(look, 350) }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { clearTimeout(t); clearTimeout(st); window.removeEventListener('scroll', onScroll) }
+    // And after a tap anywhere (not on him): the page may have changed under him (next day, a fold).
+    const onTap = e => { if (!me.current?.contains(e.target)) onScroll() }
+    document.addEventListener('click', onTap, true)
+    return () => { clearTimeout(t); clearTimeout(st); window.removeEventListener('scroll', onScroll); document.removeEventListener('click', onTap, true) }
   }, [loc.pathname, loc.search]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(hopT.current); clearTimeout(holdT.current) }, [])
   // The guided run (RunHost) covers the screen: he floats over it, and runs when tapped.
@@ -114,7 +121,7 @@ export default function HaydenBuddy() {
     hopT.current = setTimeout(() => {
       // Somewhere new at random, and clear of buttons when one of the others is.
       const others = SPOTS.filter(x => x !== spotNow).sort(() => Math.random() - 0.5)
-      spotNow = me.current ? freeSpot(me.current, others, nextSpot(spotNow)) : nextSpot(spotNow)
+      spotNow = me.current ? freeSpot(me.current, others) : nextSpot(spotNow)
       posNow = null; setPos(null); setSpot(spotNow); setHop(false)
     }, 200)
   }

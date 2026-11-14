@@ -43,8 +43,11 @@ export default function ProgramUpload({ close }) {
     const bundle = parsePlan(asPlanFile(got, unit), unit)
     useStore.getState().update(s => {
       if (mine) endProgramme(s)
+      const before = new Set((s.routines || []).map(r => r.id))
       mergePlan(s, bundle, { schedule: mine })
-      if (mine) s.police = { ...(s.police || {}), planChoice: 'upload' }
+      // The routines it added, so the whole upload can be removed again in one go (Change my plan).
+      const added = (s.routines || []).filter(r => !before.has(r.id)).map(r => r.id)
+      s.police = { ...(s.police || {}), uploadIds: [...(s.police?.uploadIds || []), ...added], ...(mine ? { planChoice: 'upload' } : {}) }
     })
     close()
     useUI.getState().toast(mine ? 'Your program is your plan now' : 'Added to Plan')

@@ -18,6 +18,38 @@ import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet } from '../sh
 import { reopenPatch } from '../lib/police/reopen.js'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
+import { swallowNextClick } from '../lib/swallow-click.js'
+import { useUI } from '../store/useUI.js'
+
+/** Sets and reps (or seconds) of one exercise in a routine, as a plan: two steppers and Save. */
+function SetsReps({ close, r, i, ex }) {
+  const cur = (useStore.getState().S.routines || []).find(y => y.id === r.id)?.ex?.[i] || {}
+  const timed = cur.mode === 'time'
+  const [sets, setSets] = useState(cur.sets || 3)
+  const [n, setN] = useState(timed ? cur.sec || 30 : cur.reps || 10)
+  const step = timed ? 5 : 1
+  const save = () => {
+    useStore.getState().update(s => {
+      const y = (s.routines || []).find(z => z.id === r.id)
+      const e = y?.ex?.[i]
+      if (!e) return
+      e.sets = sets
+      if (timed) e.sec = n
+      else { e.reps = n; if (e.repsMin != null) e.repsMin = Math.max(1, Math.min(e.repsMin, n)) }
+    })
+    close()
+  }
+  const row = (label, v, set, d, min, max) => <div className="sr-row"><b>{label}</b>
+    <button onClick={() => set(Math.max(min, v - d))} aria-label={'Fewer ' + label.toLowerCase()}><Icon name="minus" /></button>
+    <span>{v}</span>
+    <button onClick={() => set(Math.min(max, v + d))} aria-label={'More ' + label.toLowerCase()}><Icon name="plus" /></button></div>
+  return <div className="sr">
+    <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
+    {row('Sets', sets, setSets, 1, 1, 10)}
+    {row(timed ? 'Seconds' : 'Reps', n, setN, step, timed ? 5 : 1, timed ? 600 : 50)}
+    <button className="pf-go" onClick={save}>Save</button>
+  </div>
+}
 
 const DAY = 86400000
 // Every run and walk shows the same picture: the catalogue's run (one picture, easy to read).
@@ -39,7 +71,7 @@ export function dayInfo(S, iso) {
 
 function Pic({ ex, onHold, faint = false }) {
   const t = useRef(null)
-  const start = () => { t.current = setTimeout(() => { t.current = null; try { navigator.vibrate?.(15) } catch { /* none */ } onHold() }, 500) }
+  const start = () => { t.current = setTimeout(() => { t.current = null; try { navigator.vibrate?.(15) } catch { /* none */ } swallowNextClick(); onHold() }, 500) }
   const stop = () => { if (t.current) { clearTimeout(t.current); t.current = null } }
   return <figure className={faint ? 'faint' : ''} onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onContextMenu={e => { e.preventDefault(); onHold() }}>
     <Thumb ex={ex} /><figcaption>{exerciseNameFor(ex)}</figcaption>
@@ -73,6 +105,7 @@ export default function PlanDays({ first = null }) {
     onConfirm: () => useStore.getState().update(s => { s.police = { ...(s.police || {}), ...reopenPatch(s.police, iso, Date.now(), todayISO()) } }),
   })
   const hold = (r, i, ex) => menuSheet({ title: exerciseNameFor(ex), items: [
+    { icon: 'slider', label: 'Change sets and reps', onClick: () => useUI.getState().openSheet(close => <SetsReps close={close} r={r} i={i} ex={ex} />) },
     { icon: 'trash', danger: true, label: 'Remove from this workout', onClick: () => removeEx(r, i) },
     { icon: 'xmark', label: 'Keep it', onClick: () => {} },
   ] })

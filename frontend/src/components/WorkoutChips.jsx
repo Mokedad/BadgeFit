@@ -5,6 +5,7 @@ import { exerciseNameText } from '../lib/format.js'
 import { exerciseChips } from '../lib/exercise-chips.js'
 import { revealChip } from '../lib/use-sheet-keyboard.js'
 import { t } from '../lib/i18n.js'
+import { swallowNextClick } from '../lib/swallow-click.js'
 
 // The chip row at the top of a running workout (#323, the "coloured dots" of #163): one numbered
 // chip per exercise, a superset as one chip, filled as far as it is done (empty, half, full), so
@@ -40,7 +41,7 @@ export default function WorkoutChips({ entries, cur, onPick, onHold }) {
         : t('Exercise {0}: {1} ({2})', c.n, names, STATE_WORD[c.state]())
       return <button key={c.key} type="button" className={'wchip ' + c.state + (c.current ? ' cur' : '')}
         data-unit-key={c.key} aria-current={c.current ? 'step' : undefined} aria-label={label} title={names}
-        onPointerDown={onHold ? () => { heldFired.current = false; clearTimeout(held.current); held.current = setTimeout(() => { heldFired.current = true; navigator.vibrate?.(15); onHold(c) }, 500) } : undefined}
+        onPointerDown={onHold ? () => { heldFired.current = false; clearTimeout(held.current); held.current = setTimeout(() => { heldFired.current = true; navigator.vibrate?.(15); swallowNextClick(); onHold(c) }, 500) } : undefined}
         onPointerUp={onHold ? () => clearTimeout(held.current) : undefined}
         onPointerLeave={onHold ? () => clearTimeout(held.current) : undefined}
         onPointerCancel={onHold ? () => clearTimeout(held.current) : undefined}

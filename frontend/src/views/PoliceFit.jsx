@@ -377,6 +377,17 @@ function PlanChoice({ S, P }) {
   return <div className="card pf-planpick">
     <h3>Your plan</h3>
     {!onHome && P.planChoice === 'upload' && <p className="pf-sub">Home follows the program you uploaded. Pick another below any time.</p>}
+    {P.uploadIds?.length > 0 && <button className="btn ghost pf-unload" onClick={() => confirmSheet({
+      title: 'Remove your uploaded program?',
+      message: P.planChoice === 'upload' ? 'Its days come off your plan and the BadgeFit plan goes back on Home. Workouts you logged stay in your stats.' : 'Its days come off your plan. Workouts you logged stay in your stats.',
+      confirmText: 'Remove it', danger: true,
+      onConfirm: () => {
+        const back = P.planChoice === 'upload'
+        update(s => { for (const id of s.police?.uploadIds || []) deleteRoutine(s, id); s.police = { ...(s.police || {}), uploadIds: undefined, ...(back ? { planChoice: 'badgefit' } : {}) } })
+        if (back) installPlan(update, { ...P, planChoice: 'badgefit' }, { level, choice: 'badgefit' })
+        useUI.getState().toast('Your uploaded program is removed')
+      },
+    })}>Remove my uploaded program</button>}
     {!onHome && P.planChoice !== 'own' && P.planChoice !== 'upload' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
     {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Hayden built you. Pick another below any time.</p>}
     <div className="pf-choice">{PLAN_CHOICES.map(c => { const locked = guest && c.id !== 'badgefit'; return <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : locked ? 'locked' : ''} onClick={() => (locked ? membersOnly() : pick(c.id))}><b>{c.title}</b><small>{locked ? 'Members' : c.sub}</small></button> })}</div>
