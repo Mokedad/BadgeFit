@@ -931,3 +931,4 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .nb-dot{width:9px;height:9px;border-radius:50%;background:#2fd39a;box-shadow:0 0 0 3px rgba(47,211,154,.2)}
 .nb-person small{color:var(--label-2)}
 .nb-acts .nb-hide{color:var(--red,#c0262d)!important}
+.pf-pics figure.lifted{box-shadow:0 14px 30px rgba(20,32,58,.28);border-radius:14px;background:var(--surface);transition:none}

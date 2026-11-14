@@ -4,12 +4,13 @@
 // Every day is read from the schedule as it really is (lib/police/today-now.js: a swap, a removal
 // or an added workout included), so Plan and Home always say the same thing. Hold a picture to
 // take that exercise out of the workout; + adds one. Changing a day is the swap button.
-import { useRef, useState } from 'react'
+import { DEMO } from '../lib/demo.js'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { todayISO, isoOf } from '../lib/format.js'
 import { effectiveRoutines } from '../lib/history.js'
 import { EXIDX } from '../lib/exercises.js'
-import { exerciseNameFor } from '../lib/i18n-core.js'
+import { exerciseNameFor, exerciseNameClass } from '../lib/i18n-core.js'
 import { todayNow } from '../lib/police/today-now.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { fitSession } from '../lib/police/session-length.js'
@@ -69,11 +70,69 @@ export function dayInfo(S, iso) {
   return { iso, name: now.name || 'Rest', minutes: now.minutes, kind, gym, runs, done: trained && (now.done || !routines.length), trained }
 }
 
-function Pic({ ex, onHold, faint = false }) {
-  const t = useRef(null)
-  const start = () => { t.current = setTimeout(() => { t.current = null; try { navigator.vibrate?.(15) } catch { /* none */ } swallowNextClick(); onHold() }, 500) }
-  const stop = () => { if (t.current) { clearTimeout(t.current); t.current = null } }
-  return <figure className={faint ? 'faint' : ''} onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onContextMenu={e => { e.preventDefault(); onHold() }}>
+/** Where to move item `from` so it lands in front of `to` (or last, for `to` past the end). */
+export function moveTo(list, from, to) {
+  const out = list.slice()
+  if (from < 0 || from >= out.length) return out
+  const [it] = out.splice(from, 1)
+  out.splice(Math.max(0, Math.min(out.length, to > from ? to - 1 : to)), 0, it)
+  return out
+}
+
+// An exercise's picture on a day. A hold (half a second, then let go) opens its menu; a longer
+// hold (1.5 seconds, a buzz) lifts it, and dragging it in front of another picture moves it there
+// in the routine. A move before the first half second is a scroll, and nothing happens.
+function Pic({ ex, onHold, onMove, idx, faint = false }) {
+  const t = useRef(null), lift = useRef(null), g = useRef(null), me = useRef(null)
+  const [drag, setDrag] = useState(null)
+  const clear = () => { clearTimeout(t.current); clearTimeout(lift.current); t.current = lift.current = null }
+  // A finger held down on a lifted picture must not scroll the page under it.
+  useEffect(() => {
+    const el = me.current
+    if (!el) return
+    const stop = e => { if (g.current?.lifted) e.preventDefault() }
+    el.addEventListener('touchmove', stop, { passive: false })
+    return () => el.removeEventListener('touchmove', stop)
+  }, [])
+  const down = e => {
+    g.current = { x: e.clientX, y: e.clientY, menu: false, lifted: false }
+    t.current = setTimeout(() => { if (g.current) { g.current.menu = true; try { navigator.vibrate?.(10) } catch { /* none */ } } }, 500)
+    if (onMove) lift.current = setTimeout(() => {
+      if (!g.current) return
+      g.current.lifted = true; g.current.menu = false
+      try { navigator.vibrate?.([20, 40, 20]) } catch { /* none */ }
+      me.current?.setPointerCapture?.(e.pointerId)
+      setDrag({ dx: 0, dy: 0 })
+    }, 1500)
+  }
+  const move = e => {
+    const s = g.current
+    if (!s) return
+    if (s.lifted) { e.stopPropagation(); setDrag({ dx: e.clientX - s.x, dy: e.clientY - s.y }); return }
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) { clear(); g.current = null }
+  }
+  const up = e => {
+    const s = g.current; g.current = null
+    clear()
+    if (!s) return
+    if (s.lifted) {
+      e.stopPropagation()   // not a swipe to the next day (the day card's own swipe)
+      swallowNextClick()
+      setDrag(null)
+      // The picture under the finger, the dragged one aside, is where it goes in front of.
+      me.current.style.visibility = 'hidden'
+      const under = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('[data-pic]')
+      me.current.style.visibility = ''
+      const to = under ? Number(under.dataset.pic) + (e.clientX > under.getBoundingClientRect().left + under.offsetWidth / 2 ? 1 : 0) : null
+      if (to != null && to !== idx && to !== idx + 1) onMove(idx, to)
+      return
+    }
+    if (s.menu) { swallowNextClick(); onHold() }
+  }
+  return <figure ref={me} data-pic={idx} className={(faint ? 'faint' : '') + (drag ? ' lifted' : '')}
+    style={drag ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.08)`, zIndex: 30, position: 'relative' } : undefined}
+    onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { clear(); g.current = null; setDrag(null) }}
+    onContextMenu={e => { e.preventDefault(); onHold() }}>
     <Thumb ex={ex} /><figcaption>{exerciseNameFor(ex)}</figcaption>
   </figure>
 }
@@ -81,6 +140,7 @@ function Pic({ ex, onHold, faint = false }) {
 export default function PlanDays({ first = null }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
+  const member = !!useStore(s => s.user) || DEMO
   const today = todayISO()
   // Back no further than the plan's first day (or today, for a plan that starts next week).
   const floor = [S.police?.start || today, today].sort()[0]
@@ -104,7 +164,15 @@ export default function PlanDays({ first = null }) {
     confirmText: 'Untick',
     onConfirm: () => useStore.getState().update(s => { s.police = { ...(s.police || {}), ...reopenPatch(s.police, iso, Date.now(), todayISO()) } }),
   })
-  const hold = (r, i, ex) => menuSheet({ title: exerciseNameFor(ex), items: [
+  const reorder = (r, from, to) => update(s => { const y = (s.routines || []).find(z => z.id === r.id); if (y) y.ex = moveTo(y.ex, from, to) })
+  // Members can swap an exercise for another (the picker suggests ones like it); a guest's plan
+  // keeps its exercises.
+  const swap = (r, i, ex) => { const picker = exercisePicker(x => {
+    update(s => { const y = (s.routines || []).find(z => z.id === r.id); if (y?.ex?.[i]) y.ex[i] = { ...y.ex[i], id: x.id } })
+    picker.close()
+  }, { title: 'Swap ' + exerciseNameFor(ex), like: ex.id }) }
+  const hold = (r, i, ex) => menuSheet({ title: exerciseNameFor(ex), titleClass: exerciseNameClass(ex), items: [
+    member && { icon: 'swap', label: 'Swap exercise', onClick: () => swap(r, i, ex) },
     { icon: 'slider', label: 'Change sets and reps', onClick: () => useUI.getState().openSheet(close => <SetsReps close={close} r={r} i={i} ex={ex} />) },
     { icon: 'trash', danger: true, label: 'Remove from this workout', onClick: () => removeEx(r, i) },
     { icon: 'xmark', label: 'Keep it', onClick: () => {} },
@@ -131,7 +199,7 @@ export default function PlanDays({ first = null }) {
           : !past && <button className="calm-swap" onClick={() => dayOverrideSheet(focus)} aria-label="Change this day"><Icon name="swap" /></button>}
       </div>
       {d.gym.map(r => <div key={r.id} className="pf-pics">
-        {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} ex={ex} faint={!fits.has(`${r.id}:${e.id}`)} onHold={() => !past && hold(r, i, ex)} /> : null })}
+        {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} idx={i} ex={ex} faint={!fits.has(`${r.id}:${e.id}`)} onHold={() => !past && hold(r, i, ex)} onMove={past ? null : (from, to) => reorder(r, from, to)} /> : null })}
         {!past && <button className="pd-add" onClick={() => add(r)} aria-label={'Add an exercise to ' + r.name}><Icon name="plus" /></button>}
       </div>)}
       {!d.gym.length && (d.kind === 'rest' || !EXIDX[RUN_PIC]
