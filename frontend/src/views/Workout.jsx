@@ -5,7 +5,7 @@ import { workoutControlsSheet, leaveWorkoutSheet, isPaused, resumeWorkout } from
 import RepRangeCoach from '../components/RepRangeCoach.jsx'
 import { HaydenMark } from '../components/HaydenBot.jsx'
 import { tapJarvis, useJarvis } from '../store/useJarvis.js'
-import { startHandsFree, stopHandsFree, handsFreeAvailable } from '../components/JarvisHandsFree.jsx'
+import { startHandsFree, stopHandsFree, handsFreeAvailable, HeardLine } from '../components/JarvisHandsFree.jsx'
 import { upNext } from '../lib/police/workout-voice.js'
 import { todayBadgeFitRun } from '../lib/police/today-run.js'
 import { runForRoutine, isRunRoutine } from '../lib/police/run-routines.js'
@@ -2613,6 +2613,7 @@ function ActiveWorkout() {
     {!editing && isPaused(A) && <button type="button" className="wk-paused" onClick={resumeWorkout}><Icon name="pause" /> Paused · tap to resume</button>}
     {/* BadgeFit music (components/MusicBar.jsx): only when a playlist or Spotify is set up. */}
     {!editing && <MusicBar compact sessionKey={A.id || A.start} />}
+    {!editing && S.police?.level && <HeardLine />}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
 
     {A.entries.length ? (listMode ? (

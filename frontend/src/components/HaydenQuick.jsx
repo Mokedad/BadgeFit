@@ -3,6 +3,7 @@
 // spoken or tapped, is answered from the plan and the test results on the phone with no AI call
 // (lib/police/offline-jarvis.js), shown and read out. Back (or a swipe right) returns to the
 // questions. The ball is the microphone: tap it to make him listen again, or to stop him.
+import { pickRecognition } from '../lib/police/native-ear.js'
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { todayISO } from '../lib/format.js'
@@ -15,7 +16,8 @@ import { MOBILE } from '../lib/mobile.js'
 import { haydenCommand } from '../lib/police/hayden-commands.js'
 import HaydenBot from './HaydenBot.jsx'
 
-const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+// Apple's own recognition in the iPhone app, the browser's elsewhere (lib/police/native-ear.js).
+const Recognition = pickRecognition()
 
 export const QUICK = [
   { q: 'What is today?', ask: 'what do i do today' },

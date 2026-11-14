@@ -10,7 +10,8 @@
 // Turned on with one tap on the workout's 🎤 (a browser lets a page open the microphone only
 // from a tap); remembered, so the next workout starts listening on its own where the phone
 // allows it. Mounted once in App.
-import { useEffect } from 'react'
+import { pickRecognition } from '../lib/police/native-ear.js'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { useJarvis } from '../store/useJarvis.js'
@@ -21,12 +22,16 @@ import { runCommand } from './jarvis-actions.js'
 import { tonePlayer } from '../lib/police/tones.js'
 import { parseCommand } from '../lib/police/voice-commands.js'
 
-const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+// Apple's own recognition in the iPhone app, the browser's elsewhere (lib/police/native-ear.js).
+const Recognition = pickRecognition()
 // Long listens: a gym set or a sentence with a pause in it should not be cut short.
 const TIMING = { silenceMs: 1800, noSpeechMs: 20000, maxMs: 20000, endWaitMs: 1200 }
 const wait = ms => new Promise(r => setTimeout(r, ms))
 /** Whether words heard are plainly a set: a weight and/or reps with their units (no name needed). */
+// "Set done" and the like, said on their own, tick the next set as it stands (no name needed).
+const DONE_SAID = /^\s*(set done|done|done it|next set|log it|log the set|tick it|finished|finished the set|that'?s the set)\s*[.!]?\s*$/i
 export function isSetSaid(text) {
+  if (DONE_SAID.test(text || '')) return true
   const c = parseCommand(text || '')
   if (c?.type !== 'set' || (c.weight == null && c.reps == null)) return false
   return /\b(kg|kgs|kilos?|kilograms?|pounds?|lbs?|reps?|by)\b/i.test(String(text).replace(/(\d)(kg|kgs|lbs?)\b/gi, '$1 $2'))
@@ -67,6 +72,8 @@ async function loop() {
     const out = await l.done
     off(); current = null
     if (!useJarvis.getState().handsFree) break
+    // What he heard, shown under the workout's bar (HeardLine), so it is never a mystery.
+    if (out.text) useJarvis.setState({ heard: out.text, heardAt: Date.now() })
     // A listen that ended at once with nothing heard (the phone's recognition refusing, or busy
     // with other audio) must not restart at once: on an iPhone a tight loop of restarts drained
     // the battery and could make iOS restart the app. Wait longer each time, and give up after a
@@ -138,4 +145,16 @@ export default function JarvisHandsFree() {
     if (!A && B && useJarvis.getState().handsFree) stopHandsFree(false)
   }), [])
   return null
+}
+
+/** Under the workout's bar while Hayden listens: "Listening…", or what he just heard. */
+export function HeardLine() {
+  const on = useJarvis(s => s.handsFree)
+  const heard = useJarvis(s => s.heard)
+  const at = useJarvis(s => s.heardAt) || 0
+  const [, tick] = useState(0)
+  useEffect(() => { if (!at) return; const t = setTimeout(() => tick(n => n + 1), 4100); return () => clearTimeout(t) }, [at])
+  if (!on) return null
+  const fresh = heard && Date.now() - at < 4000
+  return <div className={'hb-heard' + (fresh ? ' got' : '')} role="status" aria-live="polite">{fresh ? <>Heard: <b>{heard}</b></> : 'Listening… say your set, like "20 kilos, 10 reps" or "set done"'}</div>
 }

@@ -5,6 +5,7 @@
 // (lib/police/listen.js); where it is missing or blocked, a small card lets you type instead. The answer comes from the
 // app's AI Coach (lib/coach-api.js askCoach), which answers as Hayden for a BadgeFit member
 // (api/coach/prompts/ask.md). English only, like the BadgeFit hub.
+import { pickRecognition } from '../lib/police/native-ear.js'
 import { MOBILE } from '../lib/mobile.js'
 import { useEffect, useRef, useState } from 'react'
 import { askCoach, coachStatus, resolvePending, jobErrorText, isDeclined, disclosure, coachVia } from '../lib/coach-api.js'
@@ -21,7 +22,8 @@ import { policeBrief } from '../lib/police/brief.js'
 import { todayISO } from '../lib/format.js'
 import '../police.css'
 
-const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+// Apple's own recognition in the iPhone app, the browser's elsewhere (lib/police/native-ear.js).
+const Recognition = pickRecognition()
 const POLL_MS = 1500
 // The server has no AI connected yet: say who can fix it and where.
 const OFF_TEXT = 'Hayden is not switched on on this server yet. The admin opens Settings → Account → Admin dashboard → AI Coach, adds an AI key and taps Test.'

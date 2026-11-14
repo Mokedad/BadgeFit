@@ -932,3 +932,5 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .nb-person small{color:var(--label-2)}
 .nb-acts .nb-hide{color:var(--red,#c0262d)!important}
 .pf-pics figure.lifted{box-shadow:0 14px 30px rgba(20,32,58,.28);border-radius:14px;background:var(--surface);transition:none}
+.hb-heard{margin:2px 0 8px;padding:6px 12px;border-radius:12px;background:var(--surface-2,var(--surface));color:var(--label-2);font-size:14px;text-align:center}
+.hb-heard.got{background:rgba(47,211,154,.14);color:var(--label)}
