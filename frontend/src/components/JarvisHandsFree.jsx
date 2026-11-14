@@ -25,6 +25,12 @@ const Recognition = typeof window !== 'undefined' ? (window.SpeechRecognition ||
 // Long listens: a gym set or a sentence with a pause in it should not be cut short.
 const TIMING = { silenceMs: 1800, noSpeechMs: 20000, maxMs: 20000, endWaitMs: 1200 }
 const wait = ms => new Promise(r => setTimeout(r, ms))
+/** Whether words heard are plainly a set: a weight and/or reps with their units (no name needed). */
+export function isSetSaid(text) {
+  const c = parseCommand(text || '')
+  if (c?.type !== 'set' || (c.weight == null && c.reps == null)) return false
+  return /\b(kg|kgs|kilos?|kilograms?|pounds?|lbs?|reps?|by)\b/i.test(String(text).replace(/(\d)(kg|kgs|lbs?)\b/gi, '$1 $2'))
+}
 export const handsFreeAvailable = () => !!Recognition
 
 let running = false, current = null, beep = null
@@ -80,7 +86,14 @@ async function loop() {
     if (woke && rest) said = rest
     else if (woke) { armedUntil = Date.now() + 8000; armedShort = !!short; ping(); continue }
     else if (Date.now() < armedUntil) { if (armedShort && !parseCommand(out.text)) continue; said = out.text }
-    if (!said) continue
+    // A set said plainly ("20 kg, 10 reps", "20 by 10", "10 reps") needs no name first: a weight
+    // and reps out loud in a workout are for Hayden.
+    else if (isSetSaid(out.text)) said = out.text
+    if (!said) {
+      // Numbers heard but not taken: show what he heard, so a missed set is not a mystery.
+      if (/\d/.test(out.text) || /\b(kilos?|reps?)\b/i.test(out.text)) useUI.getState().toast(`Heard "${out.text}". Say a weight and reps, like 20 kilos 10 reps`)
+      continue
+    }
     armedUntil = 0
     if (held) { said = `${held} ${said}`; held = '' }
     // Only a weight, the reps cut off by a pause: keep it and listen for the rest.
@@ -99,7 +112,8 @@ export default function JarvisHandsFree() {
   useEffect(() => useStore.subscribe((st, prev) => {
     const A = st.S.active, B = prev.S.active
     // A new workout with hands-free on last time: listen again (the start was a tap).
-    if (A && (!B || A.start !== B.start) && !A.backfill && st.S.police?.level && st.S.police?.handsFree && Recognition) {
+    // On by default: he listens in every workout unless it was tapped off (police.handsFree false).
+    if (A && (!B || A.start !== B.start) && !A.backfill && st.S.police?.level && st.S.police?.handsFree !== false && Recognition) {
       useJarvis.setState({ handsFree: true })
       if (!running) loop()
     }

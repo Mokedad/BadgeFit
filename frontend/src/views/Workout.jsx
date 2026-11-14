@@ -819,7 +819,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // was, and the Cards swipe works from it again. The row closes whenever its exercise's rows
   // change, the row is ticked, or a rest or hold starts: rows are keyed by index, so an open row
   // could otherwise end up showing another set.
-  const swipeOn = !!(wc.swipeSets && onCopySetAt && onRemoveSetAt)
+  // BadgeFit: no set-row swipe, so a swipe anywhere on the exercise turns to the next or previous one.
+  const swipeOn = !bf && !!(wc.swipeSets && onCopySetAt && onRemoveSetAt)
   const dismissHint = () => { if (useUI.getState().swipeHint) setUI({ swipeHint: null }) }
   const swipeRow = (s, i, row) => {
     if (!swipeOn) return row
@@ -1148,7 +1149,7 @@ function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
   if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
-    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('Hayden is listening. Say "Hayden", "Hey" or "H", then "20 kilos, 4 reps"') } }}
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('Hayden is listening. Say your set, like "20 kilos, 10 reps". Tap him to stop') } }}
     aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button>
 }
 
