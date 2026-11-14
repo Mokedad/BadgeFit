@@ -1,7 +1,7 @@
 // BadgeFit: Hayden floats in the corner of Home, the hub's pages, a run and a workout, blinking and
 // bobbing. Tap him and he does a move and "says" it: one symbol in a bubble and a few robot beeps
 // (lib/police/bot-voice.js, volume in Hayden's settings). In a workout he does the exercise you are
-// on. Double tap: he hops to another spot at random. Press and hold him (3 seconds, a ring fills)
+// on. Double tap: he hops to another spot at random. Press and hold him (a second, a ring fills)
 // and he lifts up: drag him anywhere, and he is happy where you put him down. The switch
 // (HaydenToggle: his head, crossed out when off) turns him off or on.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -71,6 +71,16 @@ export default function HaydenBuddy() {
   const [holding, setHolding] = useState(false)
   const [dragging, setDragging] = useState(false)
   const me = useRef(null)
+  // iPhone: a finger held still on him must not start a scroll or the system's long-press, which
+  // would cancel the pick-up. Native listeners, since React's touch listeners cannot preventDefault.
+  useEffect(() => {
+    const el = me.current
+    if (!el) return
+    const stop = e => { if (press.current) e.preventDefault() }
+    el.addEventListener('touchmove', stop, { passive: false })
+    el.addEventListener('touchstart', stop, { passive: false })
+    return () => { el.removeEventListener('touchmove', stop); el.removeEventListener('touchstart', stop) }
+  })
   // On every screen, and once it has settled, he moves off anything he would cover (unless you
   // put him somewhere yourself): his spot if it is clear, else the first clear one.
   useLayoutEffect(() => {
@@ -136,7 +146,7 @@ export default function HaydenBuddy() {
     const p = press.current
     if (!p) return
     if (!p.lifted) {
-      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) { p.moved = true; setHolding(false); clearTimeout(holdT.current) }
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 22) { p.moved = true; setHolding(false); clearTimeout(holdT.current) }
       return
     }
     const next = clampPos(e.clientX - p.dx, e.clientY - p.dy)
@@ -153,7 +163,7 @@ export default function HaydenBuddy() {
 
   const placed = pos ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' } : undefined
   return <button type="button" ref={me} style={placed}
-    className={'hb-buddy' + (pos ? ' placed' : ' spot-' + spot) + (hop ? ' hop' : '') + (holding ? ' holding' : '') + (dragging ? ' dragging' : '') + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')}
+    className={'hb-buddy' + (pos ? ' placed' + (pos.x < window.innerWidth / 2 ? ' say-right' : '') : ' spot-' + spot) + (hop ? ' hop' : '') + (holding ? ' holding' : '') + (dragging ? ' dragging' : '') + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')}
     onPointerDown={down} onPointerMove={moveTo} onPointerUp={up} onPointerCancel={up} onContextMenu={e => e.preventDefault()}
     aria-label="Hayden. Tap for a move, double tap to move him, hold to pick him up">
     {look.sym && <span className="hb-say" aria-hidden="true">{look.sym}</span>}

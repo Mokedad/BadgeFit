@@ -868,7 +868,7 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .hb-say{position:absolute;left:-14px;top:-18px;min-width:34px;height:34px;padding:0 6px;border-radius:17px 17px 17px 4px;background:#fff;box-shadow:0 3px 10px rgba(20,32,58,.22);display:grid;place-items:center;font-size:19px;line-height:1;animation:hb-pop .25s ease-out;pointer-events:none}
 .hb-buddy.spot-bl .hb-say,.hb-buddy.spot-ml .hb-say,.hb-buddy.spot-tl .hb-say{left:auto;right:-14px;border-radius:17px 17px 4px 17px}
 @keyframes hb-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
-.hb-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid rgba(242,184,26,.25);border-top-color:#f2b81a;animation:hb-spin 3s linear forwards;pointer-events:none}
+.hb-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid rgba(242,184,26,.25);border-top-color:#f2b81a;animation:hb-spin 1s linear forwards;pointer-events:none}
 @keyframes hb-spin{from{transform:rotate(0)}to{transform:rotate(1080deg)}}
 .hb-buddy.dragging{transition:none;transform:scale(1.15) rotate(-6deg);filter:drop-shadow(0 14px 18px rgba(20,32,58,.3));z-index:450}
 .hb-buddy.placed{transition:transform .2s ease,opacity .2s ease}
@@ -880,3 +880,5 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .pf-jsw-fold>summary .icn{transition:transform .2s}
 .pf-jsw-fold[open]>summary .icn{transform:rotate(180deg)}
 .hdr .calm-back{flex:none;margin-inline-end:10px}
+.hb-buddy,.hb-buddy *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.hb-buddy.say-right .hb-say{left:auto;right:-14px;border-radius:17px 17px 4px 17px}

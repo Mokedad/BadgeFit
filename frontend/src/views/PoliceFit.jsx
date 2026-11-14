@@ -234,7 +234,7 @@ function More({ setTab, calm }) {
       {tile('personCircle', 'Community', () => (guestHere ? membersOnly() : nav('/community')))}
       {tile('chart', 'Progress', () => nav('/stats'))}
       {tile('list', 'Exercises', () => nav('/library'))}
-      {tile('sparkles', 'Hayden', () => setTab('today'))}
+      <button key="Hayden" className="pf-mtile" onClick={() => setTab('today')}><span aria-hidden="true"><HaydenMark size={30} /></span><b>Hayden</b></button>
       {tile('gear', 'Settings', () => nav('/settings'))}
     </div>
   }

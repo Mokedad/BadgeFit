@@ -15,7 +15,7 @@ export const ACT_SAY = { run: ['🏃', 'excited'], bench: ['💪', 'proud'], squ
 /** Picked up (a long hold), and put down again. */
 export const LIFT = { eyes: 'wide', pose: 'cheer', sym: '😮', mood: 'whoa' }
 export const DROP = { eyes: 'happy', pose: 'wave', sym: '❤️', mood: 'love' }
-export const HOLD_MS = 3000
+export const HOLD_MS = 1000
 export const IDLE = { eyes: 'open', pose: 'idle' }
 export const EMOTE_MS = 1600
 
