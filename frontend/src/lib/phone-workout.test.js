@@ -344,3 +344,11 @@ describe('the session with the workout', () => {
     stop()
   })
 })
+
+import { phoneSessionPlan as plan2 } from './phone-workout.js'
+describe('BadgeFit runs no phone workout session', () => {
+  it('is off for a BadgeFit profile, even with a live workout and Apple Health on', () => {
+    const S = { police: { level: 'beginner' }, active: { id: 'w1', start: Date.now(), entries: [] } }
+    expect(plan2({ supported: true, healthOn: true, S, running: true }).reason).toBe('badgefit')
+  })
+})

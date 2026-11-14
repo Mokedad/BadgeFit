@@ -47,7 +47,7 @@ export function isLiveWorkout(A, { tourSandbox = false } = {}) {
 /**
  * Whether the phone runs its own session for the running workout:
  * { run, wait, reason }. `wait` (ms) when a watch may still take it; `reason` one of
- * 'unsupported' | 'health' | 'none' | 'watch' | 'wait' | 'stale' | 'run'.
+ * 'unsupported' | 'badgefit' | 'health' | 'none' | 'watch' | 'wait' | 'stale' | 'run'.
  *
  *   supported    the plugin can (iOS 26+)          healthOn   Apple Health switched on
  *   S, tourSandbox, now
@@ -58,6 +58,10 @@ export function isLiveWorkout(A, { tourSandbox = false } = {}) {
 export function phoneSessionPlan({ supported = false, healthOn = false, S = null, tourSandbox = false, now = Date.now(), watch = {}, watchClaimed = false, running = false } = {}) {
   const off = reason => ({ run: false, wait: 0, reason })
   if (!supported) return off('unsupported')
+  // BadgeFit runs none: an open Apple Health workout kept the app alive in the background, showed
+  // iOS's blue workout pill, and iOS reopened the app on its own to keep the session going. One
+  // already running (or handed back after a crash) is ended, unsaved.
+  if (S?.police?.level) return off('badgefit')
   if (!healthOn) return off('health')
   const A = S && S.active
   if (!isLiveWorkout(A, { tourSandbox })) return off('none')
