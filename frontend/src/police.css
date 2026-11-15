@@ -944,3 +944,5 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .sp-pick.lit .sp-pick-l,.sp-pick.on .sp-pick-l{color:var(--acc-ink)}
 .sp-pick.on .sp-pick-c{box-shadow:inset 0 0 0 2px var(--acc-line)}
 .start-picker .menu-list{margin-top:4px}
+.bf-day .sp-picks{padding-bottom:10px}
+.bf-day h3{margin-bottom:2px}

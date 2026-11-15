@@ -3,6 +3,10 @@ import SessionPreview from './components/SessionPreview.jsx'
 import { fitSession } from './lib/police/session-length.js'
 import { RUNS, CATEGORIES as RUN_CATEGORIES, runMinutes } from './lib/police/runs.js'
 import { ensureRunRoutine, runForRoutine } from './lib/police/run-routines.js'
+import { planSessions, otherRoutines, shortName } from './lib/police/day-pick.js'
+import { isBadgeFitGuest } from './lib/police/guest.js'
+import { CAT_ICON } from './lib/police/start-picks.js'
+import { RoundPick, PickRow } from './components/StartPicker.jsx'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { exView, exUnitPin, exUnitOf, exUnitTag, withExUnit, profileUnit, viewTarget, storedTarget, storedBar, viewEntry, viewRow, shownWeight } from './lib/ex-unit.js'
@@ -2939,7 +2943,8 @@ function DayOverride({ iso, close }) {
     <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
     <div className="grow"><div className="tt">{r.name}</div><div className="ss">{pinnedOn[r.id] && pinnedOn[r.id] !== iso ? fmtDate(pinnedOn[r.id], true) : exCount(r.ex.length)}</div></div>
     {effIds.includes(r.id) && <Icon name="check" className="accent" />}</div>
-  return <div className={st.police?.level ? 'bf-compact' : undefined}>
+  if (st.police?.level) return <BfDayOverride {...{ iso, st, hasOvr, changed, weeklyNames, effIds, missed, logIt, set }} />
+  return <div>
     <h3>{fmtDate(iso, true)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyNames.length ? deriveSessionName(weeklyNames) : t('Rest')}{changed && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
     {missed && <div style={{ marginBottom: 14 }}><Button variant="primary" icon="checkCircle" onClick={logIt}>{t('Log this workout')}</Button></div>}
@@ -2961,11 +2966,47 @@ function DayOverride({ iso, close }) {
       <div className="item" {...tappable(() => set('rest'))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effIds.length === 0 && <Icon name="check" className="accent" />}</div>
       {hasOvr && <div className="item" {...tappable(() => set(''))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
     </div>
-    {st.police?.level && <RunPicks isOn={runId => pickedRunIds(st, effIds).includes(runId)} onPick={runId => {
+  </div>
+}
+
+/**
+ * BadgeFit's "change this day": not every routine ever made, but this week's sessions as round
+ * buttons, the kinds of run as round buttons (tap one for its runs), rest, and anything older
+ * folded away under Other workouts (lib/police/day-pick.js). No day notes here.
+ */
+function BfDayOverride({ iso, st, hasOvr, changed, weeklyNames, effIds, missed, logIt, set }) {
+  const [more, setMore] = useState(false)
+  const plan = planSessions(st)
+  const others = otherRoutines(st)
+  const guest = isBadgeFitGuest(st, useStore.getState().config, useStore.getState().user)
+  const line = (key, icon, label, onClick, on = false) => <div key={key} className="item menu-item" {...tappable(onClick)}>
+    <span className="lrow-i"><Icon name={icon} /></span>
+    <div className="grow"><div className="tt">{label}</div></div>
+    {on && <Icon name="check" className="accent" />}
+  </div>
+  return <div className="bf-day">
+    <h3>{fmtDate(iso, true)}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>Planned: {weeklyNames.length ? deriveSessionName(weeklyNames) : 'rest'}{changed && <span style={{ color: 'var(--orange)' }}> · changed</span>}</div>
+    {missed && <div style={{ marginBottom: 14 }}><Button variant="primary" icon="checkCircle" onClick={logIt}>{t('Log this workout')}</Button></div>}
+    {plan.length > 0 && <>
+      <div className="menu-sec">This week's sessions</div>
+      <PickRow label="This week's sessions">{plan.map(r => <RoundPick key={r.id} icon={glyphOf(r.emoji)} label={shortName(r.name)} on={effIds.includes(r.id)} onClick={() => set(r.id)} />)}</PickRow>
+    </>}
+    <RunPicks title="Or a run" isOn={runId => pickedRunIds(st, effIds).includes(runId)} onPick={runId => {
       let id = null
       update(s => { id = ensureRunRoutine(s, runId) })
       if (id) set(id)
-    }} />}
+    }} />
+    <div className="list menu-list" style={{ marginTop: 14 }}>
+      {line('rest', 'moon', 'Rest today', () => set('rest'), effIds.length === 0)}
+      {hasOvr && line('back', 'reset', 'Back to the plan', () => set(''))}
+      {!guest && others.length > 0 && <div className="item menu-item menu-more" aria-expanded={more} {...tappable(() => setMore(m => !m))}>
+        <span className="lrow-i"><Icon name="list" /></span>
+        <div className="grow"><div className="tt">Other workouts</div></div>
+        <Icon name={more ? 'chevronUp' : 'chevronDown'} className="menu-chev" />
+      </div>}
+      {more && others.map(r => line(r.id, glyphOf(r.emoji), r.name, () => set(r.id), effIds.includes(r.id)))}
+    </div>
   </div>
 }
 export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso={iso} close={close} />)
@@ -3009,17 +3050,21 @@ export const dayNoteSheet = iso => ui().openSheet(close => <DayNote iso={iso} cl
 
 // BadgeFit: the guided runs, listed under the routines when picking what a day trains
 // (lib/police/run-routines.js). `isOn(runId)` marks the ones on the day; `onPick(runId)` adds it.
-function RunPicks({ isOn: on, onPick }) {
+/**
+ * Runs to pick (BadgeFit): the kinds of run as round buttons, then only that kind's runs, so the
+ * sheet never lists all of them at once. It opens on the kind already picked, or easy running.
+ */
+function RunPicks({ isOn: on, onPick, title = 'Runs' }) {
+  const picked = RUNS.find(r => on(r.id))
+  const [cat, setCat] = useState(picked?.cat || 'base')
   return <>
-    <h4 className="sec" style={{ marginTop: 14 }}>Runs</h4>
-    <div className="list menu-list">{RUNS.map(r => {
-      const cat = RUN_CATEGORIES.find(c => c.id === r.cat)
-      return <div key={r.id} className="item menu-item" aria-pressed={on(r.id)} {...tappable(() => onPick(r.id))}>
-        <span className="lrow-i" style={{ background: 'var(--surface-3)', fontSize: 18 }}><Icon name={iconFor(cat?.emoji || 'figureRun')} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{cat?.name} · ~{runMinutes(r)} min</div></div>
-        <span className={'menu-on' + (on(r.id) ? ' is-on' : '')}><Icon name="check" /></span>
-      </div>
-    })}</div>
+    <div className="menu-sec" style={{ marginTop: 6 }}>{title}</div>
+    <PickRow label="Run type">{RUN_CATEGORIES.map(c => <RoundPick key={c.id} icon={CAT_ICON[c.id]} label={c.name} on={cat === c.id} onClick={() => setCat(c.id)} />)}</PickRow>
+    <div className="list menu-list">{RUNS.filter(r => r.cat === cat).map(r => <div key={r.id} className="item menu-item" aria-pressed={on(r.id)} {...tappable(() => onPick(r.id))}>
+      <span className="lrow-i"><Icon name={CAT_ICON[r.cat] || 'figureRun'} /></span>
+      <div className="grow"><div className="tt">{r.name}</div><div className="ss">~{runMinutes(r)} min</div></div>
+      {on(r.id) && <Icon name="check" className="accent" />}
+    </div>)}</div>
   </>
 }
 const pickedRunIds = (st, ids) => ids.map(id => st.police?.runRoutines?.[id]).filter(Boolean)
@@ -3038,6 +3083,7 @@ function DayAssign({ day, close }) {
   })
   const rest = () => { update(s => { delete s.week[day] }); close() }
   const bf = !!st.police?.level
+  const [more, setMore] = useState(false)
   // BadgeFit: a tighter list, and Done is a plain tick at the top and the bottom.
   const tick = <button type="button" className="bf-tick" onClick={close} aria-label={t('Done')}><Icon name="check" /></button>
   return <div className={bf ? 'bf-compact' : undefined}>
@@ -3045,7 +3091,7 @@ function DayAssign({ day, close }) {
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Pick one routine, or more to train them together.')}</div>
     <div className="list menu-list">
       <div className="item menu-item" {...tappable(rest)}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div><span className={'menu-on' + (!cur.length ? ' is-on' : '')}><Icon name="check" /></span></div>
-      {st.routines.filter(r => !st.police?.runRoutines?.[r.id]).map(r => {
+      {(bf ? [...planSessions(st), ...(more ? otherRoutines(st) : [])] : st.routines).filter(r => !st.police?.runRoutines?.[r.id]).map(r => {
         const on = cur.includes(r.id)
         return <div key={r.id} className="item menu-item" aria-pressed={on} {...tappable(() => toggle(r.id))}>
           <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
@@ -3053,6 +3099,11 @@ function DayAssign({ day, close }) {
           <span className={'menu-on' + (on ? ' is-on' : '')}><Icon name="check" /></span>
         </div>
       })}
+      {bf && otherRoutines(st).length > 0 && <div className="item menu-item menu-more" aria-expanded={more} {...tappable(() => setMore(m => !m))}>
+        <span className="lrow-i"><Icon name="list" /></span>
+        <div className="grow"><div className="tt">Other workouts</div></div>
+        <Icon name={more ? 'chevronUp' : 'chevronDown'} className="menu-chev" />
+      </div>}
     </div>
     {st.police?.level && <RunPicks isOn={runId => pickedRunIds(st, cur).includes(runId)} onPick={runId => update(s => {
       const id = ensureRunRoutine(s, runId)
