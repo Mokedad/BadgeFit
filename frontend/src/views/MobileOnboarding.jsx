@@ -189,15 +189,18 @@ function BadgeFitOnboarding() {
     }).catch(() => {})
     return () => { gone.current = true; off?.remove?.() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [taps, setTaps] = useState(0)
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
   return <div className="narrow" style={wrap}>
-    <div style={{ display: 'flex', justifyContent: 'center' }}><BadgeLogo size={84} /></div>
+    {/* Five taps on the shield bring back Log in (older password accounts, testers). */}
+    <div style={{ display: 'flex', justifyContent: 'center' }} onClick={() => setTaps(n => n + 1)}><BadgeLogo size={84} /></div>
     <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
     {social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
     {social.includes('google') && <><Button variant="primary" onClick={() => signIn('google')} disabled={busy}>Continue with Google</Button><div style={{ height: 10 }} /></>}
-    {/* One word a button, nothing to read: log in, or look around first. */}
-    <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
+    {/* Members sign in with Google (or Apple): no BadgeFit password of their own. Log in only
+        when neither is offered here, or after five taps on the shield. */}
+    {(!social.length || taps >= 5) && <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>}
     <div style={{ height: 28 }} />
     <button className="ls-guest" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>Guest</button>
   </div>

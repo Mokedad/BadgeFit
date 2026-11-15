@@ -93,18 +93,24 @@ function SimpleLogin({ config }) {
     const why = q.get('login')
     if (why) { useUI.getState().toast(SOCIAL_FAIL[why] || SOCIAL_FAIL.failed); history.replaceState(null, '', location.pathname + location.hash) }
   }, [])
+  const [taps, setTaps] = useState(0)
   const go = p => { location.href = appBase().replace(/\/$/, '') + '/api/auth/' + p }
   // The same navy and gold as the BadgeFit card on Home: the shield, Badge in white, Fit in gold.
   return <div className="login-simple-bg"><div className="narrow login-simple">
-    <div className="ls-shield"><BadgeLogo size={92} /></div>
+    {/* Five taps on the shield bring back Log in (older password accounts, testers). */}
+    <div className="ls-shield" onClick={() => setTaps(n => n + 1)}><BadgeLogo size={92} /></div>
     <h1 className="bf-word">Badge<span>Fit</span></h1>
     <p className="ls-tag">{BRAND.tagline}</p>
     {social.includes('apple') && <button className="ls-btn ls-apple" onClick={() => go('apple')}><svg className="ls-apple-i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4.2 7.8 3.3 9.5c-1.9 3.3-.5 8.1 1.4 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3-.1 0-2.9-1.1-3-4.8ZM13.8 4.9c.7-.9 1.3-2.2 1.1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.5Z"/></svg> Continue with Apple</button>}
     {social.includes('google') && <button className="ls-btn ls-google" onClick={() => go('google')}><span className="ls-g" aria-hidden="true">G</span> Continue with Google</button>}
-    {social.length > 0 && <div className="ls-or"><span>or</span></div>}
-    <button className="ls-btn ls-primary" onClick={() => openPasswordSignIn()}>Log in</button>
-    <button className="ls-btn" onClick={() => openPasswordRegister()}>Sign up</button>
-    <button className="ls-link" onClick={openLostAccess}>Forgot password?</button>
+    {/* Members sign in with Google (or Apple), no BadgeFit password: Log in, Sign up and Forgot
+        password only when neither is offered, or after five taps on the shield. */}
+    {(!social.length || taps >= 5) && <>
+      {social.length > 0 && <div className="ls-or"><span>or</span></div>}
+      <button className="ls-btn ls-primary" onClick={() => openPasswordSignIn()}>Log in</button>
+      {!social.length && <button className="ls-btn" onClick={() => openPasswordRegister()}>Sign up</button>}
+      <button className="ls-link" onClick={openLostAccess}>Forgot password?</button>
+    </>}
     {/* A look around first: the simple plan and a few questions a day with Hayden, nothing saved
         to an account (ALLOW_GUEST on the server). */}
     {guestAllowed(config) && <button className="ls-guest" onClick={() => useStore.getState().setGuest(true)}>Guest</button>}
