@@ -280,11 +280,6 @@
 :root[data-theme="light"] .pf-strip>*{background:#f6f6f7;border:1px solid #ececee}
 /* run tab */
 .pf-todayrun h3{margin-top:2px}
-.pf-cats{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
-.pf-cats::-webkit-scrollbar{display:none}
-.pf-cats button{flex:none;border:0;border-radius:999px;padding:8px 12px;background:var(--surface);color:inherit;font-size:14px;font-weight:600}
-.pf-cats button.on{background:var(--acc);color:var(--on-acc)}
-:root[data-theme="light"] .pf-cats button:not(.on){background:#f1f1f3}
 .pf-runs{padding-top:4px;padding-bottom:4px}
 .pf-run{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-bottom:1px solid var(--sep);padding:12px 0;color:inherit;text-align:left}
 .pf-run:last-child{border-bottom:0}
@@ -934,3 +929,18 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .pf-pics figure.lifted{box-shadow:0 14px 30px rgba(20,32,58,.28);border-radius:14px;background:var(--surface);transition:none}
 .hb-heard{margin:2px 0 8px;padding:6px 12px;border-radius:12px;background:var(--surface-2,var(--surface));color:var(--label-2);font-size:14px;text-align:center}
 .hb-heard.got{background:rgba(47,211,154,.14);color:var(--label)}
+
+/* Round buttons (components/StartPicker.jsx): the Start sheet's top picks and the run types. */
+.start-picker h3{margin-bottom:10px}
+.sp-picks{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;margin:0 -2px;scrollbar-width:none;scroll-snap-type:x proximity}
+.sp-picks::-webkit-scrollbar{display:none}
+.sp-pick{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;padding:0;color:inherit;scroll-snap-align:start;-webkit-tap-highlight-color:transparent}
+.sp-pick-c{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:var(--surface);transition:transform .12s ease,background .15s ease}
+.sp-pick-c svg{width:30px;height:30px}
+:root[data-theme="light"] .sp-pick-c{background:#f1f1f3}
+.sp-pick-l{font-size:14px;font-weight:600;text-align:center;line-height:1.2}
+.sp-pick:active .sp-pick-c{transform:scale(.94)}
+.sp-pick.lit .sp-pick-c,.sp-pick.on .sp-pick-c{background:var(--acc-soft);color:var(--acc-ink)}
+.sp-pick.lit .sp-pick-l,.sp-pick.on .sp-pick-l{color:var(--acc-ink)}
+.sp-pick.on .sp-pick-c{box-shadow:inset 0 0 0 2px var(--acc-line)}
+.start-picker .menu-list{margin-top:4px}

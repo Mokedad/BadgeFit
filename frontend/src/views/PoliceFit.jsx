@@ -45,6 +45,8 @@ import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
+import { RoundPick, PickRow } from '../components/StartPicker.jsx'
+import { CAT_ICON } from '../lib/police/start-picks.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import PlanDays from '../components/PlanDays.jsx'
 import { isBadgeFit, toSignIn } from '../lib/police/guest.js'
@@ -470,7 +472,11 @@ function DayCard({ d, today, S = null, P = null, routine: given = null }) {
 // --- Run ---------------------------------------------------------------------------------
 function RunTab({ S, P, startRun }) {
   // Opens on one kind of run (today's, or the first), not the whole list: a short page.
-  const [cat, setCat] = useState(null)
+  // A kind asked for in the link (the Start sheet: ?tab=run&cat=walk) opens on that kind.
+  const [params] = useSearchParams()
+  const linked = CATEGORIES.some(c => c.id === params.get('cat')) ? params.get('cat') : null
+  const [cat, setCat] = useState(linked)
+  useEffect(() => { if (linked) setCat(linked) }, [linked])
   const pw = planWeekOf(P, todayISO())
   const week = pw.week
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
@@ -493,12 +499,13 @@ function RunTab({ S, P, startRun }) {
       <div><b>{done.reduce((a, r) => a + (r.min || 0), 0)}</b><span>minutes</span></div>
       <div><b>{Math.round(done.reduce((a, r) => a + (Number(r.km) || 0), 0) * 10) / 10}</b><span>km</span></div>
     </div>
-    <div className="pf-cats" role="tablist" aria-label="Run type">
-      {CATEGORIES.map(c => <button key={c.id} className={shown === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.name}</button>)}
-      <button className={shown === 'all' ? 'on' : ''} onClick={() => setCat('all')}>All</button>
-    </div>
+    {/* The kinds of run as round buttons, swiped sideways: the one shown is lit. */}
+    <PickRow label="Run type">
+      {CATEGORIES.map(c => <RoundPick key={c.id} icon={CAT_ICON[c.id]} label={c.name} on={shown === c.id} onClick={() => setCat(c.id)} />)}
+      <RoundPick icon="list" label="All" on={shown === 'all'} onClick={() => setCat('all')} />
+    </PickRow>
     <div className="card pf-runs">{list.map(r => <button key={r.id} className="pf-run" onClick={() => startRun(r)}>
-      <span className="pf-run-e pf-more-i" aria-hidden="true"><Icon name={r.cat === 'walk' ? 'heart' : 'figureRun'} /></span>
+      <span className="pf-run-e pf-more-i" aria-hidden="true"><Icon name={CAT_ICON[r.cat] || 'figureRun'} /></span>
       <span className="pf-run-m"><b>{r.name}</b><small>{runMinutes(r)} min · {r.km}</small></span>
       <Icon name="chevronRight" />
     </button>)}</div>
@@ -972,6 +979,9 @@ export default function PoliceFit() {
   useEffect(() => { const r = runById(runParam); if (r) { useRun.getState().open(r); setParams(p => { p.delete('run'); return p }, { replace: true }) } }, [runParam]) // eslint-disable-line react-hooks/exhaustive-deps
   const setRunning = r => (r ? useRun.getState().open(r) : useRun.getState().close())
   const [overlay, setOverlay] = useState(null) // 'beep' | 'test'
+  // The beep test trainer asked for in the link (the Start sheet's Beep test button).
+  const beepParam = params.get('beep')
+  useEffect(() => { if (beepParam) { setOverlay('beep'); setParams(p => { p.delete('beep'); return p }, { replace: true }) } }, [beepParam]) // eslint-disable-line react-hooks/exhaustive-deps
   // Members set up under an older plan model: plans start at week 1 when you join and run as long
   // as the test is away. A start far in the future (the old "12 weeks before the test") moves to
   // this week; a recent start is kept.

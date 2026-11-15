@@ -13,6 +13,7 @@ import { t, tn, dateLocale } from '../lib/i18n.js'
 import { bwSheet, goalSheet, workoutDetailSheet, menuSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
+import StartPicker from '../components/StartPicker.jsx'
 import CardHead from '../components/CardHead.jsx'
 import QueueRow from '../components/QueueRow.jsx'
 import MiniBodyMap from '../components/MiniBodyMap.jsx'
@@ -167,6 +168,15 @@ export default function Home() {
     // BadgeFit with a plan: Start opens today's session as pictures (components/SessionPreview.jsx),
     // where it can be changed or started; the swap symbol is the way to something else.
     : S.police?.level && !S.police?.start && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
+  // BadgeFit with a plan: Start opens the round-button sheet (components/StartPicker.jsx), today's
+  // session first and lit, the other kinds of training beside it. A running session opens at once.
+  const onStart = () => {
+    if (S.active || !S.police?.start) return onToday()
+    const guestHere = isBadgeFitGuest(S, useStore.getState().config, useStore.getState().user)
+    const today = todayRoutines.length ? { kind: bfRun ? 'run' : 'gym', done: !!doneToday } : null
+    useUI.getState().openSheet(close => <StartPicker close={close} today={today} guest={guestHere} startToday={onToday}
+      pickWorkout={guestHere ? null : () => dayOverrideSheet(todayISO())} restToday={removeToday} />)
+  }
   // BadgeFit: today's box swipes away (TodaySwipe) while there is a plan still to do.
   const swipeable = !!S.police?.level && !S.active && !doneToday && todayRoutines.length > 0
   const removeToday = () => { useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } }); useUI.getState().toast('Removed. Today is a rest day.') }
@@ -247,7 +257,7 @@ export default function Home() {
         <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
-          : <button className="calm-go" data-tour="today" onClick={onToday}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
+          : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
         {/* A picture of today's session for a story or a message, through the phone's own share
             sheet: no account linked, no map (lib/police/share-card.js). */}
         {doneToday && !S.active && <button className="calm-share" onClick={shareToday}><Icon name="share" /> Share today</button>}
