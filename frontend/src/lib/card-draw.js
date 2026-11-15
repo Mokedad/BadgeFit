@@ -4,6 +4,7 @@
 // lib/share-image.js gets the picture out of the app. No exercise picture or clip is ever drawn
 // on a card (the licence keeps those inside the app, NOTICE.md).
 import { getBrand } from './i18n-core.js'
+import { BRAND } from './police/brand.js'
 
 // 9:16 for Stories and Reels, 1:1 for a feed or a chat.
 export const FORMATS = { story: { width: 1080, height: 1920 }, square: { width: 1080, height: 1080 } }
@@ -121,7 +122,8 @@ export function drawShield(ctx, x, y, h, color, inner) {
   return w
 }
 
-export const BADGEFIT_SITE = 'badgefit.com.au'
+// The address people reach BadgeFit at, the same one the phone app connects to.
+export const BADGEFIT_SITE = BRAND.server
 function drawBadgeFit(ctx, { x, y, width, colors, family, size }) {
   const markH = size * 1.05
   const w = drawShield(ctx, x, y - size * 0.82, markH, colors.acc, colors.surface || colors.bg || '#1c1c1e')

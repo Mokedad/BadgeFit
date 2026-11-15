@@ -14,7 +14,7 @@ describe('the brand at the foot of a shared card', () => {
   it('is BadgeFit in BadgeFit', () => {
     setBrand('BadgeFit')
     const c = ctx(); drawBrand(c, { x: 0, y: 100, width: 900, colors, family: 'x' })
-    expect(c.said).toEqual(['Badge', 'Fit', 'badgefit.com.au'])
+    expect(c.said).toEqual(['Badge', 'Fit', 'app.badgefit.com.au'])
   })
   it('stays openGym elsewhere', () => {
     const c = ctx(); drawBrand(c, { x: 0, y: 100, width: 900, colors, family: 'x' })
