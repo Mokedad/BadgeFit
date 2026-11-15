@@ -14,10 +14,9 @@ export const RADIUS_M = 300;
 export const TTL_MS = 3 * 60 * 1000;
 export const MAX_NEAR = 5;
 export const CHEER_GAP_MS = 5000;
-export const INBOX_MAX = 20;
 const GEAR = new Set(['headband', 'whistle', 'bolt', 'badge', 'stripes', 'cap', 'medal']);
 
-export const emptyState = () => ({ here: new Map(), inbox: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
+export const emptyState = () => ({ here: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
 export const emptySocial = () => ({ follows: {}, hidden: {}, names: {} });
 
 /** The opaque handle a member is shown as: stable while the server runs, not their account id. */
@@ -63,9 +62,7 @@ export function ping(state, social, user, { lat, lon, card } = {}, now = Date.no
     .map(([uid, p]) => ({ uid, p, d: metres(me, p) }))
     .sort((a, b) => a.d - b.d).slice(0, MAX_NEAR)
     .map(({ uid, p }) => view(state, social, user.id, uid, p));
-  const inbox = state.inbox.get(user.id) || [];
-  state.inbox.delete(user.id);
-  return { near, inbox };
+  return { near };
 }
 
 /** Switched off, or the app closed: gone from everyone's screen at once. */
@@ -79,11 +76,9 @@ export function cheer(state, social, user, { id, kind } = {}, now = Date.now()) 
   const key = user.id + '>' + to;
   if (state.gaps.has(key) && now - state.gaps.get(key) < CHEER_GAP_MS) return { error: 'easy, one at a time', status: 429 };
   state.gaps.set(key, now);
+  // Where it goes is server.js's job (cheers.js keeps it until their app picks it up).
   const me = state.here.get(user.id)?.card || cleanCard({}, user);
-  const box = state.inbox.get(to) || [];
-  box.push({ from: me.name, colour: me.colour, kind, at: now });
-  state.inbox.set(to, box.slice(-INBOX_MAX));
-  return { ok: true };
+  return { ok: true, to, from: me.name, colour: me.colour, kind };
 }
 
 /** Follow (the bell), or stop. Their name and colour are kept so the bell can show them later. */
@@ -120,9 +115,19 @@ export function bell(state, social, user, now = Date.now()) {
   return { people: people.sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name)) }
 }
 
+/**
+ * Someone met in the community feed rather than nearby: kept by first name so they can be
+ * followed, cheered and shown on the bell like anyone met nearby. Returns their handle.
+ */
+export function remember(state, social, uid, name) {
+  if (!uid) return null;
+  if (!social.names[uid]) social.names[uid] = { name: cleanCard({ name }, null).name, colour: '#9aa3b2' };
+  return handleOf(state, uid);
+}
+
 /** An account deleted: out of every list. */
 export function forgetUser(state, social, uid) {
-  state.here.delete(uid); state.inbox.delete(uid)
+  state.here.delete(uid)
   delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]
   for (const k of Object.keys(social.follows)) social.follows[k] = social.follows[k].filter(x => x !== uid)
   for (const k of Object.keys(social.hidden)) social.hidden[k] = social.hidden[k].filter(x => x !== uid)

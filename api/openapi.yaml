@@ -3486,6 +3486,27 @@ paths:
       responses:
         '200': { description: '`{ people: [...] }`' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/cheers:
+    get:
+      tags: [community]
+      operationId: getCheers
+      summary: Take the cheers waiting for you (BadgeFit)
+      description: |
+        Everything sent to you since you last looked: cheers on your posts, replies, loves and
+        likes. Taken once (the inbox is emptied). First names and a few words only, never an id.
+        The same list also rides along on `POST /api/nearby` as `inbox`.
+      responses:
+        '200': { description: '`{ cheers: [{ id, from, colour, kind, what, at }] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/teaser:
+    get:
+      tags: [community]
+      operationId: getCommunityTeaser
+      summary: How busy the community was this week, numbers only
+      description: No account needed (for guests). No names, no words.
+      security: []
+      responses:
+        '200': { description: '`{ posts, wins, cheers, people }`' }
   /api/community:
     get:
       tags: [community]
@@ -3496,6 +3517,10 @@ paths:
         account id: posts carry the name the author chose and `mine` for the viewer's own.
         Hidden (reported) posts are shown only to admins and their authors.
       parameters:
+        - name: crew
+          in: query
+          description: A test date (YYYY-MM-DD); only posts from people training for it.
+          schema: { type: string }
         - name: before
           in: query
           required: false
@@ -3528,6 +3553,7 @@ paths:
               properties:
                 text: { type: string, maxLength: 1000 }
                 topic: { type: string, enum: [win, question, journey, motivation] }
+                crew: { type: string, description: "Your test date (YYYY-MM-DD): the post shows in that crew too" }
       responses:
         '201': { description: The new post, as the feed shows it }
         '400': { description: Empty text }

@@ -36,9 +36,10 @@ test('a like or love arrives once, not twice in a few seconds', () => {
   assert.equal(n.cheer(st, so, ann, { id, kind: 'love' }, 100).ok, true);
   assert.equal(n.cheer(st, so, ann, { id, kind: 'love' }, 200).status, 429);
   assert.equal(n.cheer(st, so, ann, { id, kind: 'hug' }, 9000).status, 400);
-  const got = n.ping(st, so, bob, { ...NEXT_DOOR }, 300).inbox;
-  assert.deepEqual(got.map(x => [x.from, x.kind, x.colour]), [['Ann', 'love', '#ff5fa2']]);
-  assert.equal(n.ping(st, so, bob, { ...NEXT_DOOR }, 400).inbox.length, 0);
+  // It says who it is for and from; server.js puts it in their saved inbox (cheers.js).
+  const sent = n.cheer(st, so, ann, { id, kind: 'like' }, 6000);
+  assert.deepEqual([sent.to, sent.from, sent.kind, sent.colour], ['u2', 'Ann', 'like', '#ff5fa2']);
+  assert.equal('inbox' in n.ping(st, so, bob, { ...NEXT_DOOR }, 300), false);
 });
 
 test('follow fills the bell, active first; a hide undoes it both ways and for good', () => {
@@ -66,4 +67,13 @@ test('a deleted account is forgotten', () => {
   n.forgetUser(st, so, 'u2');
   assert.deepEqual(so.follows.u1, []);
   assert.equal(n.ping(st, so, ann, { ...GYM }, 10).near.length, 0);
+});
+
+test('someone from the feed can be remembered, then followed and cheered', () => {
+  const st = n.emptyState(), so = n.emptySocial();
+  const id = n.remember(st, so, 'u2', 'Bob Jones');
+  assert.equal(id, n.handleOf(st, 'u2'));
+  assert.equal(n.follow(st, so, ann, { id }).followed, true);
+  assert.deepEqual(n.bell(st, so, ann, 10).people.map(p => [p.name, p.active]), [['Bob', false]]);
+  assert.equal(n.cheer(st, so, ann, { id, kind: 'love' }, 20).to, 'u2');
 });

@@ -15,7 +15,7 @@ import { botCard } from '../lib/police/bot-card.js'
 import { swallowNextClick } from '../lib/swallow-click.js'
 import { confirmSheet } from '../sheets.jsx'
 import { botSvg } from './HaydenBot.jsx'
-import { beep, beepVolume } from '../lib/police/bot-voice.js'
+import { showCheers } from './CheerBubble.jsx'
 
 const EVERY_MS = 30000
 export const useNearby = create(() => ({ near: [], said: {} }))
@@ -29,7 +29,7 @@ const said = (id, sym) => { useNearby.setState(s => ({ said: { ...s.said, [id]: 
 
 export async function sendCheer(b, kind = 'love') {
   try { await post('/api/nearby/cheer', { id: b.id, kind }); said(b.id, kind === 'love' ? '❤️' : '👍'); haydenSays(kind === 'love' ? '❤️' : '👍', 'love') }
-  catch (e) { toast(e?.status === 429 ? 'One at a time' : `${b.name} is not nearby any more`) }
+  catch (e) { toast(e?.status === 429 ? 'One at a time' : `Could not reach ${b.name} right now`) }
 }
 export async function toggleFollow(b) {
   const on = !b.followed
@@ -127,7 +127,8 @@ export default function NearbyBots() {
           list.forEach(b => greeted.current.add(b.id))
           if (fresh) { haydenSays('👋', 'happy'); said(fresh.id, '👋') }
           useNearby.setState({ near: list })
-          for (const c of r?.inbox || []) { haydenSays(c.kind === 'love' ? '❤️' : '👍', 'love', 2400); toast(`${c.kind === 'love' ? '❤️' : '👍'} from ${c.from}`); beep('love', beepVolume(st.S.police)) }
+          // Anything sent to you (kept on the server, api/cheers.js) pops up as Hayden's bubble.
+          showCheers(r?.inbox)
         } catch { /* offline: try again next time */ }
       }, () => { /* location refused or unavailable */ }, { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 })
       t = setTimeout(tick, EVERY_MS)

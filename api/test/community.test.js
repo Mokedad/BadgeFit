@@ -24,8 +24,10 @@ test('replies and cheers', () => {
   const f = c.emptyFeed();
   const { post } = c.addPost(f, ann, { text: 'Grip at 29 kg, so close' });
   c.addReply(f, bob, { id: post.id, text: 'Farmers walks! You got this' });
-  assert.deepEqual(c.toggleCheer(f, bob, post.id), { cheers: 1, cheered: true });
-  assert.deepEqual(c.toggleCheer(f, bob, post.id), { cheers: 0, cheered: false });
+  const on = c.toggleCheer(f, bob, post.id)
+  assert.deepEqual([on.cheers, on.cheered, on.owner], [1, true, post.uid]);
+  const off = c.toggleCheer(f, bob, post.id)
+  assert.deepEqual([off.cheers, off.cheered], [0, false]);
   assert.equal(c.view(f, ann)[0].replies[0].name, 'Bob');
 });
 
@@ -63,4 +65,20 @@ test('a deleted account takes its posts, replies, cheers and reports with it', (
   assert.deepEqual(f.posts.map(p => p.id), [b.id]);
   assert.equal(f.posts[0].replies.length + f.posts[0].cheers.length + f.posts[0].reports.length, 0);
   assert.ok(a);
+});
+
+test('crews, handles and the guest teaser', () => {
+  const f = c.emptyFeed();
+  const a = c.addPost(f, { id: 'u1', name: 'Ann' }, { text: 'Level 7.4!', topic: 'win', crew: '2026-12-06' }, 1000).post;
+  c.addPost(f, { id: 'u2', name: 'Bob' }, { text: 'Hello', topic: 'journey', crew: 'nope' }, 2000);
+  c.toggleCheer(f, { id: 'u2' }, a.id);
+  const handle = uid => 'h-' + uid;
+  const mine = c.view(f, { id: 'u1' }, { handle });
+  assert.equal(mine.find(p => p.name === 'Ann').who, undefined);
+  assert.equal(mine.find(p => p.name === 'Bob').who, 'h-u2');
+  assert.equal(JSON.stringify(mine).includes('"u2"'), false);
+  assert.deepEqual(c.view(f, { id: 'u2' }, { crew: '2026-12-06' }).map(p => p.name), ['Ann']);
+  assert.deepEqual(c.uidByHandle(f, handle, 'h-u1'), { uid: 'u1', name: 'Ann' });
+  assert.deepEqual(c.teaser(f, 3000), { posts: 2, wins: 1, cheers: 1, people: 2 });
+  assert.deepEqual(c.teaser(f, 3000 + 8 * 86400000).posts, 0);
 });

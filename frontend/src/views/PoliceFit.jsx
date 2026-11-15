@@ -46,6 +46,8 @@ import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { RoundPick, PickRow } from '../components/StartPicker.jsx'
+import { shareWin } from '../components/ShareWin.jsx'
+import { winText } from '../lib/police/cheer-text.js'
 import { CAT_ICON } from '../lib/police/start-picks.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import PlanDays from '../components/PlanDays.jsx'
@@ -236,7 +238,7 @@ function More({ setTab, calm }) {
     const tile = (icon, label, go) => <button key={label} className="pf-mtile" onClick={go}><span aria-hidden="true"><Icon name={icon} /></span><b>{label}</b></button>
     return <div className="pf-mgrid">
       {MORE.map(m => tile(MORE_ICON[m.value] || 'list', m.label, () => setTab(m.value)))}
-      {tile('personCircle', 'Community', () => (guestHere ? membersOnly() : nav('/community')))}
+      {tile('personCircle', 'Community', () => nav('/community'))}
       {tile('chart', 'Progress', () => nav('/stats'))}
       {tile('list', 'Exercises', () => nav('/library'))}
       <button key="Hayden" className="pf-mtile" onClick={() => setTab('today')}><span aria-hidden="true"><HaydenMark size={30} /></span><b>Hayden</b></button>
@@ -571,9 +573,13 @@ function LogForm({ std, P, onDone }) {
   const ev = evaluate(std.id, v, P.beepTarget)
   const save = () => {
     if (!ev) return
-    setP(p => ({ results: [...(p.results || []), { id: std.id, v, at: date }] }))
+    const entry = { id: std.id, v, at: date }
+    const best = (P.results || []).some(r => r.id === std.id) && bestResult([...(P.results || []), entry], std.id) === entry
+    setP(p => ({ results: [...(p.results || []), entry] }))
     useUI.getState().toast(resultLine(std, ev))
     onDone()
+    // A pass or a new best: offer to tell the crew (members), so the cheers come back.
+    if (ev.pass || best) shareWin(winText({ kind: 'result', name: std.name.replace(/ \(.*\)$/, ''), value: fmtResult(std.id, v), pass: ev.pass, best }))
   }
   return <div className="pf-log">
     <p className="pf-sub">{std.how}</p>
@@ -1008,13 +1014,19 @@ export default function PoliceFit() {
   </div>
   return <div className="narrow pf">
     {overlay === 'beep' && <BeepTrainer target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} onClose={() => setOverlay(null)} onSave={v => {
-      setP(p => ({ results: [...(p.results || []), { id: 'beep', v, at: todayISO() }] }))
+      const entry = { id: 'beep', v, at: todayISO() }
+      const ev = evaluate('beep', v, P.beepTarget || DEFAULT_BEEP_TARGET)
+      const best = (P.results || []).some(r => r.id === 'beep') && bestResult([...(P.results || []), entry], 'beep') === entry
+      setP(p => ({ results: [...(p.results || []), entry] }))
       setOverlay(null); useUI.getState().toast(`Beep test ${v} saved`)
+      if (ev?.pass || best) shareWin(winText({ kind: 'result', name: 'Beep test', value: fmtResult('beep', v), pass: ev?.pass, best }))
     }} />}
     {overlay === 'test' && <TestDay target={P.beepTarget || DEFAULT_BEEP_TARGET} goal={P.beepGoal || DEFAULT_BEEP_GOAL} testName={(P.testName || '').trim() || 'PCT'} onClose={() => setOverlay(null)} onSave={vals => {
       const add = testDayResults(vals, todayISO(), P.beepTarget || DEFAULT_BEEP_TARGET)
       setP(p => ({ results: [...(p.results || []), ...add] }))
       setOverlay(null); setTab('tests'); useUI.getState().toast(`${add.length} results saved`)
+      const passing = readiness([...(P.results || []), ...add], P.beepTarget).passed
+      if (add.length) shareWin(`Test day done: ${passing} of 6 standards passing. ${passing === 6 ? 'Ready for the real thing!' : 'Back to work on the rest.'}`)
     }} />}
     {calm ? <div className="calm-head">
       {/* A page under More goes back to More; Plan, the test and More are the bar's own places. */}

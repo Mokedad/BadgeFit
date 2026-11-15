@@ -14,6 +14,8 @@ import { bwSheet, goalSheet, workoutDetailSheet, menuSheet, dayOverrideSheet, ca
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import StartPicker from '../components/StartPicker.jsx'
+import { shareWin } from '../components/ShareWin.jsx'
+import { winText } from '../lib/police/cheer-text.js'
 import CardHead from '../components/CardHead.jsx'
 import QueueRow from '../components/QueueRow.jsx'
 import MiniBodyMap from '../components/MiniBodyMap.jsx'
@@ -261,6 +263,7 @@ export default function Home() {
         {/* A picture of today's session for a story or a message, through the phone's own share
             sheet: no account linked, no map (lib/police/share-card.js). */}
         {doneToday && !S.active && <button className="calm-share" onClick={shareToday}><Icon name="share" /> Share today</button>}
+        {doneToday && !S.active && user && <button className="calm-share" onClick={() => shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last }))}><Icon name="sparkles" /> Tell your crew</button>}
         {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
         {extraDone.length > 0 && <div className="done-today">
           {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>

@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>109 endpoints</span>
+    <span>111 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -2787,6 +2787,54 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-getCheers">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/cheers</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Take the cheers waiting for you (BadgeFit)</span>
+  </summary>
+  <div class="ep-body">
+<p>Everything sent to you since you last looked: cheers on your posts, replies, loves and likes. Taken once (the inbox is emptied). First names and a few words only, never an id. The same list also rides along on <code>POST /api/nearby</code> as <code>inbox</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ cheers: [{ id, from, colour, kind, what, at }] }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getCommunityTeaser">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/community/teaser</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">How busy the community was this week, numbers only</span>
+  </summary>
+  <div class="ep-body">
+<p>No account needed (for guests). No names, no words.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ posts, wins, cheers, people }</code></span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-getCommunity">
   <summary>
     <span class="m get">GET</span>
@@ -2798,6 +2846,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
 <p>The newest posts first, up to 50, with their replies and cheer counts. Never an account id: posts carry the name the author chose and <code>mine</code> for the viewer's own. Hidden (reported) posts are shown only to admins and their authors.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">crew</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">A test date (YYYY-MM-DD); only posts from people training for it.</span>
+  </div>
   <div class="prow">
     <span class="p-name">before</span>
     <span class="p-type">integer</span>
@@ -2840,6 +2893,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">topic</span>
     <span class="p-type">&quot;win&quot; | &quot;question&quot; | &quot;journey&quot; | &quot;motivation&quot;</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">crew</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Your test date (YYYY-MM-DD): the post shows in that crew too</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
