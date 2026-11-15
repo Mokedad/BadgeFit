@@ -56,8 +56,9 @@ export function botSvg({ eyes = 'open', pose = 'idle', gear = [], tilt = 0, line
       <rect x="54" y="56" width="92" height="62" rx="28" fill="${VISOR}"/>
       <path d="M66 64 Q80 59 94 61" fill="none" stroke="${VISOR2}" stroke-width="5" stroke-linecap="round"/>
       <g class="hb-eyes${talking ? ' hb-talk' : ''}" style="filter:drop-shadow(0 0 5px ${line}99)">${eye(82)}${eye(118)}</g>
-      ${g.has('cap') ? `<path d="M46 60 Q100 4 154 60 Z" fill="${VISOR}"/><path d="M40 60 Q100 72 160 60 L160 66 Q100 80 40 66 Z" fill="${NAVY}" stroke="${GOLD}" stroke-width="1.5"/><path d="M100 24 l3 6 6.5.9-4.7 4.6 1.1 6.5L100 39l-5.9 3 1.1-6.5-4.7-4.6 6.5-.9z" fill="${GOLD}"/>` : ''}
-      ${g.has('headband') && !g.has('cap') ? `<rect x="42" y="47" width="116" height="9" rx="4" fill="${GOLD}"/>` : ''}
+      ${g.has('santa') ? `<path d="M46 52 Q70 8 120 14 Q158 20 166 40 L152 50 Z" fill="#d42a2a"/><path d="M118 14 Q156 6 172 34" fill="none" stroke="#d42a2a" stroke-width="12" stroke-linecap="round"/><circle cx="174" cy="38" r="9" fill="#fff"/><rect x="40" y="44" width="120" height="15" rx="7.5" fill="#fff"/>` : ''}
+      ${g.has('cap') && !g.has('santa') ? `<path d="M46 60 Q100 4 154 60 Z" fill="${VISOR}"/><path d="M40 60 Q100 72 160 60 L160 66 Q100 80 40 66 Z" fill="${NAVY}" stroke="${GOLD}" stroke-width="1.5"/><path d="M100 24 l3 6 6.5.9-4.7 4.6 1.1 6.5L100 39l-5.9 3 1.1-6.5-4.7-4.6 6.5-.9z" fill="${GOLD}"/>` : ''}
+      ${g.has('headband') && !g.has('cap') && !g.has('santa') ? `<rect x="42" y="47" width="116" height="9" rx="4" fill="${GOLD}"/>` : ''}
       ${g.has('bolt') ? `<path d="M168 34 l-10 16 h8 l-4 14 12-18 h-8 l6-12z" fill="${GOLD}"/>` : ''}
     </g>`
   if (act && ACTS[act]) return actSvg(act, { head, line })
@@ -110,9 +111,9 @@ export function useBotLook() {
   return useMemo(() => ({ line: lineColour(guest ? null : user?.id || 'demo'), gear: earnedGear(S, { guest }) }), [user?.id, guest, S.workouts, S.police]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export default function HaydenBot({ size = 120, className = '', label = '', ...look }) {
+export default function HaydenBot({ size = 120, className = '', label = '', extraGear = [], ...look }) {
   const mine = useBotLook()
-  const svg = botSvg({ line: mine.line, gear: mine.gear, ...look })
+  const svg = botSvg({ line: mine.line, ...look, gear: [...(look.gear || mine.gear), ...extraGear] })
   return <span className={'hb ' + className} style={{ width: size }} role={label ? 'img' : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : true}
     dangerouslySetInnerHTML={{ __html: svg }} />
 }

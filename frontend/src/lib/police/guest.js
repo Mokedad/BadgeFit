@@ -13,7 +13,7 @@ export const BADGEFIT_APP = APP
 // The app's name in every translated line: the phone app from the start, the website once its
 // server says it is BadgeFit's.
 if (APP) setBrand(BRAND.name)
-useStore.subscribe?.(st => { if (st.config?.passkeys === false) setBrand(BRAND.name) })
+useStore.subscribe?.(st => { if (st.config?.passkeys === false || st.S?.police?.level) setBrand(BRAND.name) })
 
 /** Whether this is a BadgeFit app (the phone app, the BadgeFit server, or a BadgeFit profile). */
 export const isBadgeFit = (S, config) => APP || config?.passkeys === false || !!S?.police?.level

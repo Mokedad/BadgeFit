@@ -79,6 +79,7 @@ export const getVersion = () => version
 // keys stay as upstream wrote them, so its packs keep merging; the name is swapped on the way out.
 let brand = null
 export function setBrand(name) { brand = name || null }
+export const getBrand = () => brand
 
 export function t(s, ...args) {
   let v = dict[s] || s

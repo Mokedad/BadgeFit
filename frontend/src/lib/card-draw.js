@@ -3,6 +3,7 @@
 // workout and in History) and Your year (lib/wrapped-cards.js) both paint with it, and
 // lib/share-image.js gets the picture out of the app. No exercise picture or clip is ever drawn
 // on a card (the licence keeps those inside the app, NOTICE.md).
+import { getBrand } from './i18n-core.js'
 
 // 9:16 for Stories and Reels, 1:1 for a feed or a chat.
 export const FORMATS = { story: { width: 1080, height: 1920 }, square: { width: 1080, height: 1080 } }
@@ -71,6 +72,8 @@ export function drawMark(ctx, x, y, h, color) {
  * logo, and a logo does not mirror.
  */
 export function drawBrand(ctx, { x, y, width, colors, family, size = 40 }) {
+  // BadgeFit: its shield, "Badge" with "Fit" in the accent, and its own site.
+  if (getBrand() === 'BadgeFit') return drawBadgeFit(ctx, { x, y, width, colors, family, size })
   const markH = size * 0.78
   drawMark(ctx, x, y - size * 0.36, markH, colors.acc)
   let tx = x + markH * MARK_ASPECT + size * 0.4
@@ -86,6 +89,55 @@ export function drawBrand(ctx, { x, y, width, colors, family, size = 40 }) {
   ctx.fillStyle = colors.label2
   ctx.textAlign = 'right'
   ctx.fillText(SITE, x + width, y)
+  ctx.textAlign = 'left'
+}
+
+/** The BadgeFit shield, `h` tall, its top-left at (x, y), with a star cut out. */
+export function drawShield(ctx, x, y, h, color, inner) {
+  const w = h * 0.84
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.beginPath()
+  ctx.moveTo(w / 2, 0)
+  ctx.lineTo(w, h * 0.16)
+  ctx.lineTo(w, h * 0.52)
+  ctx.quadraticCurveTo(w, h * 0.86, w / 2, h)
+  ctx.quadraticCurveTo(0, h * 0.86, 0, h * 0.52)
+  ctx.lineTo(0, h * 0.16)
+  ctx.closePath()
+  ctx.fillStyle = color
+  ctx.fill()
+  // a five-point star in the middle
+  const cx = w / 2, cy = h * 0.47, R = h * 0.2, r = R * 0.45
+  ctx.beginPath()
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? r : R
+    ctx[i ? 'lineTo' : 'moveTo'](cx + rad * Math.cos(a), cy + rad * Math.sin(a))
+  }
+  ctx.closePath()
+  ctx.fillStyle = inner
+  ctx.fill()
+  ctx.restore()
+  return w
+}
+
+export const BADGEFIT_SITE = 'badgefit.com.au'
+function drawBadgeFit(ctx, { x, y, width, colors, family, size }) {
+  const markH = size * 1.05
+  const w = drawShield(ctx, x, y - size * 0.82, markH, colors.acc, colors.surface || colors.bg || '#1c1c1e')
+  let tx = x + w + size * 0.35
+  ctx.direction = 'ltr'
+  ctx.textAlign = 'left'
+  ctx.font = `800 ${size}px ${family}`
+  ctx.fillStyle = colors.label
+  ctx.fillText('Badge', tx, y)
+  tx += ctx.measureText('Badge').width
+  ctx.fillStyle = colors.accText || colors.acc
+  ctx.fillText('Fit', tx, y)
+  ctx.font = `600 ${Math.round(size * 0.72)}px ${family}`
+  ctx.fillStyle = colors.label2
+  ctx.textAlign = 'right'
+  ctx.fillText(BADGEFIT_SITE, x + width, y)
   ctx.textAlign = 'left'
 }
 

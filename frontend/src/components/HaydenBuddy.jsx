@@ -10,6 +10,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EMOTES, IDLE, EMOTE_MS, ACT_MS, ACT_SAY, LIFT, DROP, HOLD_MS, nextEmote, haydenOn, exerciseAct, nextSpot, SPOTS } from '../lib/police/bot-emotes.js'
 import { beep, beepVolume } from '../lib/police/bot-voice.js'
+import { idleAct, idleGap, welcomeAct, seasonOf, WELCOME_AFTER_MS } from '../lib/police/bot-moods.js'
 import { EXIDX } from '../lib/exercises.js'
 import { useRun } from '../store/useRun.js'
 import HaydenBot, { HaydenMark } from './HaydenBot.jsx'
@@ -105,6 +106,35 @@ export default function HaydenBuddy() {
     return () => { clearTimeout(t); clearTimeout(st); window.removeEventListener('scroll', onScroll); document.removeEventListener('click', onTap, true) }
   }, [loc.pathname, loc.search]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(hopT.current); clearTimeout(holdT.current) }, [])
+  // His own life: every 18 to 40 seconds he does something by himself (quietly), now and then the
+  // month's thing; back on screen after half a minute away, a welcome with a beep.
+  useEffect(() => {
+    let idleT = 0, awayAt = 0
+    const next = () => { clearTimeout(idleT); idleT = setTimeout(live, idleGap()) }
+    const live = () => {
+      // Not while he is busy with you (a move, being held) or with a sheet over the page.
+      if (!document.hidden && !press.current && !useUI.getState().sheets.length && !timer.current) {
+        const l = idleAct()
+        setLook(l)
+        timer.current = setTimeout(() => { setLook(IDLE); timer.current = 0 }, 1800)
+      }
+      next()
+    }
+    const vis = () => {
+      if (document.hidden) { awayAt = Date.now(); clearTimeout(idleT); return }
+      if (awayAt && Date.now() - awayAt > WELCOME_AFTER_MS) {
+        const w = welcomeAct()
+        setLook(w); clearTimeout(timer.current)
+        beep(w.mood, beepVolume(useStore.getState().S.police))
+        timer.current = setTimeout(() => { setLook(IDLE); timer.current = 0 }, 2200)
+      }
+      awayAt = 0
+      next()
+    }
+    next()
+    document.addEventListener('visibilitychange', vis)
+    return () => { clearTimeout(idleT); document.removeEventListener('visibilitychange', vis) }
+  }, [])
   // Told to react from elsewhere (a bot nearby to greet, a love that came in): NearbyBots.jsx.
   useEffect(() => {
     const on = e => {
@@ -112,7 +142,7 @@ export default function HaydenBuddy() {
       const pose = sym === '👋' ? 'wave' : sym === '❤️' ? 'cheer' : 'idle'
       setLook({ eyes: 'happy', pose, sym }); clearTimeout(timer.current)
       beep(mood, beepVolume(useStore.getState().S.police))
-      timer.current = setTimeout(() => setLook(IDLE), ms)
+      timer.current = setTimeout(() => { setLook(IDLE); timer.current = 0 }, ms)
     }
     window.addEventListener('hayden-react', on)
     return () => window.removeEventListener('hayden-react', on)
@@ -125,7 +155,7 @@ export default function HaydenBuddy() {
   const react = (l, ms = EMOTE_MS) => {
     setLook(l); clearTimeout(timer.current)
     if (l.mood) beep(l.mood, beepVolume(useStore.getState().S.police))
-    timer.current = setTimeout(() => setLook(IDLE), ms)
+    timer.current = setTimeout(() => { setLook(IDLE); timer.current = 0 }, ms)
   }
   // Double tap: he hops to another spot, at random (never the one he is in).
   const hopAway = () => {
@@ -187,6 +217,6 @@ export default function HaydenBuddy() {
     aria-label="Hayden. Tap for a move, double tap to move him, hold to pick him up">
     {look.sym && <span className="hb-say" aria-hidden="true">{look.sym}</span>}
     {holding && <span className="hb-ring" aria-hidden="true" />}
-    <HaydenBot size={SIZE} eyes={look.eyes} pose={look.pose} act={look.act} />
+    <HaydenBot size={SIZE} eyes={look.eyes} pose={look.pose} act={look.act} extraGear={seasonOf().hat ? [seasonOf().hat] : []} />
   </button>
 }
