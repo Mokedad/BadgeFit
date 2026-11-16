@@ -82,3 +82,68 @@ export async function shareSession(input, toast) {
   if (!blob) { toast?.('Could not make the picture on this device.'); return false }
   return shareImage(blob, 'badgefit-session.png', 'BadgeFit', toast)
 }
+
+/** Where a photo is cut to fill a w × h frame (cover): the source rectangle { sx, sy, sw, sh }. Pure. */
+export function coverCrop(iw, ih, w, h) {
+  const scale = Math.max(w / iw, h / ih)
+  const sw = w / scale, sh = h / scale
+  return { sx: (iw - sw) / 2, sy: (ih - sh) / 2, sw, sh }
+}
+
+const loadPhoto = file => new Promise(resolve => {
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  img.onload = () => { resolve(img); setTimeout(() => URL.revokeObjectURL(url), 1000) }
+  img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+  img.src = url
+})
+
+/**
+ * The photo card: your own photo filling the story, the session's words over the bottom of it and
+ * BadgeFit at the top. Made on the phone; the photo goes nowhere but the share sheet you choose.
+ */
+export async function photoCardImage(model, file) {
+  const W = 1080, H = 1920
+  const c = makeCanvas(W, H, FONT)
+  const img = c && file ? await loadPhoto(file) : null
+  if (!c || !img) return null
+  const { ctx } = c
+  const { sx, sy, sw, sh } = coverCrop(img.naturalWidth || img.width, img.naturalHeight || img.height, W, H)
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H)
+  // Dark at the top and the bottom so the words read on any photo.
+  const top = ctx.createLinearGradient(0, 0, 0, 420)
+  top.addColorStop(0, 'rgba(12,23,48,.85)'); top.addColorStop(1, 'rgba(12,23,48,0)')
+  ctx.fillStyle = top; ctx.fillRect(0, 0, W, 420)
+  const bot = ctx.createLinearGradient(0, H - 900, 0, H)
+  bot.addColorStop(0, 'rgba(12,23,48,0)'); bot.addColorStop(0.55, 'rgba(12,23,48,.82)'); bot.addColorStop(1, 'rgba(12,23,48,.96)')
+  ctx.fillStyle = bot; ctx.fillRect(0, H - 900, W, 900)
+  // Shield and name, top left.
+  ctx.save()
+  const s = 2.6; ctx.translate(70, 80); ctx.scale(s, s)
+  ctx.lineJoin = 'round'; ctx.lineWidth = 2.6; ctx.strokeStyle = GOLD; ctx.fillStyle = '#0d1b33'
+  const shield = new Path2D('M24 3 41 9v13c0 11-7.3 19.2-17 23C14.3 41.2 7 33 7 22V9z')
+  ctx.fill(shield); ctx.stroke(shield)
+  ctx.fillStyle = GOLD; ctx.fill(new Path2D('M24 12.5l3.1 6.4 7 .9-5.1 4.9 1.3 6.9L24 28.3l-6.3 3.3 1.3-6.9-5.1-4.9 7-.9z'))
+  ctx.restore()
+  ctx.textAlign = 'left'; ctx.font = `800 64px ${FONT}`
+  const wb = ctx.measureText('Badge').width
+  ctx.fillStyle = '#fff'; ctx.fillText('Badge', 210, 165)
+  ctx.fillStyle = GOLD; ctx.fillText('Fit', 210 + wb, 165)
+  // The session, bottom left.
+  const X = 80
+  let y = H - 520
+  ctx.font = `700 42px ${FONT}`; ctx.fillStyle = GOLD; ctx.fillText(model.head.toUpperCase(), X, y); y += 100
+  ctx.font = `800 88px ${FONT}`; ctx.fillStyle = '#fff'
+  for (const l of wrapLines(model.title, t => ctx.measureText(t).width, W - 2 * X, 2)) { ctx.fillText(l, X, y); y += 100 }
+  if (model.facts) { ctx.font = `600 56px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fillText(model.facts, X, y + 6); y += 90 }
+  if (model.count != null) { ctx.font = `700 50px ${FONT}`; ctx.fillStyle = GOLD; ctx.fillText(`${model.count} ${model.countLabel}`, X, y + 10) }
+  ctx.font = `600 38px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.fillText(model.foot, X, H - 70)
+  return toPng(c.canvas)
+}
+
+/** Makes the photo card from a photo the member took or chose, and opens the share sheet. */
+export async function sharePhoto(input, file, toast) {
+  const blob = await photoCardImage(cardModel(input), file)
+  if (!blob) { toast?.('Could not use that photo on this device.'); return false }
+  return shareImage(blob, 'badgefit-photo.png', 'BadgeFit', toast)
+}

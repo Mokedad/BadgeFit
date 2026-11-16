@@ -138,9 +138,10 @@ export default function HaydenBuddy() {
   // Told to react from elsewhere (a bot nearby to greet, a love that came in): NearbyBots.jsx.
   useEffect(() => {
     const on = e => {
-      const { sym, mood = 'happy', ms = 1800 } = e.detail || {}
-      const pose = sym === '👋' ? 'wave' : sym === '❤️' ? 'cheer' : 'idle'
-      setLook({ eyes: 'happy', pose, sym }); clearTimeout(timer.current)
+      const { sym, mood = 'happy', ms = 1800, ask = null, to = null } = e.detail || {}
+      const pose = ask || sym === '👋' ? 'wave' : sym === '❤️' ? 'cheer' : 'idle'
+      // A question he asks ("Check your progress?"): tapping him while it shows goes there.
+      setLook({ eyes: 'happy', pose, sym, ask, to }); clearTimeout(timer.current)
       beep(mood, beepVolume(useStore.getState().S.police))
       timer.current = setTimeout(() => { setLook(IDLE); timer.current = 0 }, ms)
     }
@@ -168,6 +169,7 @@ export default function HaydenBuddy() {
     }, 200)
   }
   const tap = () => {
+    if (look.to) { const to = look.to; clearTimeout(timer.current); setLook(IDLE); window.location.hash = '#' + to; return }
     const at = Date.now()
     if (at - lastTap.current < 320) { lastTap.current = 0; hopAway(); return }
     lastTap.current = at
@@ -215,8 +217,11 @@ export default function HaydenBuddy() {
     className={'hb-buddy' + (pos ? ' placed' + (pos.x < window.innerWidth / 2 ? ' say-right' : '') : ' spot-' + spot) + (hop ? ' hop' : '') + (holding ? ' holding' : '') + (dragging ? ' dragging' : '') + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')}
     onPointerDown={down} onPointerMove={moveTo} onPointerUp={up} onPointerCancel={up} onContextMenu={e => e.preventDefault()}
     aria-label="Hayden. Tap for a move, double tap to move him, hold to pick him up">
-    {look.sym && <span className="hb-say" aria-hidden="true">{look.sym}</span>}
+    {look.ask ? <span className="hb-say hb-ask">{look.ask}</span> : look.sym && <span className="hb-say" aria-hidden="true">{look.sym}</span>}
     {holding && <span className="hb-ring" aria-hidden="true" />}
     <HaydenBot size={SIZE} eyes={look.eyes} pose={look.pose} act={look.act} extraGear={seasonOf().hat ? [seasonOf().hat] : []} />
   </button>
 }
+
+/** After a finished session, back on Home: Hayden asks, and a tap on him opens Progress. */
+export const askProgress = () => setTimeout(() => window.dispatchEvent(new CustomEvent('hayden-react', { detail: { ask: 'Check your progress?', to: '/stats', mood: 'happy', ms: 9000 } })), 900)

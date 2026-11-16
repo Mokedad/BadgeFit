@@ -6,7 +6,9 @@ import { ensureRunRoutine, runForRoutine } from './lib/police/run-routines.js'
 import { planSessions, otherRoutines, shortName } from './lib/police/day-pick.js'
 import { isBadgeFitGuest } from './lib/police/guest.js'
 import { CAT_ICON } from './lib/police/start-picks.js'
-import { RoundPick, PickRow } from './components/StartPicker.jsx'
+import { RoundPick, PickRow, TrainList } from './components/StartPicker.jsx'
+import { countInRun } from './components/CountIn.jsx'
+import { GYM_TYPES, RUN_TYPES, gymTypesFor, ensureFullBody } from './lib/police/train-types.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { exView, exUnitPin, exUnitOf, exUnitTag, withExUnit, profileUnit, viewTarget, storedTarget, storedBar, viewEntry, viewRow, shownWeight } from './lib/ex-unit.js'
@@ -2975,37 +2977,34 @@ function DayOverride({ iso, close }) {
  * folded away under Other workouts (lib/police/day-pick.js). No day notes here.
  */
 function BfDayOverride({ iso, st, hasOvr, changed, weeklyNames, effIds, missed, logIt, set }) {
-  const [more, setMore] = useState(false)
   const plan = planSessions(st)
-  const others = otherRoutines(st)
   const guest = isBadgeFitGuest(st, useStore.getState().config, useStore.getState().user)
-  const line = (key, icon, label, onClick, on = false) => <div key={key} className="item menu-item" {...tappable(onClick)}>
-    <span className="lrow-i"><Icon name={icon} /></span>
-    <div className="grow"><div className="tt">{label}</div></div>
-    {on && <Icon name="check" className="accent" />}
-  </div>
-  return <div className="bf-day">
+  // Picked: the day is set, and it is back to Home (never left on another page).
+  const done = id => { set(id); if (iso === todayISO()) location.hash = '#/home' }
+  const pick = it => {
+    let id = it.routine?.id
+    if (it.kind === 'run') update(s => { id = ensureRunRoutine(s, it.run.id) })
+    if (it.kind === 'make-full') update(s => { id = ensureFullBody(s, iso) })
+    if (id) done(id)
+  }
+  const isOn = it => (it.kind === 'run' ? pickedRunIds(st, effIds).includes(it.run.id) : it.kind === 'gym' && effIds.includes(it.routine.id))
+  const foot = (icon, label, onClick, on) => <button type="button" className={on ? 'on' : ''} onClick={onClick}><Icon name={icon} /> {label}</button>
+  return <div className="bf-day start-picker">
     <h3>{fmtDate(iso, true)}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>Planned: {weeklyNames.length ? deriveSessionName(weeklyNames) : 'rest'}{changed && <span style={{ color: 'var(--orange)' }}> · changed</span>}</div>
     {missed && <div style={{ marginBottom: 14 }}><Button variant="primary" icon="checkCircle" onClick={logIt}>{t('Log this workout')}</Button></div>}
     {plan.length > 0 && <>
-      <div className="menu-sec">This week's sessions</div>
-      <PickRow label="This week's sessions">{plan.map(r => <RoundPick key={r.id} icon={glyphOf(r.emoji)} label={shortName(r.name)} on={effIds.includes(r.id)} onClick={() => set(r.id)} />)}</PickRow>
+      <div className="menu-sec">Your plan</div>
+      <PickRow label="Your plan">{plan.map(r => <RoundPick key={r.id} icon={glyphOf(r.emoji)} label={shortName(r.name)} on={effIds.includes(r.id)} onClick={() => done(r.id)} />)}</PickRow>
     </>}
-    <RunPicks title="Or a run" isOn={runId => pickedRunIds(st, effIds).includes(runId)} onPick={runId => {
-      let id = null
-      update(s => { id = ensureRunRoutine(s, runId) })
-      if (id) set(id)
-    }} />
-    <div className="list menu-list" style={{ marginTop: 14 }}>
-      {line('rest', 'moon', 'Rest today', () => set('rest'), effIds.length === 0)}
-      {hasOvr && line('back', 'reset', 'Back to the plan', () => set(''))}
-      {!guest && others.length > 0 && <div className="item menu-item menu-more" aria-expanded={more} {...tappable(() => setMore(m => !m))}>
-        <span className="lrow-i"><Icon name="list" /></span>
-        <div className="grow"><div className="tt">Other workouts</div></div>
-        <Icon name={more ? 'chevronUp' : 'chevronDown'} className="menu-chev" />
-      </div>}
-      {more && others.map(r => line(r.id, glyphOf(r.emoji), r.name, () => set(r.id), effIds.includes(r.id)))}
+    {/* Members: any kind of training, picked by kind. A guest keeps to the plan's own sessions. */}
+    {!guest && <>
+      <div className="menu-sec">Or something else</div>
+      <TrainList types={[...gymTypesFor(st, iso), ...RUN_TYPES]} isOn={isOn} onPick={pick} />
+    </>}
+    <div className="sp-foot">
+      {foot('moon', 'Rest', () => done('rest'), effIds.length === 0)}
+      {hasOvr && foot('reset', 'Back to the plan', () => done(''))}
     </div>
   </div>
 }
@@ -3561,7 +3560,7 @@ export function startFlow(routineIds, { auto = false } = {}) {
   // a duration row: it opens as the guided run with Hayden and the countdown, from every Start.
   const P = S().police
   const runs = P?.level && (routineIds || []).length ? routineIds.map(id => runForRoutine(P, id, todayISO())) : []
-  if (runs.length && runs.every(Boolean)) { location.hash = '#/police?run=' + runs[0].id; return }
+  if (runs.length && runs.every(Boolean)) { countInRun(runs[0], runMinutes(runs[0])); return }
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   // Off in Settings → Workout, or with the Body module (Settings → Modules): straight into the session.

@@ -28,6 +28,6 @@ describe('runCredits', () => {
   it("else the day's run routines, never a gym one", () => {
     const P = { runRoutines: { a: 'easy-30' } }
     expect(runCredits(P, ['a', 'gym'], 'tempo-20', '2026-11-10')).toEqual(['a'])
-    expect(runCredits(P, ['gym'], 'tempo-20', '2026-11-10')).toEqual([])
+    expect(runCredits(P, ['gym'], 'tempo-20', '2026-11-10')).toEqual(['gym'])
   })
 })

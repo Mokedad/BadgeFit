@@ -7,11 +7,15 @@ import { runForRoutine } from './run-routines.js'
 
 export const RUN_EX = '0685' // the catalogue's "run", a cardio exercise
 
-/** The routines of `todayIds` (the day's planned ones) a run of `runId` completes. */
+/** The routines of `todayIds` (the day's planned ones) a run of `runId` completes: that run, else
+ *  the day's runs, else (a run done on a gym day, in its place) the whole day. */
 export function runCredits(P, todayIds, runId, iso) {
   const ids = [].concat(todayIds || [])
   const exact = ids.filter(id => runForRoutine(P, id, iso)?.id === runId)
-  return exact.length ? exact : ids.filter(id => runForRoutine(P, id, iso))
+  if (exact.length) return exact
+  const runs = ids.filter(id => runForRoutine(P, id, iso))
+  // No run planned today (a gym day): the run was done instead, so it ticks the day off.
+  return runs.length ? runs : ids
 }
 
 /** The workout a logged run becomes. `entry`: the run-log entry ({ id, at, min, km?, completed... }). */

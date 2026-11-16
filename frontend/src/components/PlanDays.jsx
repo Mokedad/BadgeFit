@@ -15,7 +15,8 @@ import { todayNow } from '../lib/police/today-now.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { fitSession } from '../lib/police/session-length.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
-import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet } from '../sheets.jsx'
+import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet, startFlow } from '../sheets.jsx'
+import { effectiveRoutineIds } from '../lib/history.js'
 import { reopenPatch } from '../lib/police/reopen.js'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
@@ -206,6 +207,8 @@ export default function PlanDays({ first = null }) {
         ? <div className="pd-icon"><Icon name={d.kind === 'rest' ? 'moon' : 'figureRun'} /></div>
         : <div className="pd-run"><Thumb ex={EXIDX[RUN_PIC]} /></div>)}
       {first}
+      {/* Today, still to do: start it right here (a run is counted in by Hayden, components/CountIn.jsx). */}
+      {focus === today && !d.trained && d.kind !== 'rest' && <button type="button" className="pf-go pd-go" onClick={() => (S.active ? (window.location.hash = '#/workout') : startFlow(effectiveRoutineIds(S, today), { auto: true }))}>{S.active ? 'Resume' : 'Start'}</button>}
     </div>
     {next.map(n => <button key={n.iso} className={'pf-day pf-tile pfk-' + n.kind} onClick={() => setFocus(n.iso)}>
       <div className="pf-tile-h">

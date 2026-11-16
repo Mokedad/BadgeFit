@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // BadgeFit's "change this day" sheet: this week's sessions as round buttons (once each), the
-// kinds of run as round buttons with only that kind's runs listed, rest, and older routines
-// folded under Other workouts (members only). No day notes.
+// kinds of training (body parts, full body, runs) as round buttons with only the picked kind's
+// workouts listed (members only), and rest. No day notes.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -41,32 +41,35 @@ describe('BadgeFit change-this-day sheet', () => {
     expect(host.textContent).not.toMatch(/note/i)
   })
 
-  it('lists only the runs of the kind picked', () => {
+  const kind = (host, label) => [...host.querySelectorAll('.sp-pick')].filter(b => b.textContent === label).at(-1)
+
+  it('lists nothing until a kind is picked, then only that kind', () => {
     setS({ id: 'u1', name: 'Mo' })
     dayOverrideSheet(todayISO())
     const host = renderTop()
-    const runs = () => texts(host, '.bf-day .list')[0]
-    expect(runs()).toMatch(/Easy run, 30 min/)
-    expect(runs()).not.toMatch(/4×4/)
-    const vo2 = [...host.querySelectorAll('.sp-pick')].find(b => b.textContent === 'VO2 max')
-    act(() => vo2.click())
-    expect(runs()).toMatch(/4×4/)
-    expect(runs()).not.toMatch(/Easy run/)
+    expect(host.querySelector('.tl-list')).toBe(null)
+    act(() => kind(host, 'Intervals').click())
+    const list = () => host.querySelector('.tl-list').textContent
+    expect(list()).toMatch(/4×4/)
+    expect(list()).not.toMatch(/Easy run/)
+    act(() => kind(host, 'Legs').click())
+    expect(list()).toMatch(/Squats & Push Power/)
+    expect(list()).not.toMatch(/4×4/)
   })
 
-  it('folds older routines once per name for a member', () => {
+  it('offers a full body session, once per name', () => {
     setS({ id: 'u1', name: 'Mo' })
     dayOverrideSheet(todayISO())
     const host = renderTop()
-    expect(host.textContent).not.toMatch(/Full Body Gym A/)
-    const more = host.querySelector('.menu-more')
-    act(() => more.dispatchEvent(new MouseEvent('click', { bubbles: true })))
-    expect(texts(host, '.item .tt').filter(x => x === 'Full Body Gym A')).toHaveLength(1)
+    act(() => kind(host, 'Full body').click())
+    expect(texts(host, '.tl-list .tt')).toEqual(['Full Body Gym A'])
   })
 
-  it('gives a guest no Other workouts', () => {
+  it('keeps a guest to the plan: no second row', () => {
     setS(null)
     dayOverrideSheet(todayISO())
-    expect(renderTop().querySelector('.menu-more')).toBe(null)
+    const host = renderTop()
+    expect(texts(host, '.sp-picks')).toEqual(['ChestSquats'])
+    expect(kind(host, 'Intervals')).toBe(undefined)
   })
 })

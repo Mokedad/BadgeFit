@@ -14,6 +14,9 @@ import { bwSheet, goalSheet, workoutDetailSheet, menuSheet, dayOverrideSheet, ca
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import StartPicker from '../components/StartPicker.jsx'
+import PhotoShare from '../components/PhotoShare.jsx'
+import { countIn, countInRun, actForRoutine } from '../components/CountIn.jsx'
+import { runMinutes } from '../lib/police/runs.js'
 import { shareWin } from '../components/ShareWin.jsx'
 import { winText } from '../lib/police/cheer-text.js'
 import CardHead from '../components/CardHead.jsx'
@@ -166,7 +169,7 @@ export default function Home() {
   // BadgeFit: on a run day the plan's run routine opens the guided run (with Hayden), not a gym
   // session with a cardio row in it.
   const bfRun = S.active || !S.police?.level ? null : todayRoutines.map(r => runForRoutine(S.police, r.id, todayISO())).find(Boolean) || null
-  const onToday = () => (bfRun ? nav('/police?run=' + bfRun.id)
+  const onToday = () => (bfRun ? countInRun(bfRun, runMinutes(bfRun))
     // BadgeFit with a plan: Start opens today's session as pictures (components/SessionPreview.jsx),
     // where it can be changed or started; the swap symbol is the way to something else.
     : S.police?.level && !S.police?.start && !S.active && todayRoutines.length ? todayChoiceSheet(todayName, onTodayNow) : onTodayNow())
@@ -175,9 +178,11 @@ export default function Home() {
   const onStart = () => {
     if (S.active || !S.police?.start) return onToday()
     const guestHere = isBadgeFitGuest(S, useStore.getState().config, useStore.getState().user)
-    const today = todayRoutines.length ? { kind: bfRun ? 'run' : 'gym', done: !!doneToday } : null
-    useUI.getState().openSheet(close => <StartPicker close={close} today={today} guest={guestHere} startToday={onToday}
-      pickWorkout={guestHere ? null : () => dayOverrideSheet(todayISO())} restToday={removeToday} />)
+    const today = todayRoutines.length ? { kind: bfRun ? 'run' : 'gym', done: !!doneToday, name: bfRun?.name || todayName } : null
+    // Today's gym session is counted in by Hayden too, doing its first exercise.
+    const startToday = bfRun ? onToday : () => countIn({ title: todayName || 'Today', act: actForRoutine(todayRoutines[0]), onGo: onTodayNow })
+    useUI.getState().openSheet(close => <StartPicker close={close} today={today} guest={guestHere} startToday={startToday}
+      startRoutine={id => startFlow([id], { auto: true })} restToday={removeToday} />)
   }
   // BadgeFit: today's box swipes away (TodaySwipe) while there is a plan still to do.
   const swipeable = !!S.police?.level && !S.active && !doneToday && todayRoutines.length > 0
@@ -263,6 +268,7 @@ export default function Home() {
         {/* A picture of today's session for a story or a message, through the phone's own share
             sheet: no account linked, no map (lib/police/share-card.js). */}
         {doneToday && !S.active && <button className="calm-share" onClick={shareToday}><Icon name="share" /> Share today</button>}
+        {doneToday && !S.active && <PhotoShare session={{ title: [...new Set(loggedToday.map(w => w.name).filter(Boolean))].join(' + ') || 'Training', minutes: loggedToday.reduce((a, w) => a + Math.max(0, Math.round(((Number(w.end) || 0) - (Number(w.start) || 0)) / 60000)), 0) || null, daysToTest: left, week: bfPlan?.after ? null : bfPlan?.week, weeks: bfPlan?.last }} />}
         {doneToday && !S.active && user && <button className="calm-share" onClick={() => shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last }))}><Icon name="sparkles" /> Tell your crew</button>}
         {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
         {extraDone.length > 0 && <div className="done-today">

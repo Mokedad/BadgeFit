@@ -982,3 +982,30 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .share-win-acts{display:flex;flex-direction:column;gap:8px}
 .cm-bell-hint{display:flex;align-items:center;gap:8px;margin:0 4px 12px;color:var(--label-2);font-size:14px}
 .cm-bell-hint svg{width:16px;height:16px;flex:none}
+
+/* Hayden counts you in (components/CountIn.jsx). */
+.count-in{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding-bottom:6px}
+.count-in-n{font-size:92px;line-height:1;font-weight:800;color:var(--acc-ink);animation:count-pop .9s ease-out}
+.count-in h3{margin:4px 0 0}
+.count-in .pf-go{margin-top:10px;width:100%}
+@keyframes count-pop{0%{transform:scale(1.5);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:.9}}
+@media (prefers-reduced-motion:reduce){.count-in-n{animation:none}}
+
+/* The Start sheet: today's plan as one big button, then kinds of training, then their workouts. */
+.sp-today{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:18px;padding:12px 14px;margin:2px 0 14px;background:var(--acc);color:var(--on-acc);text-align:left;font:inherit}
+.sp-today-i{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.12)}
+.sp-today-i svg{width:24px;height:24px}
+.sp-today-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.sp-today-m small{font-size:12px;font-weight:600;opacity:.75}
+.sp-today-m b{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-today-go{font-weight:800;font-size:16px;padding:0 4px}
+.tl-list{margin-bottom:6px}
+.tl-pics{display:flex;gap:4px;margin-top:6px}
+.tl-pics .thumb{width:34px;height:34px;border-radius:8px;object-fit:cover;background:#fff}
+.sp-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sp-foot button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:9px 14px;background:var(--surface);color:inherit;font:inherit;font-size:14px;font-weight:600}
+:root[data-theme="light"] .sp-foot button{background:#f1f1f3}
+.sp-foot button.on{background:var(--acc-soft);color:var(--acc-ink)}
+.sp-foot button svg{width:16px;height:16px}
+.hb-say.hb-ask{font-size:13px;font-weight:700;white-space:nowrap;padding:0 12px;color:#14203a;width:auto}
+.pd-go{width:100%;margin-top:12px}

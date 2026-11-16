@@ -2,6 +2,8 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import PhotoShare from './PhotoShare.jsx'
+import { askProgress } from './HaydenBuddy.jsx'
 import HaydenBot from './HaydenBot.jsx'
 import Icon from './Icon.jsx'
 import { createPortal } from 'react-dom'
@@ -323,7 +325,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       </div>}
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
-      <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home' }}>Done</button>
+      <PhotoShare className="rp-share" session={{ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }} />
+      <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home'; askProgress() }}>Done</button>
     </div>
   </div>
 
