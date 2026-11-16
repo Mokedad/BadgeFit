@@ -259,11 +259,15 @@ function StatusStrip({ S, P, ready, setTab }) {
   const nowKg = bw.length ? Number(bw.at(-1).w) : Number(P.weightKg) || null
   const startKg = Number(P.weightKg) || (bw[0] ? Number(bw[0].w) : null)
   const change = nowKg && startKg ? Math.round((nowKg - startKg) * 10) / 10 : null
-  return <div className="pf-strip pf-strip3">
-    <button onClick={() => setTab('tests')}><b>{left != null && left >= 0 ? left : '–'}</b><span>days to {(P.testName || '').trim() || 'PCT'}</span></button>
-    <button onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>ready</span></button>
-    <button onClick={() => setTab('tests')}><b>{nowKg ? `${nowKg}` : '–'}</b><span>{change ? `${change > 0 ? '+' : ''}${change} kg since start` : 'kg'}</span></button>
-  </div>
+  // Only what there is to show: no empty boxes, and no "0% ready" before anything is tested.
+  const tested = ready.rows.some(r => r.ev)
+  const tiles = [
+    left != null && left >= 0 && <button key="d" onClick={() => setTab('tests')}><b>{left}</b><span>days to {(P.testName || '').trim() || 'PCT'}</span></button>,
+    tested && <button key="r" onClick={() => setTab('tests')}><b>{ready.pct}%</b><span>ready</span></button>,
+    nowKg && <button key="w" onClick={() => setTab('tests')}><b>{nowKg}</b><span>{change ? `${change > 0 ? '+' : ''}${change} kg since start` : 'kg'}</span></button>,
+  ].filter(Boolean)
+  if (!tiles.length) return null
+  return <div className="pf-strip" style={{ gridTemplateColumns: `repeat(${tiles.length}, 1fr)` }}>{tiles}</div>
 }
 
 /** Days to the test, and setting its date: the programme then counts down so week 12 is test week. */
@@ -529,7 +533,10 @@ function Tests({ S, P, openBeep, openTest }) {
     {/* What you came for first: where you stand and the two tools. The date and the beep marks
         are settings, folded underneath. */}
     <div className="card pf-ready">
-      <b>{ready.passed} of {ready.rows.length}</b><span>standards passing{ready.rows.some(r => !r.ev) ? `, ${ready.rows.filter(r => !r.ev).length} not tested yet` : ''}</span>
+      {/* Nothing tested yet is a starting point, not a fail. */}
+      {ready.rows.every(r => !r.ev)
+        ? <><b>Not tested yet</b><span>Do Test day to find your starting point</span></>
+        : <><b>{ready.passed} of {ready.rows.length}</b><span>standards passing{ready.rows.some(r => !r.ev) ? `, ${ready.rows.filter(r => !r.ev).length} not tested yet` : ''}</span></>}
     </div>
     <div className="pf-tools">
       <button className="card pf-tool" onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b></button>

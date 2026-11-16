@@ -56,7 +56,7 @@ const GYM = {
       ['1236', 3, 3, 'lift'], // dumbbell one arm row (balance every push with a pull)
       ['0662', 2, 3, 'bw'], // push-up (test practice)
       ['0472', 3, 3, 'bw'], // hanging leg raise
-      ['0463', 3, 3, ['hold', 45, 60]], // front plank (prone bridge practice)
+      ['0463', 3, 3, ['hold', 60, 90]], // front plank (prone bridge practice: the standard is 90 s)
     ],
   },
   legs: {
@@ -218,24 +218,24 @@ export function weekPlan(level, week, age, opts = {}) {
     { day: 5, kind: 'gym', key: 'arms', title: GYM.arms.name, details: [`Lifts in the ${rng} range`, 'Pulldowns and rows balance all the pressing', 'Hammer curls and farmers walk build your handgrip'] },
     lv === 'intermediate'
       ? { day: 6, kind: 'run', key: 'tempo', title: `Hard steady run, ${tempoMin(w)} min`, details: ['Comfortably hard, one even pace the whole way, under 30 min', 'Finish feeling you could not hold it another 10 minutes'] }
-      : { day: 6, kind: 'walk', key: 'walk', title: 'Treadmill incline walk', details: ['30 min brisk walk on 10-14% incline', 'Recovery pace: nose breathing, burning fat, not wrecking legs'], recovery: ['Sauna: 15-20 min'] },
+      : { day: 6, kind: 'walk', key: 'walk', title: 'Treadmill incline walk', details: ['30 min brisk walk on 10-14% incline', 'Recovery pace: nose breathing, burning fat, not wrecking legs'], recovery: ['If you have one: sauna, 15-20 min'] },
     lv === 'intermediate'
-      ? { day: 0, kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'], recovery: ['Sauna: 15-20 min', 'Compression boots: 20-30 min'] }
-      : { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Walk, stretch, sleep 8 hours'], recovery: ['Compression boots: 20-30 min'] },
+      ? { day: 0, kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'], recovery: ['If you have one: sauna, 15-20 min', 'If you have them: compression boots, 20-30 min'] }
+      : { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Walk, stretch, sleep 8 hours'], recovery: ['If you have them: compression boots, 20-30 min'] },
   ]
   // Sauna 3-5 times a week, never straight before a hard session: after the gym days.
   for (const d of days) {
-    if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'Sauna after: 15-20 min, hydrate']
+    if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'If you have one: sauna after, 15-20 min, hydrate']
     d.dayName = DAY_NAMES[d.day]
   }
   if (opts.beepFocus || opts.runFocus) {
     const x = vo2For(w, true)
-    days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['Sauna: 15-20 min'] }
+    days[5] = { day: 6, dayName: DAY_NAMES[6], kind: 'run', key: 'vo2b', title: `Beep focus: ${x.name}`, details: [x.how, 'Warm up 10 min easy first. Run on a flat surface with good grip'], recovery: ['If you have one: sauna, 15-20 min'] }
     if (lv === 'beginner') days[6] = { ...days[6], kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'] }
   }
   // Running focus (S.police.planChoice 'run'): the second interval day above, and for the
   // intermediate a third run, easy, on Sunday instead of the incline walk.
-  if (opts.runFocus && lv === 'intermediate') days[6] = { day: 0, dayName: DAY_NAMES[0], kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace: the third run of your running week', zoneText], recovery: ['Compression boots: 20-30 min'] }
+  if (opts.runFocus && lv === 'intermediate') days[6] = { day: 0, dayName: DAY_NAMES[0], kind: 'run', key: 'easy', title: `Easy run, ${easy} km`, details: ['Conversation pace: the third run of your running week', zoneText], recovery: ['If you have them: compression boots, 20-30 min'] }
   // The final week (week 12, or the test's week when the test is closer than 12 weeks): light
   // training and recovery, so the member arrives fresh.
   const final = n === lengthOf(opts.planWeeks)
@@ -251,7 +251,7 @@ export function weekPlan(level, week, age, opts = {}) {
     return finish(days, { lv, w, n, phase, test: true, final })
   }
   if (test) {
-    days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['Sauna: 15-20 min'] }
+    days[5] = { ...days[5], kind: 'test', title: 'Test day: re-test all six standards', details: ['Warm up 10 min, then in this order with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Test conditions: strict form, and stop the moment it breaks', 'Log every result in the Tests tab'], recovery: ['If you have one: sauna, 15-20 min'] }
   }
   return finish(days, { lv, w, n, phase, test, final })
 }
