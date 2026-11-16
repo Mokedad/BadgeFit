@@ -3181,6 +3181,12 @@ const routes = {
     const r = nearby.ping(NEAR, loadBots(), user, { lat: body.lat, lon: body.lon, card: body.card });
     communityAnswer(res, r.error ? r : { ...r, inbox: takeCheers(user.id) });
   },
+  // In the app (no place needed): followers' bells show you about, or training now.
+  'POST /api/presence': async (req, res) => {
+    const user = communityGuard(req, res, NEAR_PINGS); if (!user) return;
+    const body = await readBody(req);
+    communityAnswer(res, nearby.presence(NEAR, loadBots(), user, { card: body.card }));
+  },
   'POST /api/nearby/leave': async (req, res) => {
     const user = communityGuard(req, res); if (!user) return;
     communityAnswer(res, nearby.leave(NEAR, user));

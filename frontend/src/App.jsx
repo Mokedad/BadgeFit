@@ -446,7 +446,8 @@ function Shell() {
       {authed && <RunHost />}
       {authed && <JarvisFab />}
       {authed && !needsMobileOnboarding && !permSteps && <HaydenBuddy />}
-      {authed && !needsMobileOnboarding && !permSteps && !inWorkout && <NearbyBots />}
+      {/* Kept on in a workout (hidden there) so followers still see you training. */}
+      {authed && !needsMobileOnboarding && !permSteps && <NearbyBots hidden={inWorkout} />}
       {authed && !needsMobileOnboarding && !permSteps && <CheerBubble />}
       {!noTabs && authed && <ScrollTopButton off={loc.pathname === '/workout'} path={loc.pathname} />}
       <RestTimer />

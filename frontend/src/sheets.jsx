@@ -8,6 +8,10 @@ import { isBadgeFitGuest } from './lib/police/guest.js'
 import { CAT_ICON } from './lib/police/start-picks.js'
 import { RoundPick, PickRow, TrainList } from './components/StartPicker.jsx'
 import { countInRun } from './components/CountIn.jsx'
+import PhotoShare from './components/PhotoShare.jsx'
+import { shareWin } from './components/ShareWin.jsx'
+import { winText } from './lib/police/cheer-text.js'
+import { daysUntil } from './lib/police/programme.js'
 import { GYM_TYPES, RUN_TYPES, gymTypesFor, ensureFullBody } from './lib/police/train-types.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
@@ -4170,6 +4174,11 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close }) {
       {/* The workout as a picture for a Story or a chat (components/ShareCard.jsx), the same
           card History's Share as image makes. */}
       {isOn(st, 'motivation') && <Button variant="tinted" icon="share" data-fin-share onClick={() => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w)}>{t('Share')}</Button>}
+      {/* BadgeFit: the sharing lives here, at the end of the workout, not under Home's tick. */}
+      {st.police?.level && <div className="fin-bf">
+        <PhotoShare className="fin-bf-b" label="Photo" session={{ title: w.name || 'Training', minutes: Math.round((w.end - w.start) / 60000), daysToTest: st.police.testDate ? daysUntil(st.police.testDate, todayISO()) : null }} />
+        {useStore.getState().user && <button type="button" className="fin-bf-b" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="sparkles" /> Tell your crew</button>}
+      </div>}
     </div>
     <div style={{ height: 14 }} />
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>

@@ -3477,6 +3477,26 @@ paths:
         '200': { description: Hidden }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { description: Not nearby or followed }
+  /api/presence:
+    post:
+      tags: [community]
+      operationId: postPresence
+      summary: I'm in the app (BadgeFit)
+      description: |
+        No place needed. Your card (first name, colour, gear, three numbers, `training`) shows on
+        the bells of people who follow you for three minutes. Answers the people you follow who
+        are about now, training first.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                card: { type: object }
+      responses:
+        '200': { description: '`{ live: [...] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /api/bell:
     get:
       tags: [community]

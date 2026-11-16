@@ -1,22 +1,17 @@
 // BadgeFit's first-run intro: five slides you swipe through, in place of the long coach-mark tour
-// (that one still runs from Settings → Tutorials). Slide 1 asks how much app you want (the module
-// presets, lib/modules.js); the last slide shows what that choice gives you. Each slide is a small
+// (that one still runs from Settings → Tutorials). Everyone gets the whole app (the 'all' preset,
+// lib/modules.js), with no choice to make first. Each slide is a small
 // picture of the real screen, so people know what to expect and find the rest themselves.
 import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
 import { iconFor } from '../lib/police/emoji-icon.js'
 import Icon from './Icon.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { PRESETS, presetOf, applyPreset } from '../lib/modules.js'
+import { presetOf, applyPreset } from '../lib/modules.js'
 import { markTourDone, markOffered, closeTour } from '../lib/tour.js'
 import BadgeLogo from './BadgeLogo.jsx'
 import '../police.css'
 
-const PICK = {
-  training: { title: 'Simple', desc: 'Today, your plan and Hayden. Nothing else on the screen.' },
-  body: { title: 'Plus body', desc: 'Adds weigh-ins, measurements and photos.' },
-  all: { title: 'The lot', desc: 'Everything: the coach chat, streaks, community, all the PCT tools.' },
-}
 const EXTRAS = {
   training: [['🏠', 'Today', 'what to train, one tap to start'], ['📅', 'Plan', 'your weeks up to the test'], ['play', 'Start', 'goes green ✓ when the day is done']],
   body: [['⚖️', 'Weigh-ins', 'Home, under your plan'], ['📏', 'Measurements', 'and progress photos'], ['📈', 'Stats', 'what moved this month']],
@@ -25,30 +20,24 @@ const EXTRAS = {
 
 export default function BadgeFitIntro() {
   const S = useStore(s => s.S)
-  const preset = presetOf(S)
-  const pick = id => { if (id !== preset) useStore.getState().update(s => applyPreset(s, id)) }
   const track = useRef(null)
   const [at, setAt] = useState(0)
   const N = 5
   const go = i => { const el = track.current; if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' }) }
   const done = () => { markTourDone(); closeTour() }
   const onScroll = () => { const el = track.current; if (el) setAt(Math.round(el.scrollLeft / el.clientWidth)) }
-  useEffect(() => { markOffered() }, [])
+  // Everyone gets the whole app (the lot): no choice to make before starting.
+  useEffect(() => { markOffered(); if (presetOf(useStore.getState().S) !== 'all') useStore.getState().update(st => applyPreset(st, 'all')) }, [])
   useEffect(() => { const k = e => { if (e.key === 'Escape') done() }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k) }, [])
   const level = S.police?.level === 'intermediate' ? 'intermediate' : 'beginner'
-  const p = PICK[preset] ? preset : 'all'
+  const p = 'all'
   return <div className="bfi" role="dialog" aria-modal="true" aria-label="Welcome to BadgeFit">
     <button type="button" className="bfi-skip" onClick={done}>Skip</button>
     <div className="bfi-track" ref={track} onScroll={onScroll}>
       <section className="bfi-slide">
         <BadgeLogo size={72} />
         <h2 className="bf-word">Welcome to Badge<span>Fit</span></h2>
-        <p>How much app do you want? Change it any time in Settings.</p>
-        <div className="bfi-picks" role="radiogroup" aria-label="How much app">
-          {PRESETS.map(x => <button key={x.id} type="button" role="radio" aria-checked={preset === x.id} className={'bfi-pick' + (preset === x.id ? ' on' : '')} onClick={() => pick(x.id)}>
-            <b>{PICK[x.id]?.title || x.title}</b><small>{PICK[x.id]?.desc || x.desc}</small>
-          </button>)}
-        </div>
+        <p>Your plan to the PCT, Hayden your trainer, and a crew cheering you on. Swipe to see how it works.</p>
       </section>
       <section className="bfi-slide">
         <div className="bfi-pic">

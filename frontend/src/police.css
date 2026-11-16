@@ -1032,3 +1032,31 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .pf-plate-row .p1{background:#b9e6a8}.pf-plate-row .p2{background:#ffd27a}.pf-plate-row .p3{background:#cfdcf6}
 .calm-first{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px}
 .calm-first svg{width:16px;height:16px}
+.calm-done-links{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--label-2)}
+.fin-bf{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.fin-bf-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:999px;padding:10px 16px;background:var(--acc-soft);color:var(--acc-ink);font:inherit;font-weight:700;font-size:15px}
+.fin-bf-b svg{width:17px;height:17px}
+.fin-bf-sheet{flex-direction:column;align-items:stretch}
+.fin-bf-sheet h3{margin:0 0 6px}
+.fin-bf-sheet .fin-bf-b{padding:14px 16px}
+
+/* Bots about: a life of their own, training shows, and a corner to flick them to. */
+.nb-bot.nb-training .nb-svg{border-radius:50%;box-shadow:0 0 0 3px #2fd39a;animation:nb-live 1.6s ease-in-out infinite}
+@keyframes nb-live{50%{box-shadow:0 0 0 6px rgba(47,211,154,.35)}}
+.nb-bot.nb-dance .nb-svg{animation:nb-dance .5s ease-in-out 4}
+@keyframes nb-dance{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg) translateY(-3px)}75%{transform:rotate(12deg) translateY(-3px)}}
+.nb-bot.nb-hop .nb-svg{animation:nb-hop .45s ease-out 3}
+@keyframes nb-hop{50%{transform:translateY(-10px)}}
+.nb-row.nb-hands{gap:0}
+.nb-row.nb-hands .nb-svg{animation:nb-sway 1.2s ease-in-out 2}
+.nb-row.nb-hands .nb-bot+.nb-bot::before{content:'';position:absolute;left:-8px;top:34px;width:16px;height:3px;border-radius:2px;background:#c9ced8}
+@keyframes nb-sway{0%,100%{transform:rotate(0)}50%{transform:rotate(8deg)}}
+.nb-say{white-space:nowrap}
+.nb-corner{position:fixed;right:6px;bottom:calc(var(--sab) + 150px);z-index:39;display:flex;flex-direction:column;align-items:center;padding:6px 4px;border:0;border-radius:18px;background:var(--surface,#fff);box-shadow:0 4px 14px rgba(20,32,58,.18)}
+.nb-corner .nb-svg{width:26px;margin-top:-6px}
+.nb-corner .nb-svg:first-child{margin-top:0}
+.cheer-pop-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70vw}
+@media (prefers-reduced-motion:reduce){.nb-bot .nb-svg,.nb-row .nb-svg{animation:none!important}}
+.calm-link.calm-first{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;white-space:nowrap}
+.nb-row.nb-top{bottom:auto;top:calc(var(--sat) + 14px)}
+.nb-corner.nb-top{right:auto;left:8px;bottom:auto;top:calc(var(--sat) + 150px)}

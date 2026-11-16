@@ -280,12 +280,18 @@ export default function Home() {
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
-        {/* A picture of today's session for a story or a message, through the phone's own share
-            sheet: no account linked, no map (lib/police/share-card.js). */}
-        {doneToday && !S.active && <button className="calm-share" onClick={shareToday}><Icon name="share" /> Share today</button>}
-        {doneToday && !S.active && <PhotoShare session={{ title: [...new Set(loggedToday.map(w => w.name).filter(Boolean))].join(' + ') || 'Training', minutes: loggedToday.reduce((a, w) => a + Math.max(0, Math.round(((Number(w.end) || 0) - (Number(w.start) || 0)) / 60000)), 0) || null, daysToTest: left, week: bfPlan?.after ? null : bfPlan?.week, weeks: bfPlan?.last }} />}
-        {doneToday && !S.active && user && <button className="calm-share" onClick={() => shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last }))}><Icon name="sparkles" /> Tell your crew</button>}
-        {doneToday && !S.active && <button className="calm-link" onClick={() => nav('/workout')}>Add an extra workout</button>}
+        {/* Done: just the tick. Sharing is offered at the end of the workout itself (the summary and
+            the run's done screen); here one quiet line keeps it reachable later. */}
+        {doneToday && !S.active && <div className="calm-done-links">
+          <button className="calm-link" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf fin-bf-sheet">
+            <h3>Share today</h3>
+            <button type="button" className="fin-bf-b" onClick={() => { close(); shareToday() }}><Icon name="share" /> Picture card</button>
+            <PhotoShare className="fin-bf-b" label="Photo with your workout" session={{ title: [...new Set(loggedToday.map(w => w.name).filter(Boolean))].join(' + ') || 'Training', daysToTest: left, week: bfPlan?.after ? null : bfPlan?.week, weeks: bfPlan?.last }} />
+            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })) }}><Icon name="sparkles" /> Tell your crew</button>}
+          </div>)}>Share</button>
+          <span aria-hidden="true">·</span>
+          <button className="calm-link" onClick={() => nav('/workout')}>Add a workout</button>
+        </div>}
         {extraDone.length > 0 && <div className="done-today">
           {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>
             <span className="ok">✓</span><b>{w.name || t('Workout')}</b><small>{t('Done')}</small>

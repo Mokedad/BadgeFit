@@ -16,13 +16,14 @@ export const MAX_NEAR = 5;
 export const CHEER_GAP_MS = 5000;
 const GEAR = new Set(['headband', 'whistle', 'bolt', 'badge', 'stripes', 'cap', 'medal']);
 
-export const emptyState = () => ({ here: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
+export const emptyState = () => ({ here: new Map(), live: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
 export const emptySocial = () => ({ follows: {}, hidden: {}, names: {} });
 
 /** The opaque handle a member is shown as: stable while the server runs, not their account id. */
 export const handleOf = (state, uid) => crypto.createHash('sha256').update(state.salt + ':' + uid).digest('hex').slice(0, 16);
 function uidOf(state, social, hid) {
   for (const uid of state.here.keys()) if (handleOf(state, uid) === hid) return uid;
+  for (const uid of state.live.keys()) if (handleOf(state, uid) === hid) return uid;
   for (const uid of Object.keys(social.names)) if (handleOf(state, uid) === hid) return uid;
   return null;
 }
@@ -34,7 +35,7 @@ export function cleanCard(c, user) {
   const colour = /^#[0-9a-f]{6}$/i.test(c?.colour || '') ? c.colour : '#9aa3b2';
   const gear = (Array.isArray(c?.gear) ? c.gear : []).filter(g => GEAR.has(g)).slice(0, 7);
   const s = c?.stats || {};
-  return { name: first, colour, gear, stats: { week: int(s.week, 0, 21), ready: int(s.ready, 0, 100), streak: int(s.streak, 0, 520) } };
+  return { name: first, colour, gear, stats: { week: int(s.week, 0, 21), ready: int(s.ready, 0, 100), streak: int(s.streak, 0, 520) }, training: c?.training === true };
 }
 
 /** Metres between two points (haversine). */
@@ -65,8 +66,31 @@ export function ping(state, social, user, { lat, lon, card } = {}, now = Date.no
   return { near };
 }
 
+/**
+ * "I'm in the app" (no place needed): what followers see on their bell, and whether you are
+ * training right now. Answers the people you follow who are about, training first.
+ */
+export function presence(state, social, user, { card } = {}, now = Date.now()) {
+  for (const [uid, p] of state.live) if (now - p.at > TTL_MS) state.live.delete(uid);
+  const me = { at: now, card: cleanCard(card, user) };
+  state.live.set(user.id, me);
+  if (social.names[user.id]) social.names[user.id] = { name: me.card.name, colour: me.card.colour };
+  const live = (social.follows[user.id] || []).filter(uid => !hiddenEither(social, user.id, uid))
+    .map(uid => [uid, seenOf(state, uid, now)]).filter(([, p]) => p)
+    .map(([uid, p]) => ({ id: handleOf(state, uid), ...p.card, followed: true, active: true }))
+    .sort((a, b) => Number(b.training) - Number(a.training) || a.name.localeCompare(b.name));
+  return { live };
+}
+
+/** The freshest sign of someone, nearby or just in the app, within the last three minutes. */
+function seenOf(state, uid, now) {
+  const a = state.here.get(uid), b = state.live.get(uid);
+  const p = [a, b].filter(x => x && now - x.at <= TTL_MS).sort((x, y) => y.at - x.at)[0];
+  return p || null;
+}
+
 /** Switched off, or the app closed: gone from everyone's screen at once. */
-export const leave = (state, user) => { state.here.delete(user.id); return { ok: true } };
+export const leave = (state, user) => { state.here.delete(user.id); state.live.delete(user.id); return { ok: true } };
 
 /** A like or a love, to someone nearby or followed. At most one per pair every few seconds. */
 export function cheer(state, social, user, { id, kind } = {}, now = Date.now()) {
@@ -107,12 +131,12 @@ export function hide(state, social, user, { id } = {}) {
 /** The bell: everyone the member follows, active ones first (BadgeFit open in the last 3 minutes). */
 export function bell(state, social, user, now = Date.now()) {
   const people = (social.follows[user.id] || []).filter(uid => !hiddenEither(social, user.id, uid)).map(uid => {
-    const p = state.here.get(uid)
-    const live = p && now - p.at <= TTL_MS
+    const p = seenOf(state, uid, now)
+    const live = !!p
     const card = live ? p.card : { ...cleanCard(social.names[uid] || {}, null), stats: null }
     return { id: handleOf(state, uid), ...card, followed: true, active: !!live }
   })
-  return { people: people.sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name)) }
+  return { people: people.sort((a, b) => Number(!!b.training) - Number(!!a.training) || Number(b.active) - Number(a.active) || a.name.localeCompare(b.name)) }
 }
 
 /**
@@ -127,7 +151,7 @@ export function remember(state, social, uid, name) {
 
 /** An account deleted: out of every list. */
 export function forgetUser(state, social, uid) {
-  state.here.delete(uid)
+  state.here.delete(uid); state.live.delete(uid)
   delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]
   for (const k of Object.keys(social.follows)) social.follows[k] = social.follows[k].filter(x => x !== uid)
   for (const k of Object.keys(social.hidden)) social.hidden[k] = social.hidden[k].filter(x => x !== uid)

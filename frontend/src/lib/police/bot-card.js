@@ -18,9 +18,11 @@ export function weeksInARow(S, now = new Date()) {
   return n
 }
 
-export function botCard(S, user, now = new Date()) {
+/** `training`: in a workout or a run right now (followers see "training now"). */
+export function botCard(S, user, now = new Date(), training = !!S?.active) {
   const P = S?.police || {}
   return {
+    training: !!training,
     name: String(user?.name || 'Recruit').trim().split(/\s+/)[0],
     colour: lineColour(user?.id),
     gear: earnedGear(S),

@@ -77,3 +77,17 @@ test('someone from the feed can be remembered, then followed and cheered', () =>
   assert.deepEqual(n.bell(st, so, ann, 10).people.map(p => [p.name, p.active]), [['Bob', false]]);
   assert.equal(n.cheer(st, so, ann, { id, kind: 'love' }, 20).to, 'u2');
 });
+
+test('presence without a place: followers see you about, and training first', () => {
+  const st = n.emptyState(), so = n.emptySocial();
+  const id = n.remember(st, so, 'u2', 'Bob');
+  n.follow(st, so, ann, { id });
+  assert.deepEqual(n.presence(st, so, ann, {}, 0).live, []);
+  n.presence(st, so, bob, { card: { name: 'Bob', training: true } }, 10);
+  const live = n.presence(st, so, ann, {}, 20).live;
+  assert.deepEqual(live.map(p => [p.name, p.training]), [['Bob', true]]);
+  assert.deepEqual(n.bell(st, so, ann, 30).people.map(p => [p.name, p.active, p.training]), [['Bob', true, true]]);
+  assert.equal(n.presence(st, so, ann, {}, n.TTL_MS + 100).live.length, 0);
+  n.presence(st, so, bob, { card: { name: 'Bob', training: 'yes' } }, n.TTL_MS + 200);
+  assert.equal(n.bell(st, so, ann, n.TTL_MS + 300).people[0].training, false);
+});

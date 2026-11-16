@@ -12,7 +12,7 @@ describe("what a member's bot shares", () => {
   })
   it('a first name, a colour and the numbers, nothing more', () => {
     const c = botCard(S, { id: 'u1', name: 'Mo Ke' }, NOW)
-    expect(Object.keys(c).sort()).toEqual(['colour', 'gear', 'name', 'stats'])
+    expect(Object.keys(c).sort()).toEqual(['colour', 'gear', 'name', 'stats', 'training'])
     expect(c.name).toBe('Mo')
     expect(c.colour).toMatch(/^#[0-9a-f]{6}$/i)
     expect(c.stats).toEqual({ week: 2, ready: 0, streak: 3 })

@@ -5,13 +5,14 @@ describe('cheer text', () => {
   it('says who and what', () => {
     expect(cheerLine({ from: 'Sam', kind: 'cheer', what: 'your win: Level 7.4' })).toBe('Sam cheered your win: Level 7.4')
     expect(cheerLine({ from: 'Sam', kind: 'reply', what: 'your question: grip?' })).toBe('Sam replied to your question: grip?')
-    expect(cheerLine({ from: 'Ann', kind: 'love' })).toBe('Ann sent you a love')
-    expect(cheerLine({ from: 'Ann', kind: 'like' })).toBe('Ann sent you a like')
+    expect(cheerLine({ from: 'Ann', kind: 'love' })).toBe('Ann sent love')
+    expect(cheerLine({ from: 'Ann', kind: 'training' })).toBe('Ann is training now')
+    expect(cheerLine({ from: 'Ann', kind: 'like' })).toBe('Ann sent a like')
     expect(cheerSym('love')).toBe('❤️')
   })
 
   it('reads several as one line, newest first', () => {
-    expect(cheerSummary([{ from: 'A', kind: 'love' }, { from: 'B', kind: 'like' }, { from: 'C', kind: 'love' }])).toBe('C sent you a love, and 2 more')
+    expect(cheerSummary([{ from: 'A', kind: 'love' }, { from: 'B', kind: 'like' }, { from: 'C', kind: 'love' }])).toBe('C sent love, and 2 more')
     expect(cheerSummary([])).toBe('')
   })
 
