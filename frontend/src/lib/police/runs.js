@@ -62,7 +62,12 @@ export const RUNS = [
   // --- tempo
   { id: 'tempo-20', cat: 'tempo', name: 'Tempo run, 20 min', km: 'about 5 km', why: 'One even, comfortably hard effort. Teaches your body to clear fatigue at speed.', segments: [warm(), work(m(20), 'Comfortably hard, even pace', 'z4'), cool()] },
   { id: 'tempo-cruise', cat: 'tempo', name: 'Cruise intervals 3 × 8 min', km: 'about 6 km', why: 'Tempo pace in three blocks: more time at threshold for the same effort.', segments: [warm(), ...rounds(3, [work(m(8), '8 min comfortably hard', 'z4'), rest(m(2), '2 min easy jog', 'z2')]), cool()] },
+  // --- run-walk: the first weeks for someone who cannot yet jog 20 minutes without stopping
+  { id: 'run-walk-1', cat: 'base', name: 'Run-walk, 1 min on', km: 'about 2 km', why: 'Jog 1 minute, walk 2, eight times. The way everyone starts: it builds the habit without wrecking you.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(8, [work(60, 'Easy jog', 'z2'), rest(120, 'Walk')]), cool(3)] },
+  { id: 'run-walk-2', cat: 'base', name: 'Run-walk, 2 min on', km: 'about 3 km', why: 'Jog 2 minutes, walk 2, seven times. Same easy pace, a little longer each jog.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(7, [work(120, 'Easy jog', 'z2'), rest(120, 'Walk')]), cool(3)] },
+  { id: 'run-walk-3', cat: 'base', name: 'Run-walk, 4 min on', km: 'about 3 km', why: 'Jog 4 minutes, walk 1, five times. Nearly a full run now.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(5, [work(240, 'Easy jog', 'z2'), rest(60, 'Walk')]), cool(3)] },
   // --- beep prep
+  { id: 'agility-drill', cat: 'beep', name: 'Agility drill, 15 min', km: '4 bottles as cones', why: 'The Illinois agility run in pieces. Mark 10 m by 5 m with four bottles down the middle, 3.3 m apart. Start face down, get up fast, weave the bottles, stay low in the turns.', segments: [warm(5), ...rounds(6, [work(30, 'Agility run: up from the floor, weave, sprint home', 'z5'), rest(60, 'Walk back, breathe')]), cool(3)] },
   { id: 'beep-shuttles', cat: 'beep', name: 'Beep shuttles ×8', km: '20 m shuttles', why: '1 minute of 20 m shuttles at 2 levels above your best, 8 times. Turn on the line, not around it.', segments: [warm(), ...rounds(8, [work(60, 'Shuttles: 2 levels above your best'), rest(60, 'Rest 1 min')]), cool()] },
   { id: 'shuttle-sprints', cat: 'beep', name: 'Shuttle sprints 10 × 10', km: '20 m shuttles', why: '10 sets of 10 × 20 m at 80-90%. Fast turns, low hips, touch the line.', segments: [warm(), ...rounds(10, [runDist(200, '10 × 20 m shuttles, touch every line'), rest(30, 'Rest 30 s')]), cool()] },
   // --- recovery
@@ -119,6 +124,9 @@ const BY_PLAN_NAME = {
 }
 export function runForDay(day) {
   if (!day) return null
+  // A beginner's run-walk weeks (lib/police/programme.js weekPlan, opts.runWalk).
+  const rw = /^Run-walk \((\d)\)/.exec(day.title)
+  if (rw) return runById('run-walk-' + rw[1])
   if (day.key === 'easy') return runById(/(\d+) km/.exec(day.title)?.[1] >= 7 ? 'easy-45' : 'easy-30')
   if (day.key === 'tempo') return runById('tempo-20')
   if (day.key === 'walk') return runById('recovery-walk')

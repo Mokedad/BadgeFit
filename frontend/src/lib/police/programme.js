@@ -223,6 +223,15 @@ export function weekPlan(level, week, age, opts = {}) {
       ? { day: 0, kind: 'walk', key: 'walk', title: 'Recovery: treadmill incline walk', details: ['30 min brisk walk on 10-14% incline'], recovery: ['If you have one: sauna, 15-20 min', 'If you have them: compression boots, 20-30 min'] }
       : { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Walk, stretch, sleep 8 hours'], recovery: ['If you have them: compression boots, 20-30 min'] },
   ]
+  // New to running (S.police.runWalk): the first four weeks jog and walk in turns instead of
+  // intervals and steady runs, then the plan carries on as written.
+  if (opts.runWalk && lv === 'beginner' && n <= 4) {
+    const step = n <= 2 ? 1 : n === 3 ? 2 : 3
+    const how = ['Jog 1 minute, walk 2 minutes, eight times', 'Jog 2 minutes, walk 2 minutes, seven times', 'Jog 4 minutes, walk 1 minute, five times'][step - 1]
+    for (const i of [1, 3]) days[i] = { ...days[i], title: `Run-walk (${step}): ${how.split(',')[0].toLowerCase()}`, details: [how, 'Jog slow enough to talk. Walking is part of the plan, not a fail'] }
+  }
+  // The agility run is a skill: a short drill once a week, after the legs session.
+  days[2] = { ...days[2], details: [...days[2].details, 'After: 5 minutes of the agility drill (Runs, Beep prep). Four bottles work as cones'] }
   // Sauna 3-5 times a week, never straight before a hard session: after the gym days.
   for (const d of days) {
     if (d.kind === 'gym') d.recovery = [...(d.recovery || []), 'If you have one: sauna after, 15-20 min, hydrate']
@@ -374,6 +383,7 @@ export function planOptsOf(P) {
   const t = P?.testDate ? Date.parse(P.testDate + 'T00:00:00Z') : NaN
   return {
     beepFocus: !!P?.beepFocus,
+    runWalk: !!P?.runWalk,
     runFocus: P?.planChoice === 'run',
     testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
     testName: (P?.testName || 'PCT').slice(0, 24),

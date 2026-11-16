@@ -15,6 +15,7 @@ import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import StartPicker from '../components/StartPicker.jsx'
 import PhotoShare from '../components/PhotoShare.jsx'
+import { needsAfterTest, afterPatch, AFTER_CHOICES } from '../lib/police/after-test.js'
 import { countIn, countInRun, actForRoutine } from '../components/CountIn.jsx'
 import { runMinutes } from '../lib/police/runs.js'
 import { shareWin } from '../components/ShareWin.jsx'
@@ -259,6 +260,18 @@ export default function Home() {
         {/* The countdown, for a booked test: the number that matters most, said big. */}
         {left != null && left >= 0 && <div className="calm-count" aria-label={`${left} days to your ${(P.testName || 'PCT').trim()}`}>
           <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
+        </div>}
+        {/* The test date has gone by: Hayden asks how it went, once, and the plan follows the answer
+            (lib/police/after-test.js): the Academy, a re-test, or your own training. */}
+        {needsAfterTest(P, todayISO()) && <div className="card calm-after">
+          <b>How did your {(P.testName || 'PCT').trim()} go?</b>
+          <div className="calm-after-row">{AFTER_CHOICES.map(c => <button key={c.id} type="button" onClick={() => {
+            const name = (P.testName || 'PCT').trim()
+            useStore.getState().update(s => { s.police = { ...(s.police || {}), ...afterPatch(c.id, s.police, todayISO()) } })
+            useUI.getState().toast(c.id === 'passed' ? 'Congratulations! Next stop: the Academy.' : c.id === 'retest' ? 'We go again. Set your new date on the PCT page.' : 'Your plan carries on. Train well.')
+            if (c.id === 'passed') shareWin(`I passed my ${name}! Next stop: the Academy.`)
+            if (c.id === 'retest') nav('/police?tab=tests')
+          }}><Icon name={c.icon} /><span>{c.label}</span><small>{c.sub}</small></button>)}</div>
         </div>}
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
         <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>

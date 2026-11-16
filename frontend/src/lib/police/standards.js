@@ -16,10 +16,12 @@ export const STANDARDS = [
     academy: 35, icon: '✊',
     how: 'Squeeze a hand dynamometer as hard as you can, arm by your side. Best of 2 attempts, each hand.',
     note: 'The academy asks for 35 kg each hand, so train past 30.',
+    tip: 'No dynamometer? Train it anyway: farmers walks, dead hangs from a bar, and squeezing a tennis ball. Many gyms, physios and recruit open days have one to test on.',
   },
   {
     id: 'bridge', name: 'Prone bridge', unit: 's', min: 90, better: 'higher', attempts: 1, icon: '🧱',
     how: 'Forearm plank on your toes. Head, hips and heels in one straight line. Shift your weight or break at the hips and the clock stops.',
+    tip: 'Building up: hold as long as you can with good form, rest a minute, three times. Add 10 seconds a week until 90 feels easy, then go past it.',
   },
   {
     id: 'jump', name: 'Vertical jump', unit: 'cm', min: 30, better: 'higher', attempts: 2, icon: '⬆️',
@@ -28,6 +30,7 @@ export const STANDARDS = [
   {
     id: 'pushups', name: 'Push-ups', unit: 'reps', min: 25, better: 'higher', attempts: 1, icon: '💪',
     how: 'Strict form on toes or knees: chest to fist height, full lockout, body straight. One attempt, no rest. The test ends when your hips sag or you cannot do another.',
+    tip: 'Cannot do many yet? Climb the ladder: hands on a bench first, then on your knees, then full. Move up a step when you can do 15 clean ones.',
   },
   {
     id: 'illinois', name: 'Illinois agility run', unit: 's', min: 20, better: 'lower', attempts: 2, icon: '🔀',

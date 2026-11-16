@@ -1,3 +1,5 @@
+import { readiness } from '../lib/police/standards.js'
+import { runsThisWeek } from '../lib/police/runs.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -880,6 +882,13 @@ export default function Stats() {
     {/* The page in four parts (redesign 1.4.5, P5), each with its own heading, and a sticky index
         that jumps to them and follows the scroll. It is still one page: every card is where a
         scroll finds it. /stats?section=lifts (and body, effort) opens on that part. */}
+    {/* BadgeFit: what matters for the test comes first, the gym detail after it. */}
+    {S.police?.level && (() => { const rd = readiness(S.police.results, S.police.beepTarget); const wk = runsThisWeek(S.police.runLog, todayISO()); const tested = rd.rows.some(r => r.ev)
+      return <button type="button" className="card pf-statpct" onClick={() => nav('/police?tab=tests')}>
+        <div><b>{tested ? `${rd.passed} of ${rd.rows.length}` : 'Not tested'}</b><span>{tested ? 'standards passing' : 'do Test day first'}</span></div>
+        <div><b>{wk.length}</b><span>{wk.length === 1 ? 'run this week' : 'runs this week'}</span></div>
+        <div><b>{wk.reduce((a, r) => a + (r.min || 0), 0)}</b><span>minutes run</span></div>
+      </button> })()}
     <StatsIndex sections={sections} />
 
     <section className="stats-sect" id="stats-overview" data-stats-sect="overview" aria-label={t('Overview')}>

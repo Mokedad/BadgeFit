@@ -47,6 +47,7 @@ import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { RoundPick, PickRow } from '../components/StartPicker.jsx'
 import { shareWin } from '../components/ShareWin.jsx'
+import { gapText, trendLine } from '../lib/police/pct-progress.js'
 import { winText } from '../lib/police/cheer-text.js'
 import { CAT_ICON } from '../lib/police/start-picks.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
@@ -415,8 +416,11 @@ function Setup({ S, P }) {
   const [level, setLevel] = useState(guest ? 'beginner' : P.level || 'beginner')
   const [date, setDate] = useState(P.testDate || '')
   const [kg, setKg] = useState(P.weightKg ?? null)
+  // New to running: the first four weeks jog and walk in turns (weekPlan, opts.runWalk).
+  const [jog, setJog] = useState(P.runWalk ? 'no' : 'yes')
   const build = () => {
     installPlan(update, P, { level, choice: 'badgefit', date, kg })
+    setP({ runWalk: level === 'beginner' && jog === 'no' })
     useUI.getState().toast(date ? 'Week 1 starts now. Your plan ends on your test week.' : 'Your 12 weeks start today. Let us get to work.')
   }
   return <div className="card pf-welcome">
@@ -425,6 +429,13 @@ function Setup({ S, P }) {
       <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>New to training</b><small>Or it has been a while</small></button>
       <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? 'Members' : 'I train regularly'}</b><small>{guest ? 'Sign up to unlock' : '6 months or more'}</small></button>
     </div>
+    {level === 'beginner' && <>
+      <p className="pf-q">Can you jog 20 minutes without stopping?</p>
+      <div className="pf-choice">
+        <button className={jog === 'yes' ? 'on' : ''} onClick={() => setJog('yes')}><b>Yes</b><small>Start with runs</small></button>
+        <button className={jog === 'no' ? 'on' : ''} onClick={() => setJog('no')}><b>Not yet</b><small>Start with jog and walk</small></button>
+      </div>
+    </>}
     <p className="pf-q">2. Test date <small>(if booked)</small></p>
     <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="PCT date" />
     <p className="pf-q">3. Weight in kg</p>
@@ -552,6 +563,13 @@ function Tests({ S, P, openBeep, openTest }) {
         {ev ? <span className={'pf-chip ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'PASS' : `${ev.pct}%`}</span> : <span className="pf-chip">Not tested</span>}
       </button>
       {ev && <div className="pf-bar"><span style={{ width: ev.pct + '%' }} /></div>}
+      {/* What is left to pass, in plain words, and every attempt as a line with the pass mark. */}
+      {latest && gapText(std.id, latest.v, P.beepTarget) && <p className="pf-gap">{gapText(std.id, latest.v, P.beepTarget)}</p>}
+      {(() => { const t = trendLine(P.results, std.id, P.beepTarget); return t && <svg className="pf-trend" viewBox="0 0 300 60" role="img" aria-label={`${std.name}: your attempts against the pass mark`}>
+        <line x1="0" x2="300" y1={t.passY} y2={t.passY} className="pf-trend-pass" />
+        <path d={t.path} className="pf-trend-line" />
+        {t.dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r="4" className={d.pass ? 'pass' : ''} />)}
+      </svg> })()}
       {latest && <p className="pf-sub">Latest: {fmtResult(std.id, latest.v)} on {latest.at}{(() => { const b = bestResult(P.results, std.id); return b && b !== latest ? ` · Best: ${fmtResult(std.id, b.v)}` : '' })()}</p>}
       {open === std.id && <LogForm std={std} P={P} onDone={() => setOpen(null)} />}
     </div>)}
@@ -591,6 +609,7 @@ function LogForm({ std, P, onDone }) {
   return <div className="pf-log">
     <p className="pf-sub">{std.how}</p>
     {std.note && <p className="pf-sub"><b>{std.note}</b></p>}
+    {std.tip && <p className="pf-sub pf-tip">{std.tip}</p>}
     {std.id === 'grip'
       ? <div className="pf-2">
         <label>Left (kg)<NumberField value={v.left} nullable onChange={x => setV({ ...v, left: x })} /></label>

@@ -1,3 +1,5 @@
+import { PLAN_EXERCISES } from '../lib/police/programme.js'
+import { countInRun } from '../components/CountIn.jsx'
 import { iconFor } from '../lib/police/emoji-icon.js'
 import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import { todayISO } from '../lib/format.js'
@@ -55,7 +57,9 @@ export default function Library() {
   const setOrderKept = v => { setOrder(v); try { localStorage.setItem('badgefit_lib_order', v) } catch { /* private mode */ } }
   const mixed = order === 'mixed' && !q.trim()
   const ordered = useMemo(() => (mixed ? dailyShuffle(narrowedList, todayISO()) : narrowedList), [mixed, narrowedList.length, bp, eqOn, catOn]) // eslint-disable-line react-hooks/exhaustive-deps
-  const f = usage ? sortYoursFirst(narrowedList, S, usage) : sortFavouritesFirst(ordered, S)
+  const f0 = usage ? sortYoursFirst(narrowedList, S, usage) : sortFavouritesFirst(ordered, S)
+  // BadgeFit: the exercises the plan uses come first, so the list opens on what matters for the PCT.
+  const f = S.police?.level && !q.trim() ? [...f0.filter(e => PLAN_EXERCISES.has(e.id)), ...f0.filter(e => !PLAN_EXERCISES.has(e.id))] : f0
   useRevealActiveChip(bpStrip, bp)
   // Type and equipment live in the Filters sheet (P7). It works out its own options from the same
   // search and body part, so a choice it offers is never a dead end either.
@@ -101,8 +105,8 @@ export default function Library() {
     </div>
     {/* BadgeFit: running sits with the exercises. A tap starts that guided run. */}
     {!q.trim() && !bp && <div className="lib-runs">
-      <div className="lib-runs-h"><b>🏃 Runs &amp; VO2</b><button type="button" className="lib-order" onClick={() => setOrderKept(order === 'mixed' ? 'az' : 'mixed')}>{order === 'mixed' ? '🔀 Mixed' : 'A-Z'}</button></div>
-      <div className="lib-runs-row">{dailyShuffle(RUNS, todayISO() + 'runs').slice(0, 8).map(r => <button key={r.id} type="button" className={'lib-run c-' + r.cat} onClick={() => nav('/police?tab=run&run=' + r.id)}>
+      <div className="lib-runs-h"><b>Runs</b><button type="button" className="lib-order" onClick={() => setOrderKept(order === 'mixed' ? 'az' : 'mixed')}>{order === 'mixed' ? 'Mixed' : 'A-Z'}</button></div>
+      <div className="lib-runs-row">{dailyShuffle(RUNS, todayISO() + 'runs').slice(0, 8).map(r => <button key={r.id} type="button" className={'lib-run c-' + r.cat} onClick={() => countInRun(r, runMinutes(r))}>
         <span><Icon name={iconFor(CATEGORIES.find(c => c.id === r.cat)?.emoji)} /></span><b>{r.name}</b><small>~{runMinutes(r)} min</small></button>)}</div>
     </div>}
     <div className="search-row" data-tour="lib-search" style={{ marginBottom: 10 }}><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>

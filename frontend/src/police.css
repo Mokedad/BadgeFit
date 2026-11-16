@@ -1009,3 +1009,20 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .sp-foot button svg{width:16px;height:16px}
 .hb-say.hb-ask{font-size:13px;font-weight:700;white-space:nowrap;padding:0 12px;color:#14203a;width:auto}
 .pd-go{width:100%;margin-top:12px}
+.pf-tip{border-left:3px solid var(--acc-line);padding-left:10px}
+.pf-gap{margin:6px 0 0;font-weight:700;font-size:14px;color:var(--acc-ink)}
+.pf-trend{display:block;width:100%;height:60px;margin-top:6px}
+.pf-trend-pass{stroke:var(--green);stroke-width:1.5;stroke-dasharray:5 5;opacity:.8}
+.pf-trend-line{fill:none;stroke:var(--label-2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.pf-trend circle{fill:var(--label-2)}
+.pf-trend circle.pass{fill:var(--green)}
+.pf-statpct{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;border:0;color:inherit;font:inherit;text-align:center;margin-bottom:12px}
+.pf-statpct div{display:flex;flex-direction:column;gap:2px}
+.pf-statpct b{font-size:20px}
+.pf-statpct span{font-size:12px;color:var(--label-2)}
+.calm-after{width:100%;text-align:center;margin:8px 0}
+.calm-after-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.calm-after-row button{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;border-radius:14px;padding:12px 6px;background:var(--surface-2,var(--surface));color:inherit;font:inherit}
+.calm-after-row button svg{width:24px;height:24px;color:var(--acc-ink)}
+.calm-after-row button span{font-weight:700;font-size:14px}
+.calm-after-row button small{font-size:11px;color:var(--label-2);line-height:1.2}
