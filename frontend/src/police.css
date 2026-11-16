@@ -1008,7 +1008,7 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .sp-foot button.on{background:var(--acc-soft);color:var(--acc-ink)}
 .sp-foot button svg{width:16px;height:16px}
 .hb-say.hb-ask{font-size:13px;font-weight:700;white-space:nowrap;padding:0 12px;color:#14203a;width:auto}
-.pd-go{width:100%;margin-top:12px}
+.pd-go{width:100%;margin:10px 0 12px}
 .pf-tip{border-left:3px solid var(--acc-line);padding-left:10px}
 .pf-gap{margin:6px 0 0;font-weight:700;font-size:14px;color:var(--acc-ink)}
 .pf-trend{display:block;width:100%;height:60px;margin-top:6px}
@@ -1026,3 +1026,9 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .calm-after-row button svg{width:24px;height:24px;color:var(--acc-ink)}
 .calm-after-row button span{font-weight:700;font-size:14px}
 .calm-after-row button small{font-size:11px;color:var(--label-2);line-height:1.2}
+.pf-plate-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:4px;margin:10px 0;border-radius:14px;overflow:hidden;text-align:center;font-weight:700;font-size:14px}
+.pf-plate-row span{padding:14px 4px;display:flex;flex-direction:column;gap:2px;color:#10213f}
+.pf-plate-row small{font-weight:600;font-size:11px;opacity:.75}
+.pf-plate-row .p1{background:#b9e6a8}.pf-plate-row .p2{background:#ffd27a}.pf-plate-row .p3{background:#cfdcf6}
+.calm-first{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px}
+.calm-first svg{width:16px;height:16px}

@@ -526,7 +526,7 @@ function RunTab({ S, P, startRun }) {
       <span className="pf-run-m"><b>{r.name}</b><small>{runMinutes(r)} min · {r.km}</small></span>
       <Icon name="chevronRight" />
     </button>)}</div>
-    <MusicBar />
+    <Fold id="music" title="Music"><MusicBar /></Fold>
     {(P.runLog || []).length > 0 && <Fold id="recentruns" title="Recent runs">
       {(P.runLog || []).slice(-6).reverse().map(r => <div key={r.id} className="pf-logrow">
         <span>{runById(r.run)?.name || 'Run'}</span><small>{r.at} · {r.min} min{r.km ? ` · ${r.km} km` : ''}{r.rpe ? ` · effort ${r.rpe}/10` : ''}</small>
@@ -558,7 +558,7 @@ function Tests({ S, P, openBeep, openTest }) {
         <span className={'pf-std-dot' + (ev ? (ev.pass ? ' pass' : ' fail') : '')} aria-hidden="true">{ev?.pass ? <Icon name="check" /> : null}</span>
         <span className="pf-std-m">
           <b>{std.name}</b>
-          <span className="pf-sub">{std.id === 'beep' ? `Level ${P.beepTarget || DEFAULT_BEEP_TARGET}` : `${std.better === 'lower' ? 'Under ' : ''}${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`}</span>
+          <span className="pf-sub">{std.id === 'beep' ? `Level ${P.beepTarget || DEFAULT_BEEP_TARGET}` : `${std.better === 'lower' ? 'Under ' : ''}${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}${P.afterTest === 'passed' && std.academy ? ` · Academy: ${std.academy} ${std.unit}` : ''}`}</span>
         </span>
         {ev ? <span className={'pf-chip ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'PASS' : `${ev.pct}%`}</span> : <span className="pf-chip">Not tested</span>}
       </button>
@@ -709,7 +709,8 @@ function Strength({ S, P }) {
       <div className="row between"><h3>Where you are</h3><span className="pf-chip">Phase {now.n}</span></div>
       <p className="pf-sub"><b>{now.range} reps this week</b></p>
     </div>}
-    <Reps S={S} start={now && rangeById(now.range)?.id === now.range ? now.range : null} />
+    {/* Hayden already says this during a workout; the calculator is here for the curious. */}
+    <Fold id="repscalc" title="What weight for the next set?"><Reps S={S} start={now && rangeById(now.range)?.id === now.range ? now.range : null} /></Fold>
     <Fold id="phases" title="The three phases">
       {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
     </Fold>
@@ -909,7 +910,8 @@ function Care() {
       {q && !hits.length && <p className="pf-sub">Nothing matched. Try one word: shin, heel, knee, ankle, chafe, stitch, tired.</p>}
     </div>
     {hits.length > 0 && <div className="card">{hits.map(it => <CareItem key={it.id} it={it} open />)}</div>}
-    {!q && RUN_CARE.map(g => <div key={g.group} className="card"><h3>{g.group}</h3>{g.items.map(it => <CareItem key={it.id} it={it} />)}</div>)}
+    {/* Each group folds: the page opens as five lines, not thirty. */}
+    {!q && RUN_CARE.map(g => <Fold key={g.group} id={'care-' + g.group.toLowerCase().replace(/\W+/g, '-')} title={g.group} remember={false}>{g.items.map(it => <CareItem key={it.id} it={it} />)}</Fold>)}
     <p className="pf-sub pf-pad">General information, not a diagnosis. Chest pain, fainting, confusion or stopping sweating in the heat: stop and call 000.</p>
   </>
 }
@@ -937,6 +939,12 @@ function Food({ S, P }) {
   const [goal, setGoal] = useState(P.goal || 'lose')
   const m = macroTargets({ weightKg: weight, goal, activity: 'high', heightCm: P.heightCm, age: P.age, sex: P.sex })
   return <>
+    {/* The one rule to start with; the detail and the eating plans fold away underneath. */}
+    <div className="card pf-plate">
+      <h3>Start simple: the plate</h3>
+      <div className="pf-plate-row" aria-hidden="true"><span className="p1">Veg<small>half</small></span><span className="p2">Protein<small>a palm</small></span><span className="p3">Carbs<small>a fist</small></span></div>
+      <p className="pf-sub">Every main meal: half the plate vegetables, a palm of protein (meat, fish, eggs, tofu), a fist of carbs (rice, potato, pasta). Water with it. Do that most days and you are 80% there.</p>
+    </div>
     <Fold id="body" title="Body" open><BodyCard S={S} P={P} /></Fold>
     <Fold id="targets" title="Daily targets"><div className="card">
       <div className="pf-2">
@@ -967,14 +975,14 @@ function Food({ S, P }) {
         <p className="pf-sub">{x.why}</p>
       </div>)}
     </details>
-    {DIETS.map(d => <details key={d.id} className="card pf-diet" open={P.diet === d.id}>
+    <Fold id="diets" title={P.diet ? `Eating plans · ${DIETS.find(d => d.id === P.diet)?.name || ''}` : 'Eating plans, if you want more detail'}>{DIETS.map(d => <details key={d.id} className="card pf-diet" open={P.diet === d.id}>
       <summary><b>{d.name}</b> <span className="pf-chip">{d.tag}</span></summary>
       <p className="pf-sub">{d.who}</p>
       <h4>How it works</h4><ul>{d.how.map((x, i) => <li key={i}>{x}</li>)}</ul>
       <h4>A day of eating</h4><ul>{d.day.map((x, i) => <li key={i}>{x}</li>)}</ul>
       {d.variants && <><h4>Other options</h4><ul>{d.variants.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
       <Button size="sm" variant={P.diet === d.id ? 'primary' : 'plain'} onClick={() => setP({ diet: d.id })}>{P.diet === d.id ? 'My plan' : 'Follow this plan'}</Button>
-    </details>)}
+    </details>)}</Fold>
     <Fold id="rules" title="The rules every plan follows"><div className="card"><ol>{PRINCIPLES.map((x, i) => <li key={i}>{x}</li>)}</ol></div></Fold>
     <Fold id="recovery" title="Recovery"><div className="card">{RECOVERY.map(r => <p key={r.id} className="pf-sub"><b>{r.name}.</b> {r.how}</p>)}</div></Fold>
     <p className="pf-sub pf-pad">{DISCLAIMER}</p>
@@ -1012,6 +1020,9 @@ export default function PoliceFit() {
   const setRunning = r => (r ? useRun.getState().open(r) : useRun.getState().close())
   const [overlay, setOverlay] = useState(null) // 'beep' | 'test'
   // The beep test trainer asked for in the link (the Start sheet's Beep test button).
+  // Test day asked for in the link (Home's "Find your starting point").
+  const testParam = params.get('test')
+  useEffect(() => { if (testParam) { setOverlay('test'); setParams(p => { p.delete('test'); return p }, { replace: true }) } }, [testParam]) // eslint-disable-line react-hooks/exhaustive-deps
   const beepParam = params.get('beep')
   useEffect(() => { if (beepParam) { setOverlay('beep'); setParams(p => { p.delete('beep'); return p }, { replace: true }) } }, [beepParam]) // eslint-disable-line react-hooks/exhaustive-deps
   // Members set up under an older plan model: plans start at week 1 when you join and run as long

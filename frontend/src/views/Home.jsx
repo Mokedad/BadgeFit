@@ -275,6 +275,8 @@ export default function Home() {
         </div>}
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
         <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>
+        {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
+        {!(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}

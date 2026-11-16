@@ -35,7 +35,7 @@ let posNow = null
 const SIZE = 62
 // What he must not sit on: anything you can tap or type in, and the bars.
 // Pictures you hold (Plan's exercise pictures), the week strip's days and fold headers count too.
-const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], [role=checkbox], .tappable, .calm-nav, #timer, .rp-mini, figure, .wday, summary, label'
+const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], [role=checkbox], .tappable, .calm-nav, #timer, .rp-mini, figure, .wday, summary, label, h1, h2, h3, .pd-h, .pf-tile, .calm-count, .calm-line, .pf-std, .cm-text'
 const hits = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 /** How much of the tappable page the box `r` (his) covers, in square pixels; 0 when nothing. */
 function covered(me, r) {
@@ -150,7 +150,11 @@ export default function HaydenBuddy() {
   }, [])
   // The guided run (RunHost) covers the screen: he floats over it, and runs when tapped.
   const running = useRun(s => !!s.run && !s.minimized)
-  const place = running || loc.pathname === '/home' || loc.pathname === '/workout' || loc.pathname === '/police'
+  // Not on his own page or on Care (he is already there, in the card), nor on Plan (all pictures,
+  // no room): he only covered things there.
+  const tabNow = new URLSearchParams(loc.search).get('tab')
+  const ownPage = loc.pathname === '/police' && (!tabNow || tabNow === 'today' || tabNow === 'care' || tabNow === 'plan')
+  const place = running || loc.pathname === '/home' || loc.pathname === '/workout' || (loc.pathname === '/police' && !ownPage)
   if (!on || !place || covered) return null
 
   const react = (l, ms = EMOTE_MS) => {

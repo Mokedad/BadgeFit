@@ -4292,5 +4292,9 @@ function doFinishWorkout() {
   ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} additions={additions} close={close} />, { kind: 'center', locked: true, wide: true })
   // BadgeFit: a finished session always lands on Home, wherever it was started (Hayden, Plan),
   // so the day shows done where you look first.
-  if (st.police?.level && !past) location.hash = '#/home'
+  if (st.police?.level && !past) {
+    location.hash = '#/home'
+    // Hayden asks once the summary is out of the way; a tap on him opens Progress (HaydenBuddy.jsx).
+    setTimeout(() => window.dispatchEvent(new CustomEvent('hayden-react', { detail: { ask: 'Check your progress?', to: '/stats', mood: 'happy', ms: 9000 } })), 4000)
+  }
 }

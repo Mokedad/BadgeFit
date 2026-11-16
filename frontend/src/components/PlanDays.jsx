@@ -17,6 +17,7 @@ import { fitSession } from '../lib/police/session-length.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet, startFlow } from '../sheets.jsx'
 import { effectiveRoutineIds } from '../lib/history.js'
+import { countIn, actForRoutine } from './CountIn.jsx'
 import { reopenPatch } from '../lib/police/reopen.js'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
@@ -199,6 +200,8 @@ export default function PlanDays({ first = null }) {
           : <span className="pd-tick" aria-label="Done"><Icon name="check" /></span>)
           : !past && <button className="calm-swap" onClick={() => dayOverrideSheet(focus)} aria-label="Change this day"><Icon name="swap" /></button>}
       </div>
+      {/* Today, still to do: start it right here (a run is counted in by Hayden, components/CountIn.jsx). */}
+      {focus === today && !d.trained && d.kind !== 'rest' && <button type="button" className="pf-go pd-go" onClick={() => (S.active ? (window.location.hash = '#/workout') : (d.gym.length ? countIn({ title: d.name, act: actForRoutine(d.gym[0]), onGo: () => startFlow(effectiveRoutineIds(S, today), { auto: true }) }) : startFlow(effectiveRoutineIds(S, today), { auto: true })))}>{S.active ? 'Resume' : 'Start'}</button>}
       {d.gym.map(r => <div key={r.id} className="pf-pics">
         {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} idx={i} ex={ex} faint={!fits.has(`${r.id}:${e.id}`)} onHold={() => !past && hold(r, i, ex)} onMove={past ? null : (from, to) => reorder(r, from, to)} /> : null })}
         {!past && <button className="pd-add" onClick={() => add(r)} aria-label={'Add an exercise to ' + r.name}><Icon name="plus" /></button>}
@@ -207,8 +210,6 @@ export default function PlanDays({ first = null }) {
         ? <div className="pd-icon"><Icon name={d.kind === 'rest' ? 'moon' : 'figureRun'} /></div>
         : <div className="pd-run"><Thumb ex={EXIDX[RUN_PIC]} /></div>)}
       {first}
-      {/* Today, still to do: start it right here (a run is counted in by Hayden, components/CountIn.jsx). */}
-      {focus === today && !d.trained && d.kind !== 'rest' && <button type="button" className="pf-go pd-go" onClick={() => (S.active ? (window.location.hash = '#/workout') : startFlow(effectiveRoutineIds(S, today), { auto: true }))}>{S.active ? 'Resume' : 'Start'}</button>}
     </div>
     {next.map(n => <button key={n.iso} className={'pf-day pf-tile pfk-' + n.kind} onClick={() => setFocus(n.iso)}>
       <div className="pf-tile-h">
