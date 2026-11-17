@@ -26,24 +26,80 @@ const nameOf = user => clean(user?.name || 'Recruit', 40) || 'Recruit';
 export const emptyFeed = () => ({ posts: [] });
 
 /** The feed as one viewer sees it: newest first, hidden posts only for admins, ids of people never. */
+export const AREAS = ['pct', 'apply', 'academy', 'grads'];
+export const STAGES = ['applicant', 'passed', 'academy', 'graduate'];
+const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
+
+/** Today's session as shared: a name, minutes, done or still to do. Nothing else of the plan. */
+export function cleanSession(x) {
+  const title = clean(x?.title, 60);
+  return title ? { title, minutes: int(x.minutes, 0, 600), done: x.done === true } : null;
+}
+
+/**
+ * A shared plan: up to 7 sessions of up to 20 exercises, by catalogue id and numbers only (no
+ * free text beyond the names), so it can be followed as it is and nothing in it needs checking.
+ */
+export function cleanPlan(x) {
+  const name = clean(x?.name, 60);
+  const routines = (Array.isArray(x?.routines) ? x.routines : []).slice(0, 7).map(r => ({
+    name: clean(r?.name, 60) || 'Session',
+    ex: (Array.isArray(r?.ex) ? r.ex : []).slice(0, 20).filter(e => /^[\w-]{1,16}$/.test(String(e?.id || ''))).map(e => ({
+      id: String(e.id), sets: int(e.sets, 1, 12),
+      ...(e.mode === 'time' ? { mode: 'time', sec: int(e.sec, 5, 3600) } : e.mode === 'cardio' ? { mode: 'cardio', min: int(e.min, 1, 300) } : { reps: int(e.reps, 1, 100), repsMin: int(e.repsMin || e.reps, 1, 100) }),
+    })),
+  })).filter(r => r.ex.length);
+  if (!name || !routines.length) return null;
+  return { name, level: x.level === 'intermediate' ? 'intermediate' : 'beginner', routines };
+}
+
 /**
  * The feed as one viewer sees it: newest first, hidden posts only for admins, ids of people never.
  * `handle(uid)` gives the opaque handle someone can be followed by (nearby.js), shown as `who` on
- * other people's posts and replies. `crew` (a test date) keeps to the people training for it.
+ * other people's posts and replies. Filters: `area` (a topic area), `q` (words to find),
+ * `authors` (only these people: the Following tab, or one person's page), `blocked(uid)` (people
+ * the viewer hid, or who hid them), `fresh(uid)` (a plan's author has trained under two weeks).
  */
-export function view(feed, viewer, { admin = false, before = null, handle = null, crew = null } = {}) {
+export function view(feed, viewer, { admin = false, before = null, handle = null, area = null, q = null, authors = null, blocked = null, fresh = null } = {}) {
   let posts = (feed.posts || []).filter(p => admin || !p.hidden || p.uid === viewer?.id);
-  if (crew) posts = posts.filter(p => p.crew === crew);
+  if (blocked) posts = posts.filter(p => !blocked(p.uid));
+  if (area) posts = posts.filter(p => p.area === area);
+  if (authors) posts = posts.filter(p => authors.has(p.uid));
+  const words = clean(q, 60).toLowerCase();
+  if (words) posts = posts.filter(p => [p.text, p.name, p.plan?.name, p.session?.title, ...(p.replies || []).map(r => r.text)].some(t => String(t || '').toLowerCase().includes(words)));
   posts = posts.slice().sort((a, b) => b.at - a.at);
   if (before) posts = posts.filter(p => p.at < before);
   const who = uid => (handle && uid !== viewer?.id ? { who: handle(uid) } : {});
   return posts.slice(0, PAGE).map(p => ({
-    id: p.id, name: p.name, topic: p.topic, text: p.text, at: p.at, ...(p.crew && { crew: p.crew }),
+    id: p.id, name: p.name, topic: p.topic, text: p.text, at: p.at,
+    ...(p.area && { area: p.area }), ...(p.stage && { stage: p.stage }), ...(p.session && { session: p.session }),
+    ...(p.plan && { plan: p.plan, planFollowers: (p.planFollowers || []).length, planFollowed: (p.planFollowers || []).includes(viewer?.id), ...(fresh && fresh(p.uid) && { planNew: true }) }),
     cheers: (p.cheers || []).length, cheered: (p.cheers || []).includes(viewer?.id),
     mine: p.uid === viewer?.id, hidden: !!p.hidden, ...who(p.uid),
     ...(admin && { reports: (p.reports || []).length }),
-    replies: (p.replies || []).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...who(r.uid) })),
+    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(p.best === r.id && { best: true }), ...who(r.uid) })),
   }));
+}
+
+/** The asker marks the answer that helped (or unmarks it). Only on their own post. */
+export function markBest(feed, user, { id, replyId }) {
+  const post = (feed.posts || []).find(p => p.id === id);
+  if (!post) return { error: 'post not found' };
+  if (post.uid !== user.id) return { error: 'only the person who asked can pick', status: 403 };
+  const r = (post.replies || []).find(x => x.id === replyId);
+  if (!r) return { error: 'reply not found' };
+  post.best = post.best === replyId ? null : replyId;
+  return { best: post.best, owner: post.best ? r.uid : null, post };
+}
+
+/** Follow a shared plan (or stop): counted, so plans that work rise. */
+export function followPlan(feed, user, id) {
+  const post = (feed.posts || []).find(p => p.id === id);
+  if (!post || !post.plan) return { error: 'plan not found' };
+  const set = new Set(post.planFollowers || []);
+  set.has(user.id) ? set.delete(user.id) : set.add(user.id);
+  post.planFollowers = [...set];
+  return { planFollowers: set.size, planFollowed: set.has(user.id), plan: post.plan, owner: post.uid, post };
 }
 
 /** The uid behind a handle, among the people in the feed (to follow someone met here). */
@@ -62,10 +118,16 @@ export function teaser(feed, now = Date.now()) {
 }
 
 /** Adds a post; returns { post } or { error }. */
-export function addPost(feed, user, { text, topic, crew }, now = Date.now()) {
+export function addPost(feed, user, { text, topic, crew, area, stage, session, plan }, now = Date.now()) {
   const t = clean(text, MAX_POST);
-  if (!t) return { error: 'write something first' };
+  const ses = cleanSession(session), pl = cleanPlan(plan);
+  // Today's session or a plan can stand without words.
+  if (!t && !ses && !pl) return { error: 'write something first' };
   const post = { id: newId(), uid: user.id, name: nameOf(user), topic: TOPICS.includes(topic) ? topic : 'journey', text: t, at: now, cheers: [], reports: [], replies: [] };
+  if (AREAS.includes(area)) post.area = area;
+  if (STAGES.includes(stage)) post.stage = stage;
+  if (ses) post.session = ses;
+  if (pl) post.plan = pl;
   // The crew: people training for the same test date (YYYY-MM-DD), so they can find each other.
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(crew || ''))) post.crew = String(crew);
   feed.posts = [...(feed.posts || []), post].slice(-MAX_POSTS);
@@ -138,6 +200,7 @@ export function forgetUser(feed, uid) {
     ...p,
     replies: (p.replies || []).filter(r => r.uid !== uid),
     cheers: (p.cheers || []).filter(x => x !== uid),
+    planFollowers: (p.planFollowers || []).filter(x => x !== uid),
     reports: (p.reports || []).filter(x => x !== uid),
   }));
 }

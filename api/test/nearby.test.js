@@ -91,3 +91,17 @@ test('presence without a place: followers see you about, and training first', ()
   n.presence(st, so, bob, { card: { name: 'Bob', training: 'yes' } }, n.TTL_MS + 200);
   assert.equal(n.bell(st, so, ann, n.TTL_MS + 300).people[0].training, false);
 });
+
+test("a member's page: stage, today, counts, and nothing for someone hidden", () => {
+  const st = n.emptyState(), so = n.emptySocial();
+  n.presence(st, so, bob, { card: { name: 'Bob', stage: 'academy', today: { title: 'Shuttle sprints', done: true, plan: 'x' }, training: true } }, 0);
+  const id = n.handleOf(st, 'u2');
+  n.follow(st, so, ann, { id });
+  let p = n.person(st, so, ann, id, 10);
+  assert.deepEqual([p.name, p.stage, p.today, p.followers, p.following, p.followed, p.followsYou, p.active], ['Bob', 'academy', { title: 'Shuttle sprints', done: true }, 1, 0, true, false, true]);
+  p = n.person(st, so, ann, id, n.TTL_MS + 100);
+  assert.deepEqual([p.name, p.stage, p.today, p.stats, p.active], ['Bob', 'academy', undefined, null, false]);
+  n.hide(st, so, ann, { id });
+  assert.equal(n.person(st, so, ann, id, 20), null);
+  assert.equal(n.person(st, so, ann, 'nobody', 20), null);
+});

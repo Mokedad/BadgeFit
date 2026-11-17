@@ -3518,6 +3518,57 @@ paths:
       responses:
         '200': { description: '`{ cheers: [{ id, from, colour, kind, what, at }] }`' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/cheers/history:
+    get:
+      tags: [community]
+      operationId: getCheersHistory
+      summary: The bell, everything sent to you lately (BadgeFit)
+      description: Newest first, kept after the bubble showed it. Each carries `who` (a handle to follow back) and `followed`.
+      responses:
+        '200': { description: '`{ cheers: [...] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/person:
+    get:
+      tags: [community]
+      operationId: getCommunityPerson
+      summary: One member's page
+      description: Their card (first name, stage, today, three numbers), follower counts, and their latest posts and shared plans.
+      parameters:
+        - { name: id, in: query, required: true, schema: { type: string }, description: Their handle (`who` on a post) }
+      responses:
+        '200': { description: '`{ person, posts }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Nobody, or someone hidden either way }
+  /api/community/best:
+    post:
+      tags: [community]
+      operationId: postCommunityBest
+      summary: Mark the answer that helped
+      description: Only the person who asked. Marking the same reply again unmarks it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id, replyId], properties: { id: { type: string }, replyId: { type: string } } }
+      responses:
+        '200': { description: '`{ best }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Not your post }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/community/plan-follow:
+    post:
+      tags: [community]
+      operationId: postCommunityPlanFollow
+      summary: Follow a shared plan, or stop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: string } } }
+      responses:
+        '200': { description: '`{ planFollowers, planFollowed, plan }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
   /api/community/teaser:
     get:
       tags: [community]
@@ -3537,10 +3588,9 @@ paths:
         account id: posts carry the name the author chose and `mine` for the viewer's own.
         Hidden (reported) posts are shown only to admins and their authors.
       parameters:
-        - name: crew
-          in: query
-          description: A test date (YYYY-MM-DD); only posts from people training for it.
-          schema: { type: string }
+        - { name: area, in: query, schema: { type: string, enum: [pct, apply, academy, grads] }, description: Only this topic area }
+        - { name: q, in: query, schema: { type: string }, description: Words to find in posts, replies and plan names }
+        - { name: following, in: query, schema: { type: string }, description: 'Set to 1: only people you follow' }
         - name: before
           in: query
           required: false
@@ -3573,7 +3623,10 @@ paths:
               properties:
                 text: { type: string, maxLength: 1000 }
                 topic: { type: string, enum: [win, question, journey, motivation] }
-                crew: { type: string, description: "Your test date (YYYY-MM-DD): the post shows in that crew too" }
+                area: { type: string, enum: [pct, apply, academy, grads] }
+                stage: { type: string, enum: [applicant, passed, academy, graduate] }
+                session: { type: object, description: "Today's session: title, minutes, done" }
+                plan: { type: object, description: "A shared plan: name, level, routines of exercises by catalogue id" }
       responses:
         '201': { description: The new post, as the feed shows it }
         '400': { description: Empty text }

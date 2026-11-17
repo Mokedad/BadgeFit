@@ -2240,7 +2240,9 @@ function loadCheers() {
 function saveCheers() { durableWrite(cheersFile(), JSON.stringify(loadCheers())); }
 function sendCheer(to, from, item) {
   if (!to || to === from) return;
-  const it = cheers.add(loadCheers(), to, item);
+  // The sender is known to the bots, so the bell can offer Follow back.
+  if (item.from) { nearby.remember(NEAR, loadBots(), from, item.from); }
+  const it = cheers.add(loadCheers(), to, { ...item, uid: from });
   if (!it) return;
   saveCheers();
   sendPush(to, cheers.cheerPush(it)).catch(() => {});
@@ -2258,6 +2260,18 @@ function knowFromFeed(hid) {
   if (hit) nearby.remember(NEAR, loadBots(), hit.uid, hit.name);
 }
 const handleFor = uid => nearby.handleOf(NEAR, uid);
+/** A cheer as its receiver sees it: who by handle (never an id), and whether they follow them yet. */
+const cheerOut = (viewer, list) => list.map(({ uid, ...c }) => ({ ...c, ...(uid && { who: handleFor(uid), followed: (loadBots().follows[viewer.id] || []).includes(uid) }) }));
+const blockedFor = user => uid => uid !== user.id && nearby.hiddenEither(loadBots(), user.id, uid);
+/** A plan's author with under two weeks of training on the books reads as New (state-<uid>.json). */
+function freshAuthor(uid) {
+  try {
+    const st = JSON.parse(fs.readFileSync(stateFile(uid), 'utf8'));
+    const days = new Set((st.workouts || []).map(w => w.d));
+    const first = [...days].sort()[0];
+    return !first || days.size < 4 || Date.now() - Date.parse(first + 'T00:00:00Z') < 14 * 86400000;
+  } catch { return true; }
+}
 const cardColour = uid => NEAR.here.get(uid)?.card?.colour;
 const NEAR_PINGS = createWindow({ max: 240, windowMs: 3600000 });
 setInterval(() => NEAR_PINGS.sweep(), 600000).unref();
@@ -3202,19 +3216,27 @@ const routes = {
   // Hayden's bubble: everything sent to you since you last looked, taken once.
   'GET /api/cheers': async (req, res) => {
     const user = communityGuard(req, res); if (!user) return;
-    json(res, 200, { cheers: takeCheers(user.id) });
+    json(res, 200, { cheers: cheerOut(user, takeCheers(user.id)) });
+  },
+  // The bell: everything sent to you lately, newest first (kept after the bubble showed it).
+  'GET /api/cheers/history': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    json(res, 200, { cheers: cheerOut(user, cheers.history(loadCheers(), user.id)) });
   },
   'POST /api/nearby/follow': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
     const body = await readBody(req);
     knowFromFeed(body.id);
+    const to = nearby.uidOf(NEAR, loadBots(), String(body.id || ''));
+    const had = (loadBots().follows[user.id] || []).includes(to);
     const r = nearby.follow(NEAR, loadBots(), user, { id: body.id, on: body.on !== false });
-    if (!r.error) saveBots();
+    if (!r.error) { saveBots(); if (r.followed && !had) sendCheer(to, user.id, { from: user.name, colour: cardColour(user.id), kind: 'follow', ref: 'follow' }); }
     communityAnswer(res, r);
   },
   'POST /api/nearby/hide': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
     const body = await readBody(req);
+    knowFromFeed(body.id);
     const r = nearby.hide(NEAR, loadBots(), user, { id: body.id });
     if (!r.error) saveBots();
     communityAnswer(res, r);
@@ -3229,8 +3251,39 @@ const routes = {
     const user = communityGuard(req, res); if (!user) return;
     const q = new URL(req.url, 'http://x').searchParams;
     const before = Number(q.get('before')) || null;
-    const crew = /^\d{4}-\d{2}-\d{2}$/.test(q.get('crew') || '') ? q.get('crew') : null;
-    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, crew }), topics: community.TOPICS });
+    const area = community.AREAS.includes(q.get('area')) ? q.get('area') : null;
+    const authors = q.get('following') ? new Set(loadBots().follows[user.id] || []) : null;
+    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor }), topics: community.TOPICS });
+  },
+  // One member's page: their card, the numbers, and what they have posted and shared.
+  'GET /api/community/person': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    const hid = new URL(req.url, 'http://x').searchParams.get('id') || '';
+    knowFromFeed(hid);
+    const p = nearby.person(NEAR, loadBots(), user, hid);
+    if (!p) return json(res, 404, { error: 'not found' });
+    const { uid, ...card } = p;
+    json(res, 200, { person: card, posts: community.view(loadCommunity(), user, { handle: handleFor, authors: new Set([uid]), fresh: freshAuthor }).slice(0, 20) });
+  },
+  'POST /api/community/best': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.markBest(feed, user, { id: String(body.id || ''), replyId: String(body.replyId || '') });
+    if (r.error) return communityAnswer(res, r);
+    saveCommunity(feed);
+    if (r.owner) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'best', ref: r.post.id });
+    communityAnswer(res, { best: r.best });
+  },
+  'POST /api/community/plan-follow': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.followPlan(feed, user, String(body.id || ''));
+    if (r.error) return communityAnswer(res, r);
+    saveCommunity(feed);
+    if (r.planFollowed) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'plan', what: r.plan.name, ref: r.post.id });
+    communityAnswer(res, { planFollowers: r.planFollowers, planFollowed: r.planFollowed, plan: r.plan });
   },
   // No account needed: how busy the community was this week, numbers only (for guests).
   'GET /api/community/teaser': async (req, res) => {
@@ -3240,9 +3293,9 @@ const routes = {
     const user = communityGuard(req, res, COMMUNITY_POSTS); if (!user) return;
     const body = await readBody(req);
     const feed = loadCommunity();
-    const r = community.addPost(feed, user, { text: body.text, topic: body.topic, crew: body.crew });
+    const r = community.addPost(feed, user, { text: body.text, topic: body.topic, area: body.area, stage: body.stage, session: body.session, plan: body.plan });
     if (!r.error) saveCommunity(feed);
-    communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user)[0] }, 201);
+    communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user, { fresh: freshAuthor })[0] }, 201);
   },
   'POST /api/community/reply': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;

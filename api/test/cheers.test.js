@@ -30,3 +30,14 @@ test('labels and the notification', () => {
   assert.deepEqual([p.body, p.url], ['Ann cheered your win: Level 7.4', '#/community']);
   assert.equal(ch.cheerPush({ from: 'Bob', kind: 'love' }).body, 'Bob sent you a love');
 });
+
+test('the bell keeps what was sent, newest first, with who sent it kept server-side', () => {
+  const s = ch.empty();
+  ch.add(s, 'u2', { from: 'Ann', kind: 'cheer', ref: 'p1', uid: 'u1' }, 1000);
+  ch.add(s, 'u2', { from: 'Cat', kind: 'follow', ref: 'follow', uid: 'u3' }, 2000);
+  ch.take(s, 'u2', 3000);
+  assert.deepEqual(ch.history(s, 'u2').map(x => [x.from, x.kind, x.uid]), [['Cat', 'follow', 'u3'], ['Ann', 'cheer', 'u1']]);
+  assert.equal(ch.cheerPush({ from: 'Cat', kind: 'follow' }).body, 'Cat followed you');
+  ch.forgetUser(s, 'u1');
+  assert.deepEqual(ch.history(s, 'u2').map(x => x.from), ['Cat']);
+});

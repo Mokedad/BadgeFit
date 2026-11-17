@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>112 endpoints</span>
+    <span>116 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -2849,6 +2849,149 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-getCheersHistory">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/cheers/history</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The bell, everything sent to you lately (BadgeFit)</span>
+  </summary>
+  <div class="ep-body">
+<p>Newest first, kept after the bubble showed it. Each carries <code>who</code> (a handle to follow back) and <code>followed</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ cheers: [...] }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getCommunityPerson">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/community/person</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">One member's page</span>
+  </summary>
+  <div class="ep-body">
+<p>Their card (first name, stage, today, three numbers), follower counts, and their latest posts and shared plans.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Their handle (<code>who</code> on a post)</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ person, posts }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Nobody</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postCommunityBest">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/community/best</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Mark the answer that helped</span>
+  </summary>
+  <div class="ep-body">
+<p>Only the person who asked. Marking the same reply again unmarks it.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">replyId<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ best }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Not your post</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postCommunityPlanFollow">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/community/plan-follow</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Follow a shared plan, or stop</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ planFollowers, planFollowed, plan }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-getCommunityTeaser">
   <summary>
     <span class="m get">GET</span>
@@ -2883,9 +3026,19 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
   <div class="prow">
-    <span class="p-name">crew</span>
+    <span class="p-name">area</span>
+    <span class="p-type">&quot;pct&quot; | &quot;apply&quot; | &quot;academy&quot; | &quot;grads&quot;</span>
+    <span class="p-desc">Only this topic area</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">q</span>
     <span class="p-type">string</span>
-    <span class="p-desc">A test date (YYYY-MM-DD); only posts from people training for it.</span>
+    <span class="p-desc">Words to find in posts</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">following</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Set to 1: only people you follow</span>
   </div>
   <div class="prow">
     <span class="p-name">before</span>
@@ -2931,9 +3084,24 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-desc"></span>
   </div>
   <div class="prow">
-    <span class="p-name">crew</span>
-    <span class="p-type">string</span>
-    <span class="p-desc">Your test date (YYYY-MM-DD): the post shows in that crew too</span>
+    <span class="p-name">area</span>
+    <span class="p-type">&quot;pct&quot; | &quot;apply&quot; | &quot;academy&quot; | &quot;grads&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">stage</span>
+    <span class="p-type">&quot;applicant&quot; | &quot;passed&quot; | &quot;academy&quot; | &quot;graduate&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">session</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">Today's session: title, minutes, done</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">plan</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">A shared plan: name, level, routines of exercises by catalogue id</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>

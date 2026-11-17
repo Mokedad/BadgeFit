@@ -14,6 +14,7 @@ export const RADIUS_M = 300;
 export const TTL_MS = 3 * 60 * 1000;
 export const MAX_NEAR = 5;
 export const CHEER_GAP_MS = 5000;
+export const STAGES = ['applicant', 'passed', 'academy', 'graduate'];
 const GEAR = new Set(['headband', 'whistle', 'bolt', 'badge', 'stripes', 'cap', 'medal']);
 
 export const emptyState = () => ({ here: new Map(), live: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
@@ -21,7 +22,7 @@ export const emptySocial = () => ({ follows: {}, hidden: {}, names: {} });
 
 /** The opaque handle a member is shown as: stable while the server runs, not their account id. */
 export const handleOf = (state, uid) => crypto.createHash('sha256').update(state.salt + ':' + uid).digest('hex').slice(0, 16);
-function uidOf(state, social, hid) {
+export function uidOf(state, social, hid) {
   for (const uid of state.here.keys()) if (handleOf(state, uid) === hid) return uid;
   for (const uid of state.live.keys()) if (handleOf(state, uid) === hid) return uid;
   for (const uid of Object.keys(social.names)) if (handleOf(state, uid) === hid) return uid;
@@ -35,7 +36,10 @@ export function cleanCard(c, user) {
   const colour = /^#[0-9a-f]{6}$/i.test(c?.colour || '') ? c.colour : '#9aa3b2';
   const gear = (Array.isArray(c?.gear) ? c.gear : []).filter(g => GEAR.has(g)).slice(0, 7);
   const s = c?.stats || {};
-  return { name: first, colour, gear, stats: { week: int(s.week, 0, 21), ready: int(s.ready, 0, 100), streak: int(s.streak, 0, 520) }, training: c?.training === true };
+  const stage = STAGES.includes(c?.stage) ? c.stage : null;
+  const title = String(c?.today?.title || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60);
+  return { name: first, colour, gear, stats: { week: int(s.week, 0, 21), ready: int(s.ready, 0, 100), streak: int(s.streak, 0, 520) }, training: c?.training === true,
+    ...(stage && { stage }), ...(title && { today: { title, done: c.today.done === true } }) };
 }
 
 /** Metres between two points (haversine). */
@@ -47,7 +51,7 @@ export function metres(a, b) {
 }
 
 const listOf = (o, uid) => (o[uid] ||= []);
-const hiddenEither = (social, a, b) => (social.hidden[a] || []).includes(b) || (social.hidden[b] || []).includes(a);
+export const hiddenEither = (social, a, b) => (social.hidden[a] || []).includes(b) || (social.hidden[b] || []).includes(a);
 const view = (state, social, viewer, uid, p) => ({ id: handleOf(state, uid), ...p.card, followed: (social.follows[viewer] || []).includes(uid) });
 
 /** "I'm here": stores where the member is (in memory) and answers who is near and what came in. */
@@ -57,7 +61,7 @@ export function ping(state, social, user, { lat, lon, card } = {}, now = Date.no
   for (const [uid, p] of state.here) if (now - p.at > TTL_MS) state.here.delete(uid);
   const me = { lat, lon, at: now, card: cleanCard(card, user) };
   state.here.set(user.id, me);
-  if (social.names[user.id]) social.names[user.id] = { name: me.card.name, colour: me.card.colour };
+  social.names[user.id] = { name: me.card.name, colour: me.card.colour, gear: me.card.gear, ...(me.card.stage && { stage: me.card.stage }) };
   const near = [...state.here]
     .filter(([uid, p]) => uid !== user.id && !hiddenEither(social, user.id, uid) && metres(me, p) <= RADIUS_M)
     .map(([uid, p]) => ({ uid, p, d: metres(me, p) }))
@@ -74,7 +78,7 @@ export function presence(state, social, user, { card } = {}, now = Date.now()) {
   for (const [uid, p] of state.live) if (now - p.at > TTL_MS) state.live.delete(uid);
   const me = { at: now, card: cleanCard(card, user) };
   state.live.set(user.id, me);
-  if (social.names[user.id]) social.names[user.id] = { name: me.card.name, colour: me.card.colour };
+  social.names[user.id] = { name: me.card.name, colour: me.card.colour, gear: me.card.gear, ...(me.card.stage && { stage: me.card.stage }) };
   const live = (social.follows[user.id] || []).filter(uid => !hiddenEither(social, user.id, uid))
     .map(uid => [uid, seenOf(state, uid, now)]).filter(([, p]) => p)
     .map(([uid, p]) => ({ id: handleOf(state, uid), ...p.card, followed: true, active: true }))
@@ -133,7 +137,7 @@ export function bell(state, social, user, now = Date.now()) {
   const people = (social.follows[user.id] || []).filter(uid => !hiddenEither(social, user.id, uid)).map(uid => {
     const p = seenOf(state, uid, now)
     const live = !!p
-    const card = live ? p.card : { ...cleanCard(social.names[uid] || {}, null), stats: null }
+    const card = live ? p.card : { ...cleanCard(social.names[uid] || {}, null), stats: null, training: false }
     return { id: handleOf(state, uid), ...card, followed: true, active: !!live }
   })
   return { people: people.sort((a, b) => Number(!!b.training) - Number(!!a.training) || Number(b.active) - Number(a.active) || a.name.localeCompare(b.name)) }
@@ -147,6 +151,24 @@ export function remember(state, social, uid, name) {
   if (!uid) return null;
   if (!social.names[uid]) social.names[uid] = { name: cleanCard({ name }, null).name, colour: '#9aa3b2' };
   return handleOf(state, uid);
+}
+
+/**
+ * One member's page: their card (what they share while about, else name, colour, gear and stage),
+ * who follows whom in numbers, and whether the viewer follows them. null for nobody, or someone
+ * hidden either way.
+ */
+export function person(state, social, viewer, hid, now = Date.now()) {
+  const uid = uidOf(state, social, String(hid || ''));
+  if (!uid || hiddenEither(social, viewer.id, uid)) return null;
+  const p = seenOf(state, uid, now);
+  const kept = social.names[uid] || {};
+  const card = p ? p.card : { ...cleanCard(kept, null), stats: null, training: false };
+  return {
+    uid, id: handleOf(state, uid), ...card, active: !!p,
+    followed: (social.follows[viewer.id] || []).includes(uid), followsYou: (social.follows[uid] || []).includes(viewer.id),
+    followers: Object.values(social.follows).filter(l => l.includes(uid)).length, following: (social.follows[uid] || []).length,
+  };
 }
 
 /** An account deleted: out of every list. */
