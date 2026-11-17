@@ -306,7 +306,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   }
 
   if (done && result) return <div className="rp rp-done" role="dialog" aria-label="Run complete">
-    <div className="rp-top"><button className="rp-x" onClick={back} aria-label="Back to the run" title="Back to the run">←</button></div>
+    {/* Back from the finished screen leaves the run as saved and goes Home. It does not undo the
+        save or reopen the run (that lost the whole session when started again). */}
+    <div className="rp-top"><button className="rp-x" onClick={() => { onClose(); location.hash = '#/home' }} aria-label="Back to Home" title="Back to Home">←</button></div>
     <div className="rp-body">
       <div className="rp-party" aria-hidden="true"><HaydenBot size={110} pose="cheer" eyes="happy" /></div>
       <h2>{result.headline}</h2>
