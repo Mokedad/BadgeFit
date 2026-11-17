@@ -329,7 +329,6 @@ function BodyCard({ S, P }) {
     </> : <p className="pf-sub">Log your weight a few mornings a week, same time, before breakfast. The weekly average is what counts.</p>}
     <div className="pf-actions">
       <Button size="sm" onClick={() => nav('/measurements')}>Measure</Button>
-      <Button size="sm" onClick={() => nav('/progress-photos')}>Photos</Button>
     </div>
   </div>
 }

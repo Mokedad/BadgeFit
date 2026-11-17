@@ -406,7 +406,7 @@ function Shell() {
       <Route path="/link-app" element={<LinkApp />} />
       <Route path="/community" element={<Community />} />
       <Route path="/structural-balance" element={<StructuralBalance />} />
-      {isOn(S, 'body') && <Route path="/progress-photos" element={<ProgressPhotos />} />}
+      {isOn(S, 'body') && !S.police?.level && <Route path="/progress-photos" element={<ProgressPhotos />} />}
       {isOn(S, 'body') && <Route path="/measurements" element={<Measurements />} />}
       <Route path="/settings" element={<SettingsRoute />} />
       <Route path="/settings/:page" element={<SettingsRoute />} />

@@ -154,6 +154,7 @@ export function openEditCard(card) {
 // updates that entry in place. The code always comes from a scan or a photo — there is no text
 // field for it — so an edit that only renames keeps the existing scanned code untouched.
 function CardSheet({ close, card }) {
+  const bf = useStore(s => !!s.S.police?.level) // BadgeFit: no photo import
   const editing = !!card
   const [label, setLabel] = useState(card?.label || '')
   const [value, setValue] = useState(card?.value || '')
@@ -251,7 +252,7 @@ function CardSheet({ close, card }) {
 
     <div className="row" style={{ gap: 8, marginBottom: 16 }}>
       <Button variant="tinted" icon="camera" onClick={doScan} disabled={busy}>{editing ? t('Re-scan') : t('Scan')}</Button>
-      <Button variant="tinted" icon="image" onClick={() => fileRef.current?.click()} disabled={busy}>{t('Import photo')}</Button>
+      {!bf && <Button variant="tinted" icon="image" onClick={() => fileRef.current?.click()} disabled={busy}>{t('Import photo')}</Button>}
     </div>
 
     <label className="sect-t">{t('Label')}</label>
