@@ -14,11 +14,25 @@ import { parsePlan, mergePlan } from '../lib/plan-share.js'
 import { endProgramme } from '../lib/programmes.js'
 import { Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
+import { api } from '../lib/api.js'
+
+/** A photo made small enough to send (longest side 1600 px, JPEG), as base64. */
+async function shrinkPhoto(file) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('That photo could not be opened.')); i.src = url })
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight))
+    const c = document.createElement('canvas')
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+    return c.toDataURL('image/jpeg', 0.82).split(',')[1]
+  } finally { URL.revokeObjectURL(url) }
+}
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const WHY = {
   pdf: 'A PDF cannot be read here yet. Open it, copy the text, and paste it below.',
-  image: 'A photo cannot be read here yet. Type or paste the plan below.',
+  image: 'Use "Photo or screenshot of your plan" for a picture, or type or paste the plan below.',
   unreadable: 'That file cannot be read here. Save it as text or Word, or paste it below.',
 }
 
@@ -38,6 +52,24 @@ export default function ProgramUpload({ close }) {
     const f = ev.target.files?.[0]; ev.target.value = ''
     if (!f) return
     try { read(await fileText(f), f.name.replace(/\.[a-z0-9]+$/i, '')) } catch (e) { setNote(WHY[e?.code] || WHY.unreadable); setGot(null) }
+  }
+  // A photo or screenshot of the plan: made smaller on the phone, read once by Hayden's AI on the
+  // server (api/coach/plan-reader.js) into plain lines, then read here like pasted text. The photo
+  // is kept nowhere, here or there.
+  const photo = useRef(null)
+  const [reading, setReading] = useState(false)
+  const signedIn = useStore(s => !!s.user)
+  const onPhoto = async ev => {
+    const f = ev.target.files?.[0]; ev.target.value = ''
+    if (!f) return
+    setReading(true); setNote('')
+    try {
+      const image = await shrinkPhoto(f)
+      const r = await api('/api/coach/read-plan', { method: 'POST', body: JSON.stringify({ image, mime: 'image/jpeg' }) })
+      setText(r.text)
+      read(r.text, 'My plan')
+    } catch (e) { setNote(e?.message || 'Hayden could not read that photo. Type or paste the plan below.'); setGot(null) }
+    finally { setReading(false) }
   }
   const add = () => {
     const bundle = parsePlan(asPlanFile(got, unit), unit)
@@ -70,9 +102,14 @@ export default function ProgramUpload({ close }) {
 
   return <div className="pu">
     <h3>Upload your program</h3>
-    <p className="muted small">A file from your trainer (text, Word or CSV), or paste it. Hayden puts it into your plan.</p>
+    <p className="muted small">A photo or screenshot of your plan, a file from your trainer (text, Word or CSV), or paste it. Hayden puts it into your plan. The photo is only read, never kept.</p>
     <input ref={pick} type="file" accept=".txt,.csv,.md,.docx,.json,text/plain,text/csv" hidden onChange={onFile} />
-    <button className="pf-go" onClick={() => pick.current?.click()}><Icon name="download" /> Choose a file</button>
+    {/* Members only: reading a photo uses the AI on the server. */}
+    {signedIn && <>
+      <input ref={photo} type="file" accept="image/*" hidden onChange={onPhoto} />
+      <button className="pf-go" disabled={reading} onClick={() => photo.current?.click()}><Icon name="camera" /> {reading ? 'Hayden is reading it…' : 'Photo or screenshot of your plan'}</button>
+    </>}
+    <button className={signedIn ? 'btn' : 'pf-go'} onClick={() => pick.current?.click()}><Icon name="download" /> Choose a file</button>
     <textarea className="pu-paste" rows={6} placeholder={'Or paste it here, one exercise a line:\nDay 1 - Push\nBench press 4x8\nOverhead press 3x10'} value={text} onChange={e => setText(e.target.value)} />
     {text.trim() && <button className="btn" onClick={() => read(text)}>Read it</button>}
     {note && <p className="pu-left small">{note}</p>}

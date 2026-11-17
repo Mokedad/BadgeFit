@@ -15,6 +15,9 @@ import { gymRoutines } from '../lib/police/train-types.js'
 import { STAGES, AREAS, stageLabel, stageOf, planFromRoutines, planLine, addFollowedPlan, ago } from '../lib/police/community.js'
 import { cheerLine, cheerSym } from '../lib/police/cheer-text.js'
 import Icon from '../components/Icon.jsx'
+import { Thumb } from '../components/Media.jsx'
+import { EXIDX } from '../lib/exercises.js'
+import { exerciseNameFor } from '../lib/i18n.js'
 import { Button, Segmented, TextArea, TextField } from '../components/ui.jsx'
 import { useNearby, toggleFollow, sendCheer, hideBot } from '../components/NearbyBots.jsx'
 import { botSvg } from '../components/HaydenBot.jsx'
@@ -45,9 +48,26 @@ function PlanCard({ p, onChange }) {
     if (r.planFollowed) { useStore.getState().update(s => { addFollowedPlan(s, p.id, r.plan) }); toast('Added to your workouts. Pick it from Start.') }
     onChange({ ...p, planFollowers: r.planFollowers, planFollowed: r.planFollowed })
   }
+  // The exercises as pictures: a row of the first ones, and the whole plan, session by session.
+  const [open, setOpen] = useState(false)
+  const exs = [...new Map(p.plan.routines.flatMap(r => r.ex).map(e => [e.id, EXIDX[e.id]]).filter(([, x]) => x)).values()]
+  const amount = e => (e.mode === 'time' ? `${e.sets} × ${e.sec} s` : e.mode === 'cardio' ? `${e.min} min` : `${e.sets} × ${e.repsMin && e.repsMin !== e.reps ? e.repsMin + '-' : ''}${e.reps}`)
   return <div className="cm-plan">
-    <div className="cm-plan-m"><b>{p.plan.name}{p.planNew && <span className="cm-new">New</span>}</b><small>{planLine(p.plan, p.planFollowers)}</small></div>
-    {!p.mine && <button type="button" className={'cm-follow' + (p.planFollowed ? ' on' : '')} onClick={follow}>{p.planFollowed ? 'Following' : 'Follow plan'}</button>}
+    <div className="cm-plan-top">
+      <div className="cm-plan-m"><b>{p.plan.name}{p.planNew && <span className="cm-new">New</span>}</b><small>{planLine(p.plan, p.planFollowers)}</small></div>
+      {!p.mine && <button type="button" className={'cm-follow' + (p.planFollowed ? ' on' : '')} onClick={follow}>{p.planFollowed ? 'Following' : 'Follow plan'}</button>}
+    </div>
+    {!open && exs.length > 0 && <button type="button" className="cm-plan-pics" onClick={() => setOpen(true)} aria-label="See the whole plan">
+      {exs.slice(0, 5).map(x => <Thumb key={x.id} ex={x} />)}
+      {exs.length > 5 && <span className="cm-plan-more">+{exs.length - 5}</span>}
+    </button>}
+    {open && <div className="cm-plan-days">
+      {p.plan.routines.map((r, i) => <div key={i} className="cm-plan-day">
+        <b>{r.name}</b>
+        {r.ex.map((e, j) => { const x = EXIDX[e.id]; return x ? <div key={j} className="cm-plan-ex"><Thumb ex={x} /><span>{exerciseNameFor(x)}</span><small>{amount(e)}</small></div> : null })}
+      </div>)}
+      <button type="button" className="pf-link" onClick={() => setOpen(false)}>Show less</button>
+    </div>}
   </div>
 }
 

@@ -3752,6 +3752,27 @@ paths:
           description: The voice model did not answer.
         '503':
           description: The Coach is off on this instance.
+  /api/coach/read-plan:
+    post:
+      tags: [coach]
+      operationId: postCoachReadPlan
+      summary: Read a training plan from a photo (BadgeFit)
+      description: |
+        A photo or screenshot of the member's own plan, read once by the connected Gemini model
+        into plain lines (day, then exercise sets x reps). The photo is kept nowhere. Ten a day.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [image, mime], properties: { image: { type: string, description: base64 }, mime: { type: string } } }
+      responses:
+        '200': { description: '`{ text }`' }
+        '400': { description: Not a photo }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: Too big }
+        '422': { description: Not a training plan }
+        '429': { description: Ten a day reached }
+        '501': { description: The Coach is not on Gemini }
   /api/coach/ask:
     post:
       tags: [coach]
