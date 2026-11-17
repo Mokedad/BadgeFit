@@ -1060,3 +1060,72 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .calm-link.calm-first{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;white-space:nowrap}
 .nb-row.nb-top{bottom:auto;top:calc(var(--sat) + 14px)}
 .nb-corner.nb-top{right:auto;left:8px;bottom:auto;top:calc(var(--sat) + 150px)}
+
+/* Community v2 (views/Community.jsx): bubbles of the people you follow, one feed, pages, the bell. */
+.cm-head{justify-content:space-between}
+.cm-tools{display:flex;gap:8px}
+.cm-tools button{width:38px;height:38px;border-radius:50%;border:0;background:var(--surface-2,var(--surface));color:var(--label);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.cm-tools button.on{background:var(--acc-soft);color:var(--acc-ink)}
+.cm-tools svg{width:18px;height:18px}
+.cm-bot{display:inline-block;line-height:0;flex:none}
+.cm-bot svg{width:100%;height:100%}
+.cm-bubbles{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none}
+.cm-bubbles::-webkit-scrollbar{display:none}
+.cm-bub{flex:none;width:62px;border:0;background:none;padding:0;color:inherit;font:inherit;display:flex;flex-direction:column;align-items:center;gap:3px}
+.cm-ring{position:relative;width:58px;height:58px;border-radius:50%;background:var(--surface-2,#fff);display:grid;place-items:center;box-shadow:0 0 0 2px var(--sep)}
+.cm-bub.live .cm-ring{box-shadow:0 0 0 3px #2fd39a}
+.cm-bub small{font-size:11px;font-weight:600;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cm-bub em{font-style:normal;font-size:10px;font-weight:800;color:#1c9a66;margin-top:-3px}
+.cm-plus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);font-style:normal;font-weight:900;font-size:14px;line-height:1;display:grid;place-items:center;border:2px solid var(--bg,#f2f2f7)}
+.cm-tabs{display:flex;gap:18px;align-items:center;margin:2px 2px 12px}
+.cm-tabs button{border:0;background:none;padding:0 0 3px;font:inherit;font-size:14px;font-weight:600;color:var(--label-2);border-bottom:2px solid transparent}
+.cm-tabs button.on{color:var(--label);border-bottom-color:var(--acc)}
+.cm-tabs .cm-tab-area{margin-left:auto;display:inline-flex;align-items:center;gap:4px;background:var(--acc-soft);color:var(--acc-ink);border-radius:999px;padding:4px 10px;border:0;font-size:12px}
+.cm-tabs .cm-tab-area svg{width:11px;height:11px}
+.cm-post .cm-x svg{width:18px;height:18px}
+.cm-session{display:flex;align-items:center;gap:10px;background:var(--surface-2,var(--surface));border-radius:14px;padding:10px 12px;margin:8px 0;text-align:left}
+:root[data-theme="light"] .cm-session{background:#f4f4f7}
+.cm-session-i{flex:none;width:38px;height:38px;border-radius:12px;background:var(--acc-soft);color:var(--acc-ink);display:grid;place-items:center}
+.cm-session-i svg{width:20px;height:20px}
+.cm-session-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.cm-session-m small{font-size:12px;color:var(--label-2)}
+.cm-session-ok{color:#1c9a66}.cm-session-ok svg{width:20px;height:20px}
+.cm-plan{display:flex;align-items:center;gap:10px;border:1px solid var(--sep);border-radius:14px;padding:10px 12px;margin:8px 0;text-align:left}
+.cm-plan-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.cm-plan-m small{font-size:12px;color:var(--label-2)}
+.cm-new{margin-left:6px;background:var(--acc-soft);color:var(--acc-ink);border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700}
+.cm-follow{flex:none;border:0;border-radius:999px;padding:8px 14px;background:var(--acc);color:var(--on-acc);font:inherit;font-weight:800;font-size:13px}
+.cm-follow.on{background:var(--surface-2,var(--surface));color:var(--label-2)}
+.cm-best{border-left:3px solid #2fd39a;padding:2px 0 2px 10px;margin:8px 0;font-size:14px}
+.cm-best p{margin:0}.cm-best small{color:var(--label-2);font-size:12px}
+.cm-acts .cm-cheer{padding:8px 14px;font-size:14px}
+.cm-reply.best{border-left:3px solid #2fd39a;padding-left:10px}
+.cm-reply-a{display:flex;gap:12px}
+.cm-reply-a button{border:0;background:none;padding:2px 0;font:inherit;font-size:12px;font-weight:600;color:var(--label-2);text-decoration:underline;text-underline-offset:3px}
+.cm-page{display:grid;justify-items:center;gap:8px;text-align:center;position:relative}
+.cm-page h3{margin:0}.cm-page>.pf-sub{margin:0}
+.cm-page-x{position:absolute;right:0;top:0}
+.cm-page-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.cm-page-acts .pf-go{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin:0}
+.cm-page-acts svg{width:17px;height:17px}
+.cm-page .cm-session,.cm-page .cm-plan,.cm-page .nb-tiles,.cm-page .cm-mini{width:100%;margin:0}
+.cm-page .menu-sec{width:100%;text-align:left;margin-top:6px}
+.cm-mini{background:var(--surface-2,var(--surface));border-radius:14px;padding:10px 12px;text-align:left;font-size:14px}
+.cm-mini p{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere}.cm-mini small{color:var(--label-2);font-size:12px}
+.cm-bell-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--sep)}
+.cm-bell-m{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left}
+.cm-bell-m span:last-child{display:flex;flex-direction:column;min-width:0}
+.cm-bell-m b{font-size:14px;font-weight:600}.cm-bell-m small{color:var(--label-2);font-size:12px}
+.cm-compose h3{margin:0 0 10px}
+.cm-opt{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:16px;padding:12px 14px;margin-bottom:8px;background:var(--surface-2,var(--surface));color:inherit;font:inherit;text-align:left}
+:root[data-theme="light"] .cm-opt{background:#fff}
+.cm-opt:disabled{opacity:.45}
+.cm-opt-i{flex:none;width:40px;height:40px;border-radius:12px;background:var(--acc-soft);color:var(--acc-ink);display:grid;place-items:center}
+.cm-opt-i svg{width:20px;height:20px}
+.cm-opt span:last-child{display:flex;flex-direction:column}
+.cm-opt small{color:var(--label-2);font-size:13px}
+.cm-compose textarea,.cm-compose .input{width:100%;margin:8px 0}
+.cm-compose-a{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.cheer-pop{padding:6px 8px 6px 6px;gap:6px}
+.cheer-pop-m{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;min-width:0}
+.cheer-pop-f{flex:none;border:0;border-radius:999px;padding:8px 12px;background:var(--acc);color:var(--on-acc);font:inherit;font-weight:800;font-size:12px}

@@ -27,15 +27,15 @@ export function navKey(pathname, search) {
   if (pathname === '/home') return 'today'
   if (pathname === '/police') {
     const tab = new URLSearchParams(search || '').get('tab')
-    return tab === 'plan' ? 'plan' : tab === 'tests' ? 'tests' : 'more'
+    return tab === 'plan' ? 'plan' : 'more'
   }
+  if (pathname === '/community') return 'community'
   return pathname === '/plan' ? 'plan' : 'more'
 }
 
 export default function CalmNav() {
   const nav = useNavigate()
   const loc = useLocation()
-  const testName = useStore(s => (s.S.police?.testName || 'PCT').trim() || 'PCT')
   const key = navKey(loc.pathname, loc.search)
   const go = to => () => nav(to, { replace: true })
   const hayden = () => {
@@ -59,7 +59,8 @@ export default function CalmNav() {
     {tab('today', 'house', 'Today', '/home')}
     {tab('plan', 'calendar', 'Plan', '/police?tab=plan')}
     <button className="calm-nav-h" onClick={hayden} aria-label="Hayden"><HaydenMark size={38} /><span>Hayden</span></button>
-    {tab('tests', 'target', testName, '/police?tab=tests')}
+    {/* The test lives first under More; the fourth place is the community. */}
+    {tab('community', 'person', 'Community', '/community')}
     {tab('more', 'list', 'More', '/police?tab=more')}
   </nav>
 }

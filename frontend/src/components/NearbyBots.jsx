@@ -41,13 +41,13 @@ export async function toggleFollow(b) {
   try {
     await post('/api/nearby/follow', { id: b.id, on })
     useNearby.setState(s => ({ near: s.near.map(x => (x.id === b.id ? { ...x, followed: on } : x)) }))
-    said(b.id, on ? '🔔' : '👋'); toast(on ? `Following ${b.name}. They are on your bell in Community` : `Stopped following ${b.name}`)
+    said(b.id, on ? '🔔' : '👋'); toast(on ? `Following ${b.name}. They are at the top of Community` : `Stopped following ${b.name}`)
     return on
   } catch { toast(`${b.name} is not nearby any more`); return b.followed }
 }
 export const hideBot = b => confirmSheet({
-  title: `Hide ${b.name}?`, message: 'You will not see each other nearby again, and any follow between you ends.',
-  confirmText: 'Hide', danger: true,
+  title: `Block ${b.name}?`, message: 'You will not see each other: not their bot, not their posts. Any follow between you ends.',
+  confirmText: 'Block', danger: true,
   onConfirm: async () => {
     useNearby.setState(s => ({ near: s.near.filter(x => x.id !== b.id) }))
     try { await post('/api/nearby/hide', { id: b.id }) } catch { /* gone anyway */ }
@@ -67,7 +67,7 @@ export function BotCardSheet({ b, close, onChange }) {
       <button className="pf-go" onClick={() => { sendCheer(b, 'love'); close() }}>❤️ Love</button>
       <button className="btn" onClick={() => { sendCheer(b, 'like'); close() }}>👍 Like</button>
       <button className="btn" onClick={async () => { const on = await toggleFollow({ ...b, followed: f }); setF(on); onChange?.({ ...b, followed: on }) }}>{f ? 'Following' : 'Follow'}</button>
-      <button className="btn ghost nb-hide" onClick={() => { close(); hideBot(b) }}>Hide for good</button>
+      <button className="btn ghost nb-hide" onClick={() => { close(); hideBot(b) }}>Block</button>
     </div>
   </div>
 }
@@ -187,7 +187,10 @@ export default function NearbyBots({ hidden = false }) {
   const aside = all.filter(b => tucked.includes(b.id))
   const acts = useLife(out.map(b => b.id).join(','), out.length)
   // On Home they stand in the empty top corner, clear of the week and the buttons.
-  const top = useLocation().pathname === '/home'
+  const path = useLocation().pathname
+  const top = path === '/home'
+  // Community shows the same people as bubbles at its top: no second row over the feed.
+  if (path === '/community') hidden = true
   if (hidden || !all.length || covered) return null
   return <>
     {out.length > 0 && <div className={'nb-row' + (top ? ' nb-top' : '') + (acts.hands ? ' nb-hands' : '')} aria-label="Bots about">{out.map((b, i) => <OtherBot key={b.id} b={b} said={saidMap[b.id]} act={acts.list[i]} />)}</div>}

@@ -6,7 +6,7 @@
 
 export const APP_TABS = ['/home', '/plan', '/stats', '/library']
 export const HUB_TABS = ['today', 'plan', 'tests', 'more']
-export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 'plan' }, { path: '/police', tab: 'tests' }, { path: '/police', tab: 'more' }]
+export const CALM_TABS = [{ path: '/home', tab: null }, { path: '/police', tab: 'plan' }, { path: '/community', tab: null }, { path: '/police', tab: 'more' }]
 
 const EDGE = 28, MIN = 70, MAX_MS = 700
 // BadgeFit: an easier swipe (shorter, slower, less straight will do), from the edges too.
@@ -42,10 +42,10 @@ export function backTarget(pathname, search) {
 /** Where a swipe by `step` lands: { path, search } to go to, or null (no tab that way, not a tab screen). */
 export function swipeTarget(pathname, search, step, calm = false) {
   if (!step) return null
-  // BadgeFit's one bar (components/CalmNav.jsx): Today, Plan, the test, More, in that order.
+  // BadgeFit's one bar (components/CalmNav.jsx): Today, Plan, Community, More, in that order.
   if (calm) {
     const tab = pathname === '/police' ? new URLSearchParams(search || '').get('tab') || 'today' : null
-    const i = pathname === '/home' ? 0 : tab ? CALM_TABS.findIndex(t => t.tab === tab) : -1
+    const i = pathname === '/home' ? 0 : pathname === '/community' ? CALM_TABS.findIndex(t => t.path === '/community') : tab ? CALM_TABS.findIndex(t => t.path === '/police' && t.tab === tab) : -1
     // A page opened from More (Runs, Food, Hayden, Exercises, Progress...): a swipe either way
     // goes back to More, in place of (or as well as) its back button.
     if (i < 0) return backTarget(pathname, search)

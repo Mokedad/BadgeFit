@@ -9,11 +9,11 @@ import { useStore } from '../store/useStore.js'
 import { api } from '../lib/api.js'
 import { cheerLine, cheerSummary, cheerSym } from '../lib/police/cheer-text.js'
 import { beep, beepVolume } from '../lib/police/bot-voice.js'
-import { haydenSays } from './NearbyBots.jsx'
+import { haydenSays, toggleFollow } from './NearbyBots.jsx'
 import { botSvg } from './HaydenBot.jsx'
 
 const EVERY_MS = 60000
-const SHOW_MS = 3600
+const SHOW_MS = 5000
 
 export const useCheers = create(() => ({ queue: [] }))
 
@@ -58,8 +58,13 @@ export default function CheerBubble() {
   }, [shown])
 
   if (!shown) return null
-  return <button type="button" className="cheer-pop" onClick={() => { setShown(null); window.location.hash = '#/community' }} aria-live="polite">
-    <span className="cheer-pop-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: shown.colour, eyes: 'happy', head: true }) }} />
-    <span className="cheer-pop-t"><span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>{shown.line || cheerLine(shown)}</span>
-  </button>
+  // Follow back, right on the bubble, closes the loop (not for someone you already follow).
+  const canFollow = shown.who && !shown.followed && shown.kind !== 'training' && !shown.line
+  return <div className="cheer-pop" aria-live="polite">
+    <button type="button" className="cheer-pop-m" onClick={() => { setShown(null); window.location.hash = '#/community' }}>
+      <span className="cheer-pop-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: shown.colour, eyes: 'happy', head: true }) }} />
+      <span className="cheer-pop-t"><span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>{shown.line || cheerLine(shown)}</span>
+    </button>
+    {canFollow && <button type="button" className="cheer-pop-f" onClick={() => { const c = shown; setShown(null); toggleFollow({ id: c.who, name: c.from, followed: false }) }}>Follow back</button>}
+  </div>
 }

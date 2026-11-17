@@ -23,9 +23,13 @@ describe('tab swipe', () => {
     expect(swipeTarget('/settings', '', 1)).toBe(null)
     expect(swipeTarget('/home', '', 0)).toBe(null)
   })
-  it('BadgeFit\'s one bar: Today, Plan, the test, More, and no further', () => {
+  it('BadgeFit\'s one bar: Today, Plan, Community, More, and no further', () => {
     expect(swipeTarget('/home', '', 1, true)).toEqual({ path: '/police', search: '?tab=plan' })
-    expect(swipeTarget('/police', '?tab=plan', 1, true)).toEqual({ path: '/police', search: '?tab=tests' })
+    expect(swipeTarget('/police', '?tab=plan', 1, true)).toEqual({ path: '/community', search: '' })
+    expect(swipeTarget('/community', '', 1, true)).toEqual({ path: '/police', search: '?tab=more' })
+    expect(swipeTarget('/community', '', -1, true)).toEqual({ path: '/police', search: '?tab=plan' })
+    // The test now lives under More.
+    expect(swipeTarget('/police', '?tab=tests', 1, true)).toEqual({ path: '/police', search: '?tab=more', back: true })
     expect(swipeTarget('/police', '?tab=plan', -1, true)).toEqual({ path: '/home', search: '' })
     expect(swipeTarget('/police', '?tab=more', 1, true)).toBe(null)
     // A page under More: a swipe either way goes back to More.

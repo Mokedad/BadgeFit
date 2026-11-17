@@ -222,6 +222,8 @@ function JarvisSwitches({ S, P }) {
     {/* Other members' Haydens nearby (components/NearbyBots.jsx): off unless switched on. */}
     {user && <label className="pf-jsw-row"><span><b>Meet bots nearby</b><small>Other members with BadgeFit open within about 300 m see your Hayden, your first name and three numbers (sessions this week, PCT ready, weeks in a row), and you see theirs. Where you are is never shown or kept</small></span>
       <Switch checked={!!P.nearbyOn} onChange={() => setP({ nearbyOn: !P.nearbyOn })} aria-label="Meet bots nearby" /></label>}
+      {user && <label className="pf-jsw"><span><b>Show my today on my page</b><small>Followers see today's session by name, done or to do. Nothing else of your plan.</small></span>
+        <Switch checked={P.shareToday !== false} onChange={() => setP({ shareToday: P.shareToday === false })} aria-label="Show my today on my page" /></label>}
     {/* His robot beeps when you tap him (lib/police/bot-voice.js): off, quiet or loud. */}
     <div className="pf-jsw-row"><span><b>Hayden's beeps</b><small>The little robot sounds he makes when you tap him</small></span>
       <Segmented options={CHIRP_LEVELS} value={CHIRP_LEVELS.find(l => l.value === beepVolume(P))?.value ?? 0.35}
@@ -238,8 +240,9 @@ function More({ setTab, calm }) {
     const guestHere = !useStore.getState().user && !DEMO
     const tile = (icon, label, go) => <button key={label} className="pf-mtile" onClick={go}><span aria-hidden="true"><Icon name={icon} /></span><b>{label}</b></button>
     return <div className="pf-mgrid">
+      {/* The test first, top left: it is what all of this is for. */}
+      {tile('target', (useStore.getState().S.police?.testName || 'PCT').trim() || 'PCT', () => setTab('tests'))}
       {MORE.map(m => tile(MORE_ICON[m.value] || 'list', m.label, () => setTab(m.value)))}
-      {tile('personCircle', 'Community', () => nav('/community'))}
       {tile('chart', 'Progress', () => nav('/stats'))}
       {tile('list', 'Exercises', () => nav('/library'))}
       <button key="Hayden" className="pf-mtile" onClick={() => setTab('today')}><span aria-hidden="true"><HaydenMark size={30} /></span><b>Hayden</b></button>
@@ -1013,7 +1016,7 @@ export default function PoliceFit() {
   }, [P.start, isGuest]) // eslint-disable-line react-hooks/exhaustive-deps
   // Opening Plan or the test for the first time ticks it off Home's first steps.
   useEffect(() => { const patch = seenPatch(P, tab); if (patch) setP(patch) }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
-  const under = tab === 'today' || MORE.some(m => m.value === tab)
+  const under = tab === 'today' || tab === 'tests' || MORE.some(m => m.value === tab)
   // A run asked for in the link (Start, Home): the guided run opens (components/RunHost.jsx).
   const runParam = params.get('run')
   useEffect(() => { const r = runById(runParam); if (r) { useRun.getState().open(r); setParams(p => { p.delete('run'); return p }, { replace: true }) } }, [runParam]) // eslint-disable-line react-hooks/exhaustive-deps
