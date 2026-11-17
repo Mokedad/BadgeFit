@@ -14,7 +14,6 @@ import { bwSheet, goalSheet, workoutDetailSheet, menuSheet, dayOverrideSheet, ca
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import StartPicker from '../components/StartPicker.jsx'
-import PhotoShare from '../components/PhotoShare.jsx'
 import { needsAfterTest, afterPatch, AFTER_CHOICES } from '../lib/police/after-test.js'
 import { countIn, countInRun, actForRoutine } from '../components/CountIn.jsx'
 import { runMinutes } from '../lib/police/runs.js'
@@ -286,7 +285,6 @@ export default function Home() {
           <button className="calm-link" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf fin-bf-sheet">
             <h3>Share today</h3>
             <button type="button" className="fin-bf-b" onClick={() => { close(); shareToday() }}><Icon name="share" /> Picture card</button>
-            <PhotoShare className="fin-bf-b" label="Photo with your workout" session={{ title: [...new Set(loggedToday.map(w => w.name).filter(Boolean))].join(' + ') || 'Training', daysToTest: left, week: bfPlan?.after ? null : bfPlan?.week, weeks: bfPlan?.last }} />
             {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })) }}><Icon name="sparkles" /> Tell your crew</button>}
           </div>)}>Share</button>
           <span aria-hidden="true">·</span>

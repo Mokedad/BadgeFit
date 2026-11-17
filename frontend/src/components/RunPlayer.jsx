@@ -5,7 +5,6 @@
 import { useStore } from '../store/useStore.js'
 import { shareWin } from './ShareWin.jsx'
 import { winText } from '../lib/police/cheer-text.js'
-import PhotoShare from './PhotoShare.jsx'
 import { askProgress } from './HaydenBuddy.jsx'
 import HaydenBot from './HaydenBot.jsx'
 import Icon from './Icon.jsx'
@@ -329,7 +328,6 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
       <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
       {useStore.getState().user && <button className="rp-share" onClick={() => shareWin(winText({ kind: 'workout', name: run.name }))}>Tell your crew</button>}
-      <PhotoShare className="rp-share" session={{ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }} />
       <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home'; askProgress() }}>Done</button>
     </div>
   </div>

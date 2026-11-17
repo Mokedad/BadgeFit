@@ -8,7 +8,6 @@ import { isBadgeFitGuest } from './lib/police/guest.js'
 import { CAT_ICON } from './lib/police/start-picks.js'
 import { RoundPick, PickRow, TrainList } from './components/StartPicker.jsx'
 import { countInRun } from './components/CountIn.jsx'
-import PhotoShare from './components/PhotoShare.jsx'
 import { shareWin } from './components/ShareWin.jsx'
 import { winText } from './lib/police/cheer-text.js'
 import { daysUntil } from './lib/police/programme.js'
@@ -4176,7 +4175,6 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close }) {
       {isOn(st, 'motivation') && <Button variant="tinted" icon="share" data-fin-share onClick={() => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w)}>{t('Share')}</Button>}
       {/* BadgeFit: the sharing lives here, at the end of the workout, not under Home's tick. */}
       {st.police?.level && <div className="fin-bf">
-        <PhotoShare className="fin-bf-b" label="Photo" session={{ title: w.name || 'Training', minutes: Math.round((w.end - w.start) / 60000), daysToTest: st.police.testDate ? daysUntil(st.police.testDate, todayISO()) : null }} />
         {useStore.getState().user && <button type="button" className="fin-bf-b" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="sparkles" /> Tell your crew</button>}
       </div>}
     </div>
@@ -4189,7 +4187,8 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close }) {
     <KeepInRoutine additions={additions} />
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
-    <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
+    {/* BadgeFit takes no photos or clips: nothing uploaded that nobody can check. */}
+    {!st.police?.level && <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>}
   </div>
 }
 export function finishWorkout() {
