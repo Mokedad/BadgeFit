@@ -128,13 +128,7 @@ Meta's own Business Suite also has automated replies, but only ManyChat does
 
 ### TikTok
 
-TikTok does not let other apps answer comments with a DM. So on TikTok:
-
-- Say **"Comment PCT"** anyway (it boosts the video), and reply to those comments with
-  *"Link's in my bio"*. Pin one comment: *Link in bio to try it*.
-- Switch on **keyword auto-replies** in TikTok's direct messages (a Business account:
-  Settings, Business suite, Direct messages, Automatic message, Keyword reply): keyword **PCT**,
-  same message as above. Then the ask can also be *"DM me PCT"*.
+Bio link only: `badgefit.com.au/links.html`. Every video says "Comment PCT", the viewer goes to the bio, and the pinned comment says "Link in bio to try it". No automatic DM on TikTok.
 
 ## Facebook groups
 
