@@ -20,7 +20,9 @@ server (`app.badgefit.com.au`), same account and data on both.
 1. **Brand it BadgeFit.** App name, bundle id (`au.com.badgefit.app`), icon and splash in navy and
    gold, the permission texts (Info.plist) reworded for BadgeFit.
 2. **Point it at the server.** The app opens on `https://app.badgefit.com.au` with no pairing step.
-3. **Sign in with Apple and Google in the app.** Today `views/Login.jsx` hides them on the phone
+3. **Sign in with Apple and Google in the app.** Done for Apple (19 November 2026): Apple's own
+   sheet in the app (scripts/ios/badgefit/AppleSignInPlugin.swift, POST /api/auth/apple/native),
+   no server keys needed. Google still goes through the website sheet. Today `views/Login.jsx` hides them on the phone
    (`MOBILE ? []`). Use ASWebAuthenticationSession (or the Capacitor Browser plugin) so the
    `/api/auth/*` flow returns to the app with a session. Apple sign-in is required by the App Store
    once Google is offered (guideline 4.8). Facebook is left out (see below). Password sign-in stays

@@ -3,11 +3,12 @@
 #   WebAuthPlugin   the sign-in sheet over the app
 #   RunCuesPlugin   Hayden with the screen locked (frontend/src/lib/police/pocket.js)
 #   HaydenEarPlugin Hayden hearing you: Apple's speech recognition (frontend/src/lib/police/native-ear.js)
+#   AppleSignInPlugin Sign in with Apple, Apple's own sheet (views/MobileOnboarding.jsx)
 # Run by scripts/ios/badgefit-brand.sh on the Mac runner; the committed project stays openGym's.
 require 'xcodeproj'
 require 'fileutils'
 
-PLUGINS = %w[WebAuthPlugin RunCuesPlugin HaydenEarPlugin]
+PLUGINS = %w[WebAuthPlugin RunCuesPlugin HaydenEarPlugin AppleSignInPlugin]
 dir = File.expand_path('../../../frontend/ios/App', __dir__)
 proj = Xcodeproj::Project.open(File.join(dir, 'App.xcodeproj'))
 app = proj.targets.find { |t| t.name == 'App' }

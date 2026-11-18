@@ -724,7 +724,7 @@ const clearCookie = COOKIE === LEGACY_COOKIE
 // token in the Authorization header, which no browser attaches on its own.
 // Sign in with Apple returns with a cross-site form POST by design; that route is held to the
 // signed state cookie and the nonce instead (social-login.js), so it is exempt here.
-const CSRF_EXEMPT = new Set(['POST /api/pair/redeem', 'POST /api/watch/redeem', 'POST /api/watch/box', 'POST /api/auth/apple/callback']);
+const CSRF_EXEMPT = new Set(['POST /api/auth/apple/native', 'POST /api/pair/redeem', 'POST /api/watch/redeem', 'POST /api/watch/box', 'POST /api/auth/apple/callback']);
 // The routes that answer to the credential in the body and never to a Bearer. No Bearer is the
 // credential that acts there, so none buys the shortcut below: any valid token would do, the
 // attacker's own included.
@@ -736,7 +736,7 @@ const PASSKEY_ROUTES = new Set([
 // device code in the body is the credential, never a Bearer.
 const SIGN_IN_ROUTES = new Set([
   'POST /api/login/password', 'POST /api/register/password', 'POST /api/login/password-reset',
-  'POST /api/device-link/options', 'POST /api/device-link/verify'
+  'POST /api/device-link/options', 'POST /api/device-link/verify', 'POST /api/auth/apple/native'
 ]);
 // A verify error as the answer's body: a passkey made at an address that is not ORIGIN/RP_ID gets
 // the same `code` as the origin check's 403, so the app explains both alike.
@@ -1079,6 +1079,7 @@ setInterval(() => { AUTH_BURST.sweep(); ADDR_FAILS.sweep(); ACCOUNT_FAILS.sweep(
 // budget; `null` spends only that.
 const THROTTLED = {
   'POST /api/login/password': 'password', 'POST /api/login/password-reset': 'password',
+  'POST /api/auth/apple/native': null,
   'POST /api/register/password': 'signup',
   'POST /api/account/password': 'password', 'DELETE /api/account/password': null,
   // Setting an e-mail only spends the budget and asks the address's e-mail pause; an address
@@ -2167,18 +2168,24 @@ async function socialFinish(p, req, res, { code, state, user: appleUser, error }
     const idToken = await social.exchangeCode(p, String(code).slice(0, 2048), { clientId: social.clientIdOf(p), redirect: social.redirectUri(p, ORIGIN) });
     claims = social.checkIdToken(p, idToken, { clientId: social.clientIdOf(p), nonce: st.n });
   } catch (e) { console.error('social sign-in', p, e.message); return fail('failed'); }
+  let parsed = null;
+  try { parsed = appleUser ? JSON.parse(String(appleUser).slice(0, 2000)) : null; } catch { parsed = null; }
+  const got = socialUser(req, p, claims, parsed);
+  if (got.fail) return fail(got.fail);
+  redirect(res, appHome(got.isNew ? '?welcome=1#/police' : '#/police'), [...sessionCookie(got.user), clear]);
+}
+// The profile a provider's sign-in stands for, made the first time: { user, isNew } or { fail }.
+function socialUser(req, p, claims, appleUser) {
   // Found by the provider's own id only: an e-mail typed into a profile here was never verified,
   // so matching on it would hand that profile to whoever owns the address at Google or Apple.
   let user = db.users.find(u => u.social?.[p] === claims.sub);
   let isNew = false;
-  if (user && user.disabled) return fail('disabled');
+  if (user && user.disabled) return { fail: 'disabled' };
   if (!user) {
-    if (INVITE_ONLY) return fail('invite');
-    let parsed = null;
-    try { parsed = appleUser ? JSON.parse(String(appleUser).slice(0, 2000)) : null; } catch { parsed = null; }
-    let name = social.nameFor(claims, parsed, p);
-    for (let i = 0; nameTaken(name) && i < 20; i++) name = social.nameFor(claims, parsed, p).slice(0, 27) + ' ' + crypto.randomInt(100, 1000);
-    if (nameTaken(name)) return fail('failed');
+    if (INVITE_ONLY) return { fail: 'invite' };
+    let name = social.nameFor(claims, appleUser, p);
+    for (let i = 0; nameTaken(name) && i < 20; i++) name = social.nameFor(claims, appleUser, p).slice(0, 27) + ' ' + crypto.randomInt(100, 1000);
+    if (nameTaken(name)) return { fail: 'failed' };
     const created = new Date().toISOString();
     user = { id: crypto.randomBytes(12).toString('base64url'), name, created, social: { [p]: claims.sub }, ...(claims.email && !emailTaken(claims.email) ? { email: claims.email } : {}) };
     claimFirstAdmin(req, user);
@@ -2188,8 +2195,42 @@ async function socialFinish(p, req, res, { code, state, user: appleUser, error }
   }
   socialFresh.set(user.id, Date.now());
   audit(req, isNew ? 'auth.register.ok' : 'auth.login.ok', { user, msg: p });
-  redirect(res, appHome(isNew ? '?welcome=1#/police' : '#/police'), [...sessionCookie(user), clear]);
+  return { user, isNew };
 }
+
+// Sign in with Apple inside the iPhone app: a nonce first (signed, ten minutes, used once), then
+// the identity token Apple gave the app. The answer is a pairing code, which the app redeems the
+// way a linked phone always has (POST /api/pair/redeem), so it ends up with the same token.
+const usedAppleNonces = new Map();
+setInterval(() => { const now = Date.now(); for (const [k, e] of usedAppleNonces) if (e < now) usedAppleNonces.delete(k); }, 60000).unref();
+const appleNativeRoutes = {
+  'GET /api/auth/apple/nonce': async (req, res) => {
+    const { cookie } = social.makeState('apple-native', SECRET);
+    json(res, 200, { nonce: cookie }, { 'Cache-Control': 'no-store' });
+  },
+  'POST /api/auth/apple/native': async (req, res) => {
+    const body = await readBody(req);
+    const fail = (why, status = 400) => { audit(req, 'auth.social.fail', { ok: false, msg: 'apple-native · ' + why }); json(res, status, { error: 'Sign in with Apple did not work', code: why }); };
+    const raw = text(body.nonce).slice(0, 512);
+    const st = social.readState(raw, SECRET);
+    if (!st || st.p !== 'apple-native' || usedAppleNonces.has(st.s)) return fail('expired');
+    usedAppleNonces.set(st.s, st.e);
+    let claims;
+    try {
+      const idToken = text(body.idToken).slice(0, 4096);
+      const kid = JSON.parse(Buffer.from(idToken.split('.')[0] || '', 'base64url').toString('utf8') || '{}').kid;
+      const keys = await social.appleJwks({ kid });
+      claims = social.verifyAppleIdentityToken(idToken, { keys, audience: social.appleBundleId(), nonce: raw });
+    } catch (e) { console.error('apple native sign-in', e.message); return fail('failed', 401); }
+    const given = text(body.name).slice(0, 40);
+    const got = socialUser(req, 'apple', claims, given ? { name: { firstName: given } } : null);
+    if (got.fail) return fail(got.fail, 403);
+    for (const [k, v] of pairings) if (v.uid === got.user.id) pairings.delete(k);
+    const code = makePairCode();
+    pairings.set(code, { uid: got.user.id, exp: Date.now() + 5 * 60000 });
+    json(res, 200, { code, isNew: got.isNew });
+  },
+};
 
 /* ---------- community (community.js) ----------
    One shared feed per server, in DATA_DIR/community.json. Loaded on each request (it is small,
@@ -2317,6 +2358,8 @@ const routes = {
       // BadgeFit: PASSKEYS=0 hides passkeys (password only), and the sign-in providers offered.
       ...(PASSKEYS_OFF ? { passkeys: false } : {}),
       ...(social.configured().length ? { social: social.configured() } : {}),
+      // The BadgeFit iPhone app's own Sign in with Apple sheet (POST /api/auth/apple/native) needs no keys.
+      ...(PASSKEYS_OFF ? { appleNative: true } : {}),
       // Only when on, so an instance without passwords answers exactly as it did before (#118).
       ...(PASSWORD_LOGIN ? { password_login: true } : {}),
       // Public: the sign-in screen is the first thing that reads it.
@@ -2687,6 +2730,7 @@ const routes = {
 
   // Absent entirely while PASSWORD_LOGIN is off, so each of them is a plain 404.
   ...(PASSWORD_LOGIN ? passwordRoutes : {}),
+  ...appleNativeRoutes,
 
   // Always there: more passkeys and device links need nothing an instance has to switch on.
   ...passkeyRoutes,

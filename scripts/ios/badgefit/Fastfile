@@ -59,6 +59,20 @@ platform :ios do
       import_certificate(certificate_path: File.join(sign_dir, 'dist.key'), keychain_name: kc, keychain_password: '', log_output: true)
       import_certificate(certificate_path: File.join(sign_dir, 'dist.cer'), keychain_name: kc, keychain_password: '', log_output: true)
       sh('security find-identity -v -p codesigning | tail -3')
+      # Sign in with Apple has to be switched on for the app's identifier before the profile is
+      # made, or the profile leaves the entitlement out and the build fails to sign. Done here
+      # with the same key; if Apple refuses, the log says so and it can be ticked by hand
+      # (developer.apple.com, Identifiers, au.com.badgefit.app, Sign In with Apple).
+      begin
+        bid = Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
+        auth = Spaceship::ConnectAPI::BundleIdCapability::Type::APPLE_ID_AUTH
+        if bid && bid.get_capabilities.none? { |c| c.capability_type == auth }
+          bid.create_capability(auth, settings: [{ key: 'APPLE_ID_AUTH_APP_CONSENT', options: [{ key: 'PRIMARY_APP_CONSENT' }] }])
+          UI.message('Sign in with Apple switched on for ' + BUNDLE_ID)
+        end
+      rescue => e
+        UI.important("Could not switch on Sign in with Apple automatically: #{e.message}")
+      end
       get_provisioning_profile(api_key: key, app_identifier: BUNDLE_ID, cert_id: cert_id,
                                force: true, output_path: sign_dir, filename: 'BadgeFit_AppStore.mobileprovision')
       profile = lane_context[SharedValues::SIGH_NAME]

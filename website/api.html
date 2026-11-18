@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>119 endpoints</span>
+    <span>121 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -732,6 +732,78 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s3">302</span>
     <span class="p-desc">Back to the app</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAuthAppleNonce">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/auth/apple/nonce</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A nonce for Sign in with Apple in the iPhone app</span>
+  </summary>
+  <div class="ep-body">
+<p>Signed, ten minutes, used once. The app hashes it (SHA-256, hex) into Apple's request.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The nonce<span class="r-sig">{ nonce: string }</span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postAuthAppleNative">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/auth/apple/native</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Sign in with Apple from the iPhone app</span>
+  </summary>
+  <div class="ep-body">
+<p>The identity token Apple gave the app, checked against Apple's keys (signature, issuer, audience = the app's bundle id, expiry, nonce). Answers with a pairing code that the app redeems at POST /api/pair/redeem.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">idToken<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">nonce<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Given name</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Signed in<span class="r-sig">{ code: string, isNew: boolean }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Nonce missing</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">The token did not verify</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Account disabled</span>
   </div>
     </div>
   </div>

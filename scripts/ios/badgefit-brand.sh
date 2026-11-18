@@ -37,6 +37,9 @@ sed -i '' 's/applinks:opengym\.ch/applinks:app.badgefit.com.au/' "$ENT"
 # No widgets or watch app in this build, so nothing shares the App Group yet: left out, so the
 # first signed build does not depend on a group being registered.
 /usr/libexec/PlistBuddy -c "Delete :com.apple.security.application-groups" "$ENT" 2>/dev/null || true
+# Sign in with Apple, Apple's own sheet in the app (badgefit/AppleSignInPlugin.swift).
+/usr/libexec/PlistBuddy -c "Add :com.apple.developer.applesignin array" "$ENT" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :com.apple.developer.applesignin:0 string Default" "$ENT" 2>/dev/null || true
 
 # BadgeFit's own plugins (scripts/ios/badgefit/*.swift), added to the app for the build.
 ruby "$ROOT/scripts/ios/badgefit/add-webauth.rb"

@@ -12,6 +12,7 @@ import { askAddDeviceData } from '../sheets.jsx'
 import { normalizeServerUrl } from '../lib/remote.js'
 import { BRAND } from '../lib/police/brand.js'
 import BadgeLogo from '../components/BadgeLogo.jsx'
+import '../police.css'
 import { loadCfAccess, saveCfAccess } from '../lib/cf-access.js'
 import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 
@@ -143,6 +144,9 @@ export function ConnectSheet({ close, initialUrl = '', again = false }) {
 // BadgeFit's phone app: straight to its own server (lib/police/brand.js), the shield instead of
 // the dumbbell. The code comes from the website: sign in there (Google, Apple or a password),
 // then Settings → Account → Pair the mobile app.
+// Apple's logo, as on the website's sign-in (views/Login.jsx).
+const APPLE_LOGO = 'M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4.2 7.8 3.3 9.5c-1.9 3.3-.5 8.1 1.4 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.6 1-1.5 1.5-3 1.5-3-.1 0-2.9-1.1-3-4.8ZM13.8 4.9c.7-.9 1.3-2.2 1.1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.5Z'
+
 function BadgeFitOnboarding() {
   const { chooseLocalMode, connectToServer } = useStore()
   const [busy, setBusy] = useState(false)
@@ -164,11 +168,37 @@ function BadgeFitOnboarding() {
   // and the link comes back through appUrlOpen below.
   // Which one-tap sign-ins the BadgeFit server offers (Google, Apple): asked once, here.
   const [social, setSocial] = useState([])
+  // Apple's own sheet (Face ID) on the iPhone, when the server takes its token (AppleSignInPlugin).
+  const [appleNative, setAppleNative] = useState(false)
   useEffect(() => {
     let live = true
-    fetch(`https://${BRAND.server}/api/config`).then(r => r.json()).then(c => { if (live && Array.isArray(c?.social)) setSocial(c.social) }).catch(() => {})
+    fetch(`https://${BRAND.server}/api/config`).then(r => r.json()).then(async c => {
+      if (!live) return
+      if (Array.isArray(c?.social)) setSocial(c.social)
+      if (c?.appleNative) {
+        const { Capacitor } = await import('@capacitor/core')
+        if (live && Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('AppleSignIn')) setAppleNative(true)
+      }
+    }).catch(() => {})
     return () => { live = false }
   }, [])
+  const appleSignIn = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const base = `https://${BRAND.server}`
+      const { nonce } = await (await fetch(base + '/api/auth/apple/nonce')).json()
+      const { registerPlugin } = await import('@capacitor/core')
+      const r = await registerPlugin('AppleSignIn').signIn({ nonce })
+      const res = await fetch(base + '/api/auth/apple/native', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nonce, idToken: r.idToken, name: r.givenName || '' }) })
+      const out = await res.json().catch(() => ({}))
+      if (!res.ok || !out.code) throw new Error(out.code === 'disabled' ? 'This account has been disabled.' : 'Sign in with Apple did not work. Try again.')
+      await connectToServer(BRAND.server, out.code, askAddDeviceData)
+      useUI.getState().toast('Signed in')
+    } catch (e) {
+      if (e?.code !== 'cancelled') useUI.getState().toast(e?.message && !/^The operation/.test(e.message) ? e.message : 'Sign in with Apple did not work. Try again.')
+    } finally { if (!gone.current) setBusy(false) }
+  }
   const signIn = async via => {
     const link = `https://${BRAND.server}/#/link-app` + (typeof via === 'string' ? '?with=' + via : '')
     try {
@@ -196,11 +226,13 @@ function BadgeFitOnboarding() {
     <div style={{ display: 'flex', justifyContent: 'center' }} onClick={() => setTaps(n => n + 1)}><BadgeLogo size={84} /></div>
     <h1 className="t-large bf-word" style={{ fontWeight: 800, margin: '10px 0 4px' }}>Badge<span>Fit</span></h1>
     <div className="muted" style={{ marginBottom: 26 }}>{BRAND.tagline}</div>
-    {social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
+    {appleNative
+      ? <><button className="ls-btn ls-apple" onClick={appleSignIn} disabled={busy}><svg className="ls-apple-i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d={APPLE_LOGO} /></svg> Continue with Apple</button><div style={{ height: 10 }} /></>
+      : social.includes('apple') && <><Button variant="primary" onClick={() => signIn('apple')} disabled={busy}> Continue with Apple</Button><div style={{ height: 10 }} /></>}
     {social.includes('google') && <><Button variant="primary" onClick={() => signIn('google')} disabled={busy}>Continue with Google</Button><div style={{ height: 10 }} /></>}
     {/* Members sign in with Google (or Apple): no BadgeFit password of their own. Log in only
         when neither is offered here, or after five taps on the shield. */}
-    {(!social.length || taps >= 5) && <Button variant={social.length ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>}
+    {((!social.length && !appleNative) || taps >= 5) && <Button variant={social.length || appleNative ? undefined : 'primary'} onClick={() => signIn()} disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>}
     <div style={{ height: 28 }} />
     <button className="ls-guest" disabled={busy} onClick={() => (returning ? useStore.setState({ needsMobileOnboarding: false }) : chooseLocalMode())}>Guest</button>
   </div>

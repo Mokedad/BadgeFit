@@ -3384,6 +3384,49 @@ paths:
         outcome as the Google return.
       responses:
         '302': { description: Back to the app, signed in, or with ?login=<reason> }
+  /api/auth/apple/nonce:
+    get:
+      tags: [auth]
+      operationId: getAuthAppleNonce
+      summary: A nonce for Sign in with Apple in the iPhone app
+      description: Signed, ten minutes, used once. The app hashes it (SHA-256, hex) into Apple's request.
+      security: []
+      responses:
+        '200':
+          description: The nonce
+          content:
+            application/json:
+              schema: { type: object, properties: { nonce: { type: string } } }
+  /api/auth/apple/native:
+    post:
+      tags: [auth]
+      operationId: postAuthAppleNative
+      summary: Sign in with Apple from the iPhone app
+      description: |
+        The identity token Apple gave the app, checked against Apple's keys (signature, issuer,
+        audience = the app's bundle id, expiry, nonce). Answers with a pairing code that the app
+        redeems at POST /api/pair/redeem.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken, nonce]
+              properties:
+                idToken: { type: string }
+                nonce: { type: string }
+                name: { type: string, description: Given name, sent by Apple only the first time }
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema: { type: object, properties: { code: { type: string }, isNew: { type: boolean } } }
+        '400': { description: Nonce missing, expired or used }
+        '401': { description: The token did not verify }
+        '403': { description: Account disabled, or the server is invite-only }
   /api/nearby:
     post:
       tags: [community]

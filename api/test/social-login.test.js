@@ -111,4 +111,61 @@ test('server: config, the redirect out, and a forged return refused', async t =>
 
   // Apple is not configured here: its start answers 404.
   assert.equal((await fetch(api + '/api/auth/apple', { redirect: 'manual' })).status, 404);
+
+  // The iPhone app's own Apple sheet needs no keys: a nonce, then a token that must verify.
+  assert.equal(cfg.appleNative, true);
+  const { nonce } = await (await fetch(api + '/api/auth/apple/nonce')).json();
+  assert.ok(nonce && nonce.includes('.'));
+  const native = body => fetch(api + '/api/auth/apple/native', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'capacitor://localhost' }, body: JSON.stringify(body) });
+  const bad = await native({ nonce, idToken: 'not.a.token' });
+  assert.equal(bad.status, 401);
+  assert.equal((await bad.json()).code, 'failed');
+  // A nonce works once, and a made-up one never.
+  assert.equal((await native({ nonce, idToken: 'not.a.token' })).status, 400);
+  assert.equal((await native({ nonce: 'forged.nonce', idToken: 'x' })).status, 400);
 });
+
+// Sign in with Apple inside the iPhone app: the identity token comes through the phone, so its
+// signature is checked against Apple's keys.
+import { verifyAppleIdentityToken, nonceHash, appleJwks, _resetAppleKeys, appleBundleId } from '../social-login.js';
+{
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'K1', alg: 'RS256', use: 'sig' };
+  const make = (claims, { kid = 'K1', key = privateKey, alg = 'RS256' } = {}) => {
+    const h = Buffer.from(JSON.stringify({ alg, kid })).toString('base64url');
+    const c = Buffer.from(JSON.stringify(claims)).toString('base64url');
+    const sig = crypto.sign('RSA-SHA256', Buffer.from(h + '.' + c), key).toString('base64url');
+    return h + '.' + c + '.' + sig;
+  };
+  const now = Date.now();
+  const good = { iss: 'https://appleid.apple.com', aud: 'au.com.badgefit.app', exp: Math.floor(now / 1000) + 600, sub: '001.abc', nonce: nonceHash('N1'), email: 'A@privaterelay.appleid.com', email_verified: 'true' };
+  const opts = { keys: [jwk], audience: 'au.com.badgefit.app', nonce: 'N1', now };
+
+  test('native Apple: a token signed by Apple\'s key, for this app and nonce, signs in', () => {
+    assert.deepEqual(verifyAppleIdentityToken(make(good), opts), { sub: '001.abc', email: 'a@privaterelay.appleid.com', name: null });
+    assert.equal(appleBundleId({}), 'au.com.badgefit.app');
+  });
+  test('native Apple: anything else is refused', () => {
+    const other = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
+    assert.throws(() => verifyAppleIdentityToken(make(good, { key: other }), opts), /bad signature/);
+    assert.throws(() => verifyAppleIdentityToken(make(good, { kid: 'K2' }), opts), /unknown key/);
+    assert.throws(() => verifyAppleIdentityToken(make(good, { alg: 'none' }), opts), /wrong algorithm/);
+    assert.throws(() => verifyAppleIdentityToken(make({ ...good, aud: 'other.app' }), opts), /wrong audience/);
+    assert.throws(() => verifyAppleIdentityToken(make({ ...good, iss: 'https://evil' }), opts), /wrong issuer/);
+    assert.throws(() => verifyAppleIdentityToken(make({ ...good, exp: Math.floor(now / 1000) - 1 }), opts), /expired/);
+    assert.throws(() => verifyAppleIdentityToken(make(good), { ...opts, nonce: 'N2' }), /wrong nonce/);
+    const t = make(good).split('.'); t[1] = Buffer.from(JSON.stringify({ ...good, sub: 'someone-else' })).toString('base64url');
+    assert.throws(() => verifyAppleIdentityToken(t.join('.'), opts), /bad signature/);
+  });
+  test('native Apple: Apple\'s keys are fetched once and again for a new key', async () => {
+    _resetAppleKeys();
+    let calls = 0;
+    const fetchImpl = async () => { calls++; return { ok: true, json: async () => ({ keys: [jwk] }) }; };
+    await appleJwks({ kid: 'K1', fetchImpl, now });
+    await appleJwks({ kid: 'K1', fetchImpl, now: now + 1000 });
+    assert.equal(calls, 1);
+    await appleJwks({ kid: 'K9', fetchImpl, now: now + 2000 });
+    assert.equal(calls, 2);
+    _resetAppleKeys();
+  });
+}

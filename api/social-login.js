@@ -115,3 +115,56 @@ export function nameFor(claims, appleUser, p) {
   const raw = (typeof a === 'string' && a) || claims.name || (claims.email ? claims.email.split('@')[0] : '') || (p === 'apple' ? 'Apple user' : 'Google user');
   return String(raw).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 32) || 'Recruit';
 }
+
+/* ---------- Sign in with Apple inside the iPhone app (native) ----------
+ * The app shows Apple's own sheet (scripts/ios/badgefit/AppleSignInPlugin.swift) and sends us the
+ * identity token Apple gave it. That token came through the phone, not straight from Apple, so
+ * here its signature IS checked, against Apple's published keys, as well as issuer, audience (the
+ * app's bundle id), expiry and our nonce. No Services ID or .p8 key is needed for this.
+ */
+export const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
+export const appleBundleId = (env = process.env) => env.APPLE_BUNDLE_ID || 'au.com.badgefit.app';
+let appleKeys = { at: 0, keys: [] };
+
+/** Apple's signing keys (JWKS), kept for an hour; fetched again when a token names a new key. */
+export async function appleJwks({ kid, fetchImpl = fetch, now = Date.now() } = {}) {
+  const fresh = now - appleKeys.at < 3600000 && (!kid || appleKeys.keys.some(k => k.kid === kid));
+  if (fresh) return appleKeys.keys;
+  const res = await fetchImpl(APPLE_KEYS_URL, { signal: AbortSignal.timeout(10000) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !Array.isArray(data.keys)) throw new Error('apple keys unavailable');
+  appleKeys = { at: now, keys: data.keys };
+  return data.keys;
+}
+export const _resetAppleKeys = () => { appleKeys = { at: 0, keys: [] }; };
+
+/** The SHA-256 of the raw nonce, in hex: what the app puts in Apple's request. */
+export const nonceHash = raw => crypto.createHash('sha256').update(String(raw)).digest('hex');
+
+/**
+ * An identity token from the app, verified: RS256 signature by one of Apple's keys, issuer,
+ * audience, expiry and nonce. Returns { sub, email, name: null }. Throws on anything else.
+ */
+export function verifyAppleIdentityToken(idToken, { keys, audience, nonce, now = Date.now() }) {
+  const parts = String(idToken || '').split('.');
+  if (parts.length !== 3) throw new Error('no id token');
+  let h, c;
+  try {
+    h = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+    c = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch { throw new Error('bad id token'); }
+  if (h.alg !== 'RS256') throw new Error('wrong algorithm');
+  const jwk = (keys || []).find(k => k.kid === h.kid && k.kty === 'RSA');
+  if (!jwk) throw new Error('unknown key');
+  const pub = crypto.createPublicKey({ key: { kty: 'RSA', n: jwk.n, e: jwk.e }, format: 'jwk' });
+  const ok = crypto.verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), pub, Buffer.from(parts[2], 'base64url'));
+  if (!ok) throw new Error('bad signature');
+  if (!PROVIDERS.apple.issuers.includes(c.iss)) throw new Error('wrong issuer');
+  const aud = Array.isArray(c.aud) ? c.aud : [c.aud];
+  if (!aud.includes(audience)) throw new Error('wrong audience');
+  if (!(c.exp * 1000 > now)) throw new Error('expired');
+  if (!nonce || c.nonce !== nonceHash(nonce)) throw new Error('wrong nonce');
+  if (typeof c.sub !== 'string' || !c.sub) throw new Error('no subject');
+  const emailOk = c.email && (c.email_verified === true || c.email_verified === 'true');
+  return { sub: c.sub, email: emailOk ? String(c.email).toLowerCase() : null, name: null };
+}
