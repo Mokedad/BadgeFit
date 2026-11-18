@@ -8,7 +8,7 @@ import { routineFor } from './programme.js'
 import { todayBadgeFitRun } from './today-run.js'
 import { uid } from '../format.js'
 
-const PLAN_RUN_KEYS = ['vo2', 'vo2b', 'easy', 'tempo', 'walk', 'steady', 'long']
+const PLAN_RUN_KEYS = ['vo2', 'vo2b', 'easy', 'tempo', 'walk', 'steady', 'long', 'ngJog']
 
 /** The routine id that stands for `runId`, made (and remembered) the first time. Mutates `s`. */
 export function ensureRunRoutine(s, runId) {

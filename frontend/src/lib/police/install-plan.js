@@ -13,12 +13,12 @@ export const onBadgeFitPlan = P => !['upload', 'own'].includes(P?.planChoice)
 
 /**
  * `choice`: 'badgefit' or 'run' (running focus). `track`: 'academy' for the Academy prep plan,
- * else the PCT plan. `date`: the test (or Academy start) date, kept on the profile.
+ * else the PCT plan; `noGym` (Academy only) the 3-day body-weight version. `date`: the test (or Academy start) date, kept on the profile.
  */
-export function installPlanIn(s, { level, choice = 'badgefit', date, kg = null, track, now = Date.now(), today = todayISO() } = {}) {
+export function installPlanIn(s, { level, choice = 'badgefit', date, kg = null, track, noGym = false, now = Date.now(), today = todayISO() } = {}) {
   const P = s.police || {}
   const academy = track === 'academy'
-  const built = buildPoliceProgramme(level, now, { beepFocus: !!P.beepFocus || choice === 'run', runFocus: choice === 'run', ...(academy ? { track: 'academy' } : {}) })
+  const built = buildPoliceProgramme(level, now, { beepFocus: !!P.beepFocus || choice === 'run', runFocus: choice === 'run', ...(academy ? { track: 'academy', ...(noGym ? { noGym: true } : {}) } : {}) })
   const start = P.start && P.planV === 3 ? P.start : planStart(date || null, today)
   const weekAt = planWeekOf({ start, testDate: date || P.testDate || undefined }, today).tw || 1
   const old = Object.values(P.keys || {})
@@ -33,5 +33,6 @@ export function installPlanIn(s, { level, choice = 'badgefit', date, kg = null, 
     ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}),
   }
   if (academy) next.track = 'academy'; else delete next.track
+  if (academy && noGym) next.academyStyle = 'nogym'; else delete next.academyStyle
   s.police = next
 }

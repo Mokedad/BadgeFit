@@ -12,6 +12,7 @@
 import { uid } from '../format.js'
 import { BRAND } from './brand.js'
 import { estimateMinutes } from './meals.js'
+import { runById, runMinutes } from './runs.js'
 
 export const LEVELS = [
   { id: 'beginner', name: 'Beginner', blurb: 'New to the gym or to running. Six sessions, one full rest day, lighter volume.' },
@@ -144,6 +145,46 @@ GYM.circuit = {
     ['0630', 3, 4, ['hold', 30, 45]], // mountain climber
     ['2133', 3, 4, ['hold', 40, 60]], // farmers walk (the carry)
   ],
+}
+
+// The Academy prep plan without a gym (opts.noGym): a coach's 3-day body-weight plan, from the
+// owner's TrueCoach schedule (docs/dev/BADGEFIT_TRUECOACH_SAMPLE.md). Monday and Friday are
+// push-ups, inverted rows and a plank, then a run; Wednesday is a recovery jog. The 12 template
+// weeks train the coach's weeks 3 to 13 and then 15 (week 14 was a rest week; our last week is
+// the lighter one). The first push-up set is always as many as you can.
+export const NOGYM_TC_WEEK = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15]
+const tcOf = w => NOGYM_TC_WEEK[Math.min(12, Math.max(1, w | 0 || 1)) - 1]
+/** Push-ups for a coach week: { sets, reps } (the first set is a max set). */
+export function noGymPushUps(tc, friday = false) {
+  if (tc <= 4) return { sets: 3, reps: 10 }
+  if (tc >= 15) return { sets: 3, reps: 25 }
+  if (friday) return tc >= 12 ? { sets: 3, reps: 20 } : { sets: 4, reps: 15 }
+  return tc >= 8 && tc <= 10 ? { sets: 3, reps: 20 } : { sets: 4, reps: 15 }
+}
+const noGymRows = (tc, friday) => (tc <= 4 || (tc >= 15 && !friday) ? 2 : 3)
+/** The Friday run for a coach week: { id (lib/police/runs.js), name, how }. */
+export function noGymFriday(tc) {
+  if (tc <= 5) return { id: 'fartlek-2-2', name: 'Fartlek, 20 min', how: '2 min easy (60-70%), 2 min fast (90%+), for 20 minutes' }
+  if (tc <= 7) return { id: 'int-4x200', name: '4 × 200 m', how: '4 × 200 m fast, 3 min easy between' }
+  if (tc <= 9) return { id: 'int-4x400', name: '4 × 400 m', how: '4 × 400 m fast, 3 min easy between' }
+  if (tc <= 11 || tc >= 15) return { id: 'int-6x400', name: '6 × 400 m', how: '6 × 400 m fast, 3 min easy between' }
+  return { id: 'int-8x800', name: '8 × 800 m', how: '8 × 800 m fast, 3 min easy between' }
+}
+const NOGYM_END = ['After: foam roll (back, ITB, quads) and thread the needle']
+function noGymRoutine(key, w) {
+  const tc = tcOf(w), fri = key === 'ngFri'
+  const pu = noGymPushUps(tc, fri)
+  const run = fri ? noGymFriday(tc) : null
+  return {
+    name: fri ? 'No-gym Friday: Strength & Speed' : 'No-gym Monday: Strength & 30 min Run', emoji: 'figureRun',
+    ex: [
+      { id: '0662', sets: pu.sets, repsMin: pu.reps, reps: pu.reps, prog: 'double', weight: 0 }, // push-up
+      { id: '0499', sets: noGymRows(tc, fri), repsMin: 10, reps: 10, prog: 'double', weight: 0 }, // inverted row
+      { id: '0463', mode: 'time', sets: 1, sec: 60, prog: 'time', weight: 0 }, // front plank
+      cardio('0685', fri ? Math.max(20, Math.round(runMinutes(runById(run.id)))) : 30, fri ? 12 : 11),
+      { id: '2471', sets: 2, repsMin: 10, reps: 10, prog: 'double', weight: 0 }, // glute bridge
+    ],
+  }
 }
 
 /** Every exercise the BadgeFit plan uses: the plain, filmed versions, which an uploaded program's
@@ -353,7 +394,7 @@ function academyWeek(lv, n, w, age, opts) {
   const z2 = zone2(age)
   const zoneText = z2 ? `Zone 2: keep your heart rate about ${z2.target} bpm (${z2.lo}-${z2.hi})` : 'Zone 2: about 75% of max heart rate (220 minus your age)'
   const rounds = lv === 'intermediate' ? 4 : 3
-  const days = [
+  const days = opts.noGym ? noGymDays(w) : [
     { day: 1, kind: 'gym', key: 'acadA', title: GYM.acadA.name, details: [`Squat and push press in the ${rng} range`, 'Pull-ups: as many clean ones as you can each set. A band helps if you need one'] },
     { day: 2, kind: 'run', key: 'steady', title: `Steady run, ${steadyKm(lv, w)} km`, details: ['Formation pace: one even pace the whole way, no stopping', 'You can say a sentence, but not sing: zone 3'] },
     { day: 3, kind: 'gym', key: 'circuit', title: GYM.circuit.name, details: [`${rounds} rounds: one set of each, straight into the next, 1 min rest after each round`, 'Keep moving. This is what Academy PT feels like'] },
@@ -363,10 +404,10 @@ function academyWeek(lv, n, w, age, opts) {
     { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Mobility 15 min: hips, ankles, shoulders', 'Sleep 8 hours'] },
   ]
   for (const d of days) {
-    if (d.kind === 'gym') d.recovery = ['If you have one: sauna after, 15-20 min, hydrate']
+    if (d.kind === 'gym' && !opts.noGym) d.recovery = ['If you have one: sauna after, 15-20 min, hydrate']
     d.dayName = DAY_NAMES[d.day]
   }
-  if (w <= 2) days[1].details = [...days[1].details, 'More running than you are used to? Keep it easy, and walk a minute if you need to']
+  if (w <= 2 && !opts.noGym) days[1].details = [...days[1].details, 'More running than you are used to? Keep it easy, and walk a minute if you need to']
   const final = n === lengthOf(opts.planWeeks)
   if (final) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Last week before the Academy: half the sets and distance, arrive fresh']
   if (final && opts.testDow != null) {
@@ -376,8 +417,27 @@ function academyWeek(lv, n, w, age, opts) {
     days[at] = { day: days[at].day, dayName: days[at].dayName, kind: 'test', key: null, title: 'Academy starts', details: ['Good luck. You trained for this', 'Keep training with BadgeFit around the Academy timetable'] }
     return finish(days, { lv, w, n, phase, test: true, final, track: 'academy' })
   }
-  if (test) days[5] = { ...days[5], kind: 'test', title: 'Test day: keep all six standards', details: ['Warm up 10 min, then with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Grip goal for the Academy: 35 kg each hand'] }
+  if (test) days[5] = { ...days[5], kind: 'test', key: null, title: 'Test day: keep all six standards', details: ['Warm up 10 min, then with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Grip goal for the Academy: 35 kg each hand'] }
   return finish(days, { lv, w, n, phase, test, final, track: 'academy' })
+}
+
+/** A week of the no-gym Academy plan: Monday, Wednesday (from the coach's week 6) and Friday. */
+function noGymDays(w) {
+  const tc = tcOf(w)
+  const mon = noGymPushUps(tc), fri = noGymPushUps(tc, true), run = noGymFriday(tc)
+  const pu = p => `Push-ups ${p.sets} sets: as many as you can, then ${Array(p.sets - 1).fill(p.reps).join(', ')}`
+  const rest = (day, title = 'Rest') => ({ day, kind: 'rest', key: null, title, details: ['Walk, stretch, sleep 8 hours'] })
+  return [
+    { day: 1, kind: 'gym', key: 'ngMon', title: 'Strength, then a 30 min run', details: [pu(mon), `Inverted rows ${noGymRows(tc, false)} × 10, plank 60 s`, 'Run 30 min as far as you can. Warm up first: 20 m high knees, butt kicks, A-skips', 'Glute bridges 2 × 10', ...NOGYM_END] },
+    rest(2),
+    tc >= 6
+      ? { day: 3, kind: 'run', key: 'ngJog', title: 'Recovery jog, 15-30 min', details: ['70% effort: medium, not too easy, not too hard', 'Glute bridges 2 × 10', ...NOGYM_END] }
+      : rest(3, 'Rest, or an easy walk'),
+    rest(4),
+    { day: 5, kind: 'gym', key: 'ngFri', title: `Strength, then ${run.name}`, details: [pu(fri), `Inverted rows ${noGymRows(tc, true)} × 10, plank 60 s`, `Run: ${run.how}`, 'Glute bridges 2 × 10', ...NOGYM_END] },
+    rest(6),
+    rest(0, 'Rest and recover'),
+  ]
 }
 
 /**
@@ -405,6 +465,8 @@ function finish(days, { lv, w, n = w, phase, test, final = false }) {
 
 /** The routine for a day key, in openGym's routine shape. */
 export function routineFor(key, level, range, w = 1) {
+  if (key === 'ngMon' || key === 'ngFri') return noGymRoutine(key, w)
+  if (key === 'ngJog') return { name: 'Recovery Jog (70%)', emoji: 'figureRun', ex: [cardio('0685', 25, 9.5)] }
   if (GYM[key]) {
     const g = GYM[key]
     // A circuit is one group (a superset of every exercise): a set of each, then a minute's rest.
@@ -441,8 +503,8 @@ export function buildPoliceProgramme(level, now = Date.now(), opts = {}) {
   for (const d of plan.days) if (d.key && keys[d.key]) (days[d.day] = days[d.day] || []).push(keys[d.key])
   const academy = opts.track === 'academy'
   const programme = {
-    id: uid(), name: `${BRAND.name} ${academy ? 'Academy prep' : 'Applicant'}, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
-    src: (academy ? 'police-academy-' : 'police-') + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
+    id: uid(), name: academy && opts.noGym ? `${BRAND.name} Academy prep, no gym (3 days, 12 weeks)` : `${BRAND.name} ${academy ? 'Academy prep' : 'Applicant'}, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
+    src: (academy ? (opts.noGym ? 'police-academy-nogym-' : 'police-academy-') : 'police-') + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
   }
   return { routines, programme, keys }
 }
@@ -457,7 +519,10 @@ export function applyPhaseRange(routines, level, week, keys = {}, track) {
   const [lo, hi] = RANGE[phaseOf(lv, week, track).range]
   const keyOf = Object.fromEntries(Object.entries(keys).map(([k, id]) => [id, k]))
   return (routines || []).map(r => {
-    const g = GYM[r.police || keyOf[r.id]]
+    const k = r.police || keyOf[r.id]
+    // The no-gym days follow the coach's week: push-up sets and reps, rows, the Friday run.
+    if (k === 'ngMon' || k === 'ngFri') return { ...r, ex: noGymRoutine(k, week).ex }
+    const g = GYM[k]
     // A circuit keeps its own reps: it is about moving, not the phase's rep range.
     if (!g || g.circuit) return r
     const lifts = new Set(g.ex.filter(e => e[3] === 'lift').map(e => e[0]))
@@ -507,7 +572,7 @@ export function planOptsOf(P) {
     testName: (P?.testName || 'PCT').slice(0, 24),
     planWeeks: planLengthOf(P),
     // After "I passed" (lib/police/after-test.js): the Academy prep plan.
-    ...(P?.track === 'academy' ? { track: 'academy' } : {}),
+    ...(P?.track === 'academy' ? { track: 'academy', ...(P.academyStyle === 'nogym' ? { noGym: true } : {}) } : {}),
   }
 }
 

@@ -346,10 +346,15 @@ function BodyCard({ S, P }) {
  * runs) or 'run' (running focus). A plan already running keeps its start, so switching does not
  * restart the weeks; the routines of the plan it replaces are removed, your own are kept.
  */
-function installPlan(update, P, { level, choice = 'badgefit', date = P.testDate, kg = null }) {
-  // The same plan track as now: the Academy prep plan stays the Academy prep plan.
-  update(s => installPlanIn(s, { level, choice, date, kg, track: P.track }))
+function installPlan(update, P, { level, choice = 'badgefit', date = P.testDate, kg = null, noGym = P.academyStyle === 'nogym' }) {
+  // The same plan track as now: the Academy prep plan stays the Academy prep plan (gym or no gym).
+  update(s => installPlanIn(s, { level, choice, date, kg, track: P.track, noGym }))
 }
+
+const ACADEMY_STYLES = [
+  { id: 'gym', title: 'Gym, 6 days', sub: 'Lifts, a circuit, steady and long runs' },
+  { id: 'nogym', title: 'No gym, 3 days', sub: 'Push-ups, rows, plank and runs. A real coach\'s plan' },
+]
 
 const PLAN_CHOICES = [
   { id: 'badgefit', title: 'BadgeFit plan', sub: 'Gym days and runs on your level, ending on your test' },
@@ -380,6 +385,15 @@ function PlanChoice({ S, P }) {
       onConfirm: () => { installPlan(update, P, { level, choice: id }); useUI.getState().toast('Done. Home shows this plan now.') },
     })
   }
+  const pickStyle = id => {
+    if ((P.academyStyle === 'nogym' ? 'nogym' : 'gym') === id) return
+    confirmSheet({
+      title: id === 'nogym' ? 'Switch to the no-gym plan?' : 'Switch to the gym plan?',
+      message: 'Home then follows this plan, from the week you are in. Workouts you logged stay in your stats.',
+      confirmText: 'Use this plan',
+      onConfirm: () => { installPlan(update, P, { level, choice: P.planChoice === 'run' ? 'run' : 'badgefit', noGym: id === 'nogym' }); useUI.getState().toast(id === 'nogym' ? 'Done. 3 days a week, no gym needed.' : 'Done. Gym days are back on Home.') },
+    })
+  }
   return <div className="card pf-planpick">
     <h3>Your plan</h3>
     {!onHome && P.planChoice === 'upload' && <p className="pf-sub">Home follows the program you uploaded. Pick another below any time.</p>}
@@ -396,6 +410,10 @@ function PlanChoice({ S, P }) {
     })}>Remove my uploaded program</button>}
     {!onHome && P.planChoice !== 'own' && P.planChoice !== 'upload' && <p className="pf-warn">Home is following other routines right now, not your BadgeFit plan. Pick one below to put it on Home.</p>}
     {P.planChoice === 'own' && !onHome && <p className="pf-sub">Home follows the plan Hayden built you. Pick another below any time.</p>}
+    {P.track === 'academy' && <>
+      <p className="pf-sub"><b>Academy prep:</b> with a gym, or a coach's plan you can do anywhere.</p>
+      <div className="pf-choice">{ACADEMY_STYLES.map(c => <button key={c.id} className={(P.academyStyle === 'nogym' ? 'nogym' : 'gym') === c.id ? 'on' : ''} onClick={() => pickStyle(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
+    </>}
     <div className="pf-choice">{PLAN_CHOICES.map(c => { const locked = guest && c.id !== 'badgefit'; return <button key={c.id} className={(current === c.id || (c.id === 'own' && P.planChoice === 'own' && !onHome)) ? 'on' : locked ? 'locked' : ''} onClick={() => (locked ? membersOnly() : pick(c.id))}><b>{c.title}</b><small>{locked ? 'Members' : c.sub}</small></button> })}</div>
   </div>
 }

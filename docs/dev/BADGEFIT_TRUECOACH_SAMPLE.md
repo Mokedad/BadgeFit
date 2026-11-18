@@ -1,7 +1,7 @@
 # TrueCoach schedule, owner's sample from earlier in 2026
 
 Read from a screenshot the owner sent on 18 November 2026. A sample of the coach's style, not the
-March 2027 Academy plan. Not built into the app yet. Cells marked (check) were hard to read.
+March 2027 Academy plan. Built into the app as the "No gym, 3 days" Academy option (programme.js noGymDays). Cells marked (check) were hard to read.
 
 16 weeks, three days a week: Monday, Wednesday (from week 6), Friday. Week 1 has nothing; week 2
 starts on the Friday. Week 14 is empty (rest week). Week 16 has Monday and Wednesday only (test week).

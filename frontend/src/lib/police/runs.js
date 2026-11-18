@@ -65,6 +65,14 @@ export const RUNS = [
   { id: 'steady-30', cat: 'tempo', name: 'Steady run, 30 min', km: '4-5 km', why: 'Formation pace: one even pace the whole way, no stopping. The way an Academy squad runs.', segments: [warm(5), work(m(20), 'Steady, even pace', 'z3'), cool(5)] },
   { id: 'steady-40', cat: 'tempo', name: 'Steady run, 40 min', km: '6-7 km', why: 'Formation pace for longer: even, together, no stopping. Builds what Academy runs ask of you.', segments: [warm(5), work(m(30), 'Steady, even pace', 'z3'), cool(5)] },
   { id: 'tempo-cruise', cat: 'tempo', name: 'Cruise intervals 3 × 8 min', km: 'about 6 km', why: 'Tempo pace in three blocks: more time at threshold for the same effort.', segments: [warm(), ...rounds(3, [work(m(8), '8 min comfortably hard', 'z4'), rest(m(2), '2 min easy jog', 'z2')]), cool()] },
+  // --- the no-gym Academy plan (lib/police/programme.js noGymDays), from a coach's 3-day plan
+  { id: 'max-30', cat: 'tempo', name: '30 min run, as far as you can', km: '5-7 km', why: 'One hard, even effort for 30 minutes. Note the distance: next time, go further.', segments: [warm(5), work(m(30), 'As far as you can in 30 min, even pace', 'z4'), cool(5)] },
+  { id: 'jog-70', cat: 'recovery', name: 'Recovery jog at 70%, 25 min', km: 'about 4 km', why: 'Medium: not too easy, not too hard. Keeps the legs moving between the hard days.', segments: [work(m(25), 'Jog at 70% effort', 'z2')] },
+  { id: 'fartlek-2-2', cat: 'intervals', name: 'Fartlek 2 min on, 2 min off', km: 'about 4 km', why: '2 minutes easy, 2 minutes fast, for 20 minutes. Teaches you to change pace and recover on the move.', segments: [warm(5), ...rounds(5, [work(m(2), '2 min easy (60-70%)', 'z2'), work(m(2), '2 min fast (90%+)', 'z5')]), cool(5)] },
+  { id: 'int-4x200', cat: 'intervals', name: '4 × 200 m', km: 'about 3 km', why: 'Four fast 200s with 3 minutes to recover. Fast and smooth, not a sprint you cannot hold.', segments: [warm(), ...rounds(4, [runDist(200, 'Run 200 m fast'), rest(m(3), '3 min easy')]), cool()] },
+  { id: 'int-4x400', cat: 'intervals', name: '4 × 400 m', km: 'about 4 km', why: 'Four fast 400s with 3 minutes to recover. Hold the same pace on every one.', segments: [warm(), ...rounds(4, [runDist(400, 'Run 400 m fast', 'z4'), rest(m(3), '3 min easy')]), cool()] },
+  { id: 'int-6x400', cat: 'intervals', name: '6 × 400 m', km: 'about 5 km', why: 'Six fast 400s with 3 minutes to recover. Even splits: the last as fast as the first.', segments: [warm(), ...rounds(6, [runDist(400, 'Run 400 m fast', 'z4'), rest(m(3), '3 min easy')]), cool()] },
+  { id: 'int-8x800', cat: 'intervals', name: '8 × 800 m', km: 'about 8 km', why: 'The big one: eight fast 800s with 3 minutes to recover. Pace it, do not race the first.', segments: [warm(), ...rounds(8, [runDist(800, 'Run 800 m fast', 'z4'), rest(m(3), '3 min easy')]), cool()] },
   // --- run-walk: the first weeks for someone who cannot yet jog 20 minutes without stopping
   { id: 'run-walk-1', cat: 'base', name: 'Run-walk, 1 min on', km: 'about 2 km', why: 'Jog 1 minute, walk 2, eight times. The way everyone starts: it builds the habit without wrecking you.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(8, [work(60, 'Easy jog', 'z2'), rest(120, 'Walk')]), cool(3)] },
   { id: 'run-walk-2', cat: 'base', name: 'Run-walk, 2 min on', km: 'about 3 km', why: 'Jog 2 minutes, walk 2, seven times. Same easy pace, a little longer each jog.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(7, [work(120, 'Easy jog', 'z2'), rest(120, 'Walk')]), cool(3)] },
@@ -135,6 +143,7 @@ export function runForDay(day) {
   if (day.key === 'steady') return runById(/(\d+) km/.exec(day.title)?.[1] >= 6 ? 'steady-40' : 'steady-30')
   if (day.key === 'long') return runById(/(\d+) km/.exec(day.title)?.[1] >= 8 ? 'long-60' : 'easy-45')
   if (day.key === 'walk') return runById('recovery-walk')
+  if (day.key === 'ngJog') return runById('jog-70')
   if (day.key === 'vo2' || day.key === 'vo2b') {
     const name = day.title.replace(/^(VO2 max|Beep focus|Intervals): /, '')
     return runById(BY_PLAN_NAME[name]) || runById('vo2-4x4')
