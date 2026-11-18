@@ -78,7 +78,32 @@ Do not use: breaking news, reviews or zero stars (there are none yet, and made-u
 deceptive), offer, bundle, low-stock alert (it's free, fake scarcity backfires), emergency,
 side effect, we're sorry, and the cartoon ones (claymation, doodle, AI podcast).
 
-## The auto message: "Comment PCT" sends the link
+## The six formats, kept (owner, 18 November 2026)
+
+Mockup: docs/dev/badgefit-reel-formats.png. Transformation and challenge, tier list, myth vs
+fact, warning, iPhone notes, problem vs solution: a presenter to camera, a short cartoon card for
+the example, "Comment PCT" at the end.
+
+## The presenter: a realistic AI person
+
+The owner does not talk on camera, so the talking formats use a realistic AI presenter made in
+an AI avatar tool (for example HeyGen, Captions or Arcads: pick an off-the-shelf avatar, paste the
+script, export 9:16). The owner's own training clips stay the montage.
+
+Rules, so it stays honest and allowed:
+
+- **The AI person is a coach, not an applicant.** It never says "I failed", "I passed" or "I
+  use this app". It says "Most applicants stall at level 6. Here's the fix." First-person stories
+  are only the owner's own, as words on his footage.
+- **Label it.** Switch on TikTok's "AI-generated content" label and Instagram's "AI info" label
+  when posting; both apps ask for it on realistic AI people.
+- **A stock avatar only.** Never a real person's face or voice, never anyone who looks like a
+  police officer, no uniform.
+- **No made-up reviews or results** from the AI person.
+
+Scripts for the presenter: the six formats above, in coach voice, 15 to 25 seconds each, ending
+"Comment PCT and we'll send you the app".
+ "Comment PCT" sends the link
 
 ### Instagram and Facebook (ManyChat, free plan)
 
