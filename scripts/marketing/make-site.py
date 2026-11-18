@@ -1,5 +1,3 @@
-# Generates badgefit-site/index.html and links.html (run from the scratchpad it was written in: it reads
-# icon and bot SVGs from there). Kept here so the site can be rebuilt the same way.
 import json, re, os
 SP = '/tmp/claude-0/-home-user/b23057b8-52d1-5b49-bfe4-30e2ed416d19/scratchpad/'
 I = json.load(open(SP + 'site-icons.json'))
@@ -162,30 +160,31 @@ links = f'''<!doctype html>
 <html lang="en-AU">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BadgeFit links</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BadgeFit</title>
 <meta name="description" content="BadgeFit: train for the police PCT. Join the free iPhone beta.">
 <meta name="theme-color" content="#0b1a36">
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
-<body class="links">
-<main>
-  {shield.replace('class="logo"', 'class="logo big"')}
-  <h1>BadgeFit</h1>
-  <p class="lead">Train for the PCT. Earn the badge.</p>
-  <a class="lk gold" href="{JOIN}">{ic("download","bi")}Beta Test</a>
-  <a class="lk" href="./">{ic("target","bi")}What BadgeFit does</a>
-  <a class="lk" href="{IG}">Instagram</a>
-  <a class="lk" href="{TT}">TikTok</a>
-  <a class="lk" href="{FB}">Facebook</a>
-  <div class="qr"><img src="img/beta-qr.png" alt="QR code: scan with your iPhone camera to open the BadgeFit beta" width="160" height="160"><p class="fine">Scan with your iPhone camera</p></div>
-  <div class="how">
-    <p><b>Comment PCT</b> under our video and we'll send you the app.</p>
-    <p class="fine">Button not opening? It's in Instagram's browser. Tap the <b>⋯</b> at the top right and choose <b>Open in Safari</b>.</p>
+<body class="lp">
+<div class="lp-hb" aria-hidden="true">{B4['hayden']}</div>
+<main class="lp-main">
+  <header class="lp-hero">
+    {shield.replace('class="logo"', 'class="lp-logo"')}
+    <h1>BadgeFit</h1>
+    <p>Train for the PCT. Earn the badge.</p>
+  </header>
+  <nav class="lp-btns">
+    <a class="lp-btn gold" href="{JOIN}">{ic("download","bi")}Beta Test</a>
+    <a class="lp-btn" href="./">{ic("target","bi")}What BadgeFit does</a>
+  </nav>
+  <div class="lp-soc">
+    <a href="{IG}" aria-label="Instagram">{brand('instagram')}</a>
+    <a href="{TT}" aria-label="TikTok">{brand('tiktok')}</a>
+    <a href="{FB}" aria-label="Facebook">{brand('facebook')}</a>
   </div>
-  {social()}
-  <p class="fine">Not affiliated with any police service.</p>
+  <p class="lp-fine">Not affiliated with any police service</p>
 </main>
 </body>
 </html>
