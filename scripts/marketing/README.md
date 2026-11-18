@@ -14,3 +14,9 @@ the app in a reel (licensed to openGym only), and only film people who said yes.
 `tierlist-anim.js` renders the animated tier list reel frame by frame into `fr/` (then
 `ffmpeg -framerate 30 -i fr/%04d.jpg ... tierlist.mp4`): a hook in the first second, a countdown
 from C to a hidden number 1, a reveal, "Comment PCT". Steady motion only.
+
+## Music
+
+`python3 music-bed.py out.wav 12` makes an original, royalty-free background track of that many
+seconds (100 bpm, soft pad, bass and light drums). Mux it under a video with ffmpeg and
+`-af loudnorm=I=-16:TP=-1.5`. No voice-overs for now: the owner will use a separate app for those.
