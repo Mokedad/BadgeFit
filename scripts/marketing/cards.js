@@ -11,7 +11,7 @@ const base = `*{margin:0;box-sizing:border-box}body{width:1080px;height:1920px;b
 .card{position:absolute;left:70px;right:70px;background:#fffaf0;color:#111;border-radius:44px;padding:40px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 em{font-style:normal;color:#ffc629}`
 const cards = {
-  chat: `<div class="pill" style="top:1180px"><b>!</b>Real talk</div><div class="cap" style="top:1290px;font-size:76px;line-height:1.1">I failed the beep test<br>at level 6. <em>Twice.</em></div>`,
+  hook: `<div class="pill" style="top:1180px"><b>!</b>Real talk</div><div class="cap" style="top:1290px;font-size:76px;line-height:1.1">I failed the beep test<br>at level 6. <em>Twice.</em></div>`,
   goal: `<div class="card" style="top:220px"><div style="text-align:center;font-weight:800;font-size:46px;margin-bottom:24px">The goal</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0 30px"><div style="text-align:center"><div style="font-size:120px;font-weight:900;color:#d23b3b;line-height:1">6.4</div><div style="font-size:36px;color:#666">now</div></div>
     <svg width="240" height="60"><path d="M6 30h210m-26-20 26 20-26 20" stroke="#111" stroke-width="8" fill="none" stroke-linecap="round"/></svg>
@@ -19,7 +19,7 @@ const cards = {
     <div style="display:flex;align-items:center;gap:20px;margin-top:28px;justify-content:center">${sz(b4.hayden, 96)}<b style="font-size:38px">Two interval days a week</b></div></div>`,
   ad1: `<div class="cap" style="top:300px;font-size:82px;letter-spacing:4px;line-height:1.15">LEVEL 6 WAS<br>WHERE I STOPPED.</div>`,
   ad2: `<div class="cap" style="top:840px;font-size:104px;letter-spacing:2px;white-space:nowrap;left:0;right:0">NOT ANYMORE.</div>`,
-  ask: `<div class="cap" style="top:330px;font-size:70px">Comment</div><div class="cap" style="top:410px;font-size:230px;color:#ffc629;line-height:1">PCT</div><div class="cap" style="top:660px;font-size:56px">and I'll send you what I use</div>`,
+  ask: `<div class="cap" style="top:330px;font-size:70px">Comment</div><div class="cap" style="top:410px;font-size:230px;color:#ffc629;line-height:1">PCT</div><div class="cap" style="top:660px;font-size:56px">and I'll send you the app I use</div>`,
 }
 ;(async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1080, height: 1920 } })

@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
-# One BadgeFit reel: chat (caption, then the cartoon card), two montage shots with the ad lines,
-# and the ask. Every clip is steadied, framed to 1080x1920, 30 fps. Montage shots are muted (add
-# music inside Instagram or TikTok). Usage: ./make-reel.sh in/ cards/ out/reel.mp4
+# One BadgeFit reel from your own run and workout clips, no talking: the hook as text, the
+# cartoon goal card, two ad lines, then "Comment PCT". Every clip is steadied, framed to
+# 1080x1920, 30 fps and muted (add music inside Instagram or TikTok).
+# Usage: ./make-reel.sh in/ cards/ out/reel.mp4   (clips in in/, any names, used in name order;
+# fewer than five clips are reused in turn)
 set -euo pipefail
 IN=${1:-in}; C=${2:-cards}; OUT=${3:-out/reel.mp4}
+mapfile -t CLIPS < <(ls "$IN"/*.{mp4,mov,MOV,MP4} 2>/dev/null | sort)
+[ ${#CLIPS[@]} -gt 0 ] || { echo "no clips in $IN"; exit 1; }
+CARDS=(hook goal ad1 ad2 ask); SECS=(4 4 5 5 4)
 V='deshake,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,setsar=1'
-ov(){ echo "[$1:v]$V,trim=$2:$3,setpts=PTS-STARTPTS[b$4];[$5:v]format=rgba,fade=t=in:st=0:d=0.3:alpha=1[o$4];[b$4][o$4]overlay=0:0:shortest=1[v$4]"; }
-ffmpeg -hide_banner -loglevel error -y \
-  -i "$IN/chat.mp4" -i "$IN/run1.mp4" -i "$IN/run2.mp4" -i "$IN/ask.mp4" \
-  -loop 1 -t 5 -i "$C/chat.png" -loop 1 -t 4 -i "$C/goal.png" -loop 1 -t 6 -i "$C/ad1.png" -loop 1 -t 6 -i "$C/ad2.png" -loop 1 -t 4 -i "$C/ask.png" \
-  -f lavfi -t 12 -i anullsrc=r=48000:cl=stereo \
-  -filter_complex "
-$(ov 0 0 5 1 4);
-$(ov 0 5 9 2 5);
-$(ov 1 0 6 3 6);
-$(ov 2 0 6 4 7);
-$(ov 3 0 4 5 8);
-[0:a]atrim=0:9,asetpts=PTS-STARTPTS,aresample=48000[a1];
-[9:a]atrim=0:12,asetpts=PTS-STARTPTS[a2];
-[3:a]atrim=0:4,asetpts=PTS-STARTPTS,aresample=48000[a3];
-[v1][v2][v3][v4][v5]concat=n=5:v=1:a=0[v];
-[a1][a2][a3]concat=n=3:v=0:a=1[a]" \
-  -map "[v]" -map "[a]" -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart "$OUT"
+ARGS=(); F=""; n=${#CLIPS[@]}
+for i in 0 1 2 3 4; do ARGS+=(-i "${CLIPS[$((i % n))]}"); done
+for i in 0 1 2 3 4; do ARGS+=(-loop 1 -t "${SECS[$i]}" -i "$C/${CARDS[$i]}.png"); done
+for i in 0 1 2 3 4; do
+  F+="[$i:v]$V,trim=0:${SECS[$i]},setpts=PTS-STARTPTS[b$i];[$((i + 5)):v]format=rgba,fade=t=in:st=0:d=0.3:alpha=1[o$i];[b$i][o$i]overlay=0:0:shortest=1[v$i];"
+done
+F+="[v0][v1][v2][v3][v4]concat=n=5:v=1:a=0[v]"
+ffmpeg -hide_banner -loglevel error -y "${ARGS[@]}" -f lavfi -t 22 -i anullsrc=r=48000:cl=stereo -filter_complex "$F" \
+  -map "[v]" -map 10:a -shortest -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart "$OUT"
 echo "made $OUT"

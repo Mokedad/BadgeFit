@@ -22,6 +22,12 @@ Rules for every post:
   police service. Film only yourself, or people who said yes.
 - **Music from inside Instagram or TikTok** (their licensed sounds), never a song added outside.
 
+## No talking to camera (owner, 18 November 2026)
+
+The owner does not speak in the videos. Every reel is his own run and workout footage with the
+words on screen: the hook as text, the cartoon card, the ad lines, then "Comment PCT". Read the
+"chat" and "ask" below as on-screen text over training clips. The edit is scripts/marketing.
+
 ## The format: chat, ad, comment
 
 Every video is three parts, 20 to 35 seconds in all:
