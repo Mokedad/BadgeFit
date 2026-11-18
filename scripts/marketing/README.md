@@ -20,3 +20,9 @@ from C to a hidden number 1, a reveal, "Comment PCT". Steady motion only.
 `python3 music-bed.py out.wav 12` makes an original, royalty-free background track of that many
 seconds (100 bpm, soft pad, bass and light drums). Mux it under a video with ffmpeg and
 `-af loudnorm=I=-16:TP=-1.5`. No voice-overs for now: the owner will use a separate app for those.
+
+## Poster (print only, not on the website)
+
+`mkdir -p out && cp ../../badgefit-site/img/app-ring.png ../../badgefit-site/img/app-pace.png out/ && python3 make-poster.py out/`
+writes out/poster.html (A4) and its QR; print it to PDF with no margins and background graphics on.
+The latest print file is docs/dev/badgefit-poster-A4.pdf.
