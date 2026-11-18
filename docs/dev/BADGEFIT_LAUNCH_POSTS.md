@@ -51,6 +51,27 @@ Every video is three parts, 20 to 35 seconds in all:
 Captions stay short: the line from the chat, then *Comment PCT and I'll send you what I use.*
 Hashtags, a few: #PCT #policeapplicant #beeptest #fitnessjourney #nswpolice
 
+## Which of the "42 ad formats" to use (owner's examples, 18 November 2026)
+
+Best for BadgeFit, in this order (all talking-head first, steady camera, ending "Comment PCT"):
+
+1. **Transformation** (with **Challenge hook**): "I'm going from level 6 to 7.5 on the beep test
+   by 6 December. Day 1." A numbered series; every video moves the number. The strongest one.
+2. **Tier list:** "Ranking the six PCT tests, easiest to hardest." People argue in the comments.
+3. **Myth vs fact:** "Myth: run every day for the beep test. Fact: two hard sessions and easy runs."
+4. **Warning / you can avoid:** "3 mistakes that fail people on the PCT" (running wide on the
+   turns, no warm-up, peaking too early).
+5. **iPhone notes:** a screen recording of a note, "Things I wish I knew before my PCT", typed out.
+   Cheap and feels real.
+6. **Problem vs solution:** "Stuck at level 6?" then the fix (intervals, turning on the line).
+7. **Reddit style / Google search:** a real question applicants ask, answered in 20 seconds.
+8. **Us vs them:** "Applicants who pass vs applicants who don't": habits, never mocking people.
+9. **Testimonial / text message:** only once real testers say something, with their OK.
+
+Do not use: breaking news, reviews or zero stars (there are none yet, and made-up ones are
+deceptive), offer, bundle, low-stock alert (it's free, fake scarcity backfires), emergency,
+side effect, we're sorry, and the cartoon ones (claymation, doodle, AI podcast).
+
 ## The auto message: "Comment PCT" sends the link
 
 ### Instagram and Facebook (ManyChat, free plan)
