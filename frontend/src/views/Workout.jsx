@@ -41,6 +41,8 @@ import { setVideoOf, filmTarget } from '../lib/set-videos.js'
 import { fmtClip } from '../lib/media-refs.js'
 import { supersetMeta } from '../lib/superset-meta.js'
 import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
+import LeanWorkout from '../components/LeanWorkout.jsx'
+import { nextExercise, cleanLater } from '../lib/police/lean-workout.js'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { SessionMapButton } from '../components/SessionMuscles.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
@@ -1204,6 +1206,8 @@ function ActiveWorkout() {
   // BadgeFit: always one exercise at a time, swiped (no list to scroll).
   const workoutView = !bfOn && ['list', 'compact', 'focus'].includes(requestedView) ? requestedView : 'cards'
   const listMode = workoutView === 'list' || workoutView === 'compact'
+  // BadgeFit's lean screen (components/LeanWorkout.jsx) for a live session; the editor and a past workout keep the full one.
+  const lean = bfOn && !editing && !A?.backfill && (A?.entries?.length || 0) > 0
   const focusMode = workoutView === 'focus'
   const dense = workoutView === 'compact'
   // A superset's heading: its own name and rest between rounds when it has them (#292).
@@ -2624,7 +2628,22 @@ function ActiveWorkout() {
     {!editing && S.police?.level && <HeardLine />}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
 
-    {A.entries.length ? (listMode ? (
+    {/* BadgeFit: the lean screen, one card and one small button (components/LeanWorkout.jsx). */}
+    {lean ? <LeanWorkout cur={cur}
+      onTick={(idx, i, side, onFocusProgress) => checkedToggle(idx, i, side || undefined, { onFocusProgress })}
+      onField={setField}
+      onMutateSet={(idx, i, fn) => mutEntry(idx, entry => { entry.sets[i] = fn(entry.sets[i]) })}
+      onStartTimed={(idx, i, onFocusProgress) => startTimed(idx, i, onFocusProgress)}
+      onJump={selectFocusEntry}
+      onMenu={openPlainMenu}
+      onLater={(later, next) => update(s => { if (s.active) { s.active.later = later; s.active.cur = next } })}
+      onDone={() => update(s => {
+        if (!s.active) return
+        const nx = nextExercise(s.active.entries, s.active.cur, s.active.later || [])
+        s.active.later = cleanLater(s.active.entries, s.active.later || [])
+        if (nx != null) s.active.cur = nx
+      })} />
+    : A.entries.length ? (listMode ? (
       <div className="workout-list" data-testid="workout-list" ref={listRef}>
         {units.map((u, ui) => {
           const multi = u.length > 1
@@ -2735,11 +2754,11 @@ function ActiveWorkout() {
     </>) : <div className="empty"><div className="ico"><Icon name="shuffle" /></div>{t('Freestyle workout. Add your first exercise and off you go.')}</div>}
 
     <div style={{ height: 12 }} />
-    {!listMode && <div className="row">
+    {!listMode && !lean && <div className="row">
       <Button icon="chevronLeft" disabled={unitIdx <= 0} onClick={() => navigateUnit(-1)}>{t('Prev')}</Button>
       <Button trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => navigateUnit(1)}>{t('Next')}</Button>
     </div>}
-    {!listMode && <div style={{ height: 10 }} />}
+    {!listMode && !lean && <div style={{ height: 10 }} />}
     {wc.exerciseButtons && listMode && A.entries.length > 0 && <div className="muted small" style={{ marginBottom: 6 }}>{t('Move, swap and remove below act on the exercise marked {0}.', t('Current'))}</div>}
     {/* The end of the workout (redesign 1.4.5, P3): adding an exercise and the session's note are
         one inset list of two rows, not two centred text buttons 40px apart, so the finish button
@@ -2784,6 +2803,8 @@ function ActiveWorkout() {
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
+      // The lean screen has its own way out: the header's Finish, and the last set's "Finish workout".
+      if (lean && !allDone) return null
       return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={bfOn && !editing && !allDone ? () => finishWorkoutSheet({ onDiscard: discardWorkout }) : finishWorkout}>
         {editing ? t('Save changes') : allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
       </button>

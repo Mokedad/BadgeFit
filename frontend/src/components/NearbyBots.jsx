@@ -120,7 +120,11 @@ function OtherBot({ b, said, act, at }) {
  * see who you follow is training. Someone starting to train pops up as Hayden's bubble.
  */
 function usePresence(on) {
-  const training = useStore(s => !!s.S.active) || useRun(s => !!s.run)
+  // Both hooks every render: `a || useRun()` skipped the second once a workout started, and React
+  // blanked the screen (a different number of hooks).
+  const inWorkout = useStore(s => !!s.S.active)
+  const inRun = useRun(s => !!s.run)
+  const training = inWorkout || inRun
   const was = useRef(new Set())
   useEffect(() => {
     if (!on) { useNearby.setState({ live: [] }); return }

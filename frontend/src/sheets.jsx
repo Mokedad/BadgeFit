@@ -4213,16 +4213,25 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
   const total = setUnitsTotal(A.entries)
   // BadgeFit, finishing early: only what was done is saved (buildCompletedWorkout leaves out an
   // exercise with no set done), and the sheet says so in one line.
+  // BadgeFit, finishing early: only what was done is saved (buildCompletedWorkout leaves out an
+  // exercise with no set done). One line, the exercises as chips (done in green, the rest struck
+  // through), and two small buttons side by side; Discard stays, as a quiet link under them.
   if (S().police?.level && done > 0 && done < total) {
-    const n = A.entries.filter(e => e.sets.some(x => x.done)).length
-    menuSheet({
-      title: 'Finish early?',
-      subtitle: n === 1 ? 'Saves the 1 exercise you did. The rest is left out.' : `Saves the ${n} exercises you did. The rest is left out.`,
-      sections: [
-        { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), onClick: doFinishWorkout }] },
-        { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
-      ],
+    const chips = A.entries.map((e, k) => {
+      const n = e.sets.filter(x => x.done).length
+      const name = exerciseNameFor(exOr(e.id))
+      return <span key={k} className={n === e.sets.length ? 'd' : n ? 'p' : 'n'}><b>{name}</b>{n === e.sets.length ? ' ✓' : n ? ` ${n} of ${e.sets.length}` : ''}</span>
     })
+    useUI.getState().openSheet(close => <div className="lean-fin">
+      <h3>Finish now?</h3>
+      <p>What you did is saved.</p>
+      <div className="lean-fin-sum">{chips}</div>
+      <div className="lean-fin-acts">
+        <button type="button" className="lean-pill quiet" onClick={close}>Keep going</button>
+        <button type="button" className="lean-pill gold" onClick={() => { close(); doFinishWorkout() }}>Finish</button>
+      </div>
+      {onDiscard && <button type="button" className="lean-fin-discard" onClick={() => { close(); onDiscard() }}>Discard workout</button>}
+    </div>)
     return
   }
   menuSheet({
