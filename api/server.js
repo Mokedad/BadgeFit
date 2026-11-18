@@ -2259,6 +2259,14 @@ function knowFromFeed(hid) {
   const hit = community.uidByHandle(loadCommunity(), uid => nearby.handleOf(NEAR, uid), String(hid || ''));
   if (hit) nearby.remember(NEAR, loadBots(), hit.uid, hit.name);
 }
+/** Every member follows the owner's account, once (nearby.autoFollow), on their app's first check-in. */
+function followOwner(user) {
+  const owner = ownerId();
+  if (!owner || !nearby.autoFollow(loadBots(), user.id, owner)) return;
+  const o = db.users.find(u => u.id === owner);
+  if (o) nearby.remember(NEAR, loadBots(), owner, o.name);
+  saveBots();
+}
 const handleFor = uid => nearby.handleOf(NEAR, uid);
 /** A cheer as its receiver sees it: who by handle (never an id), and whether they follow them yet. */
 const cheerOut = (viewer, list) => list.map(({ uid, ...c }) => ({ ...c, ...(uid && { who: handleFor(uid), followed: (loadBots().follows[viewer.id] || []).includes(uid) }) }));
@@ -3199,6 +3207,7 @@ const routes = {
   'POST /api/presence': async (req, res) => {
     const user = communityGuard(req, res, NEAR_PINGS); if (!user) return;
     const body = await readBody(req);
+    followOwner(user);
     communityAnswer(res, nearby.presence(NEAR, loadBots(), user, { card: body.card }));
   },
   'POST /api/nearby/leave': async (req, res) => {

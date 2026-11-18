@@ -18,7 +18,7 @@ export const STAGES = ['applicant', 'passed', 'academy', 'graduate'];
 const GEAR = new Set(['headband', 'whistle', 'bolt', 'badge', 'stripes', 'cap', 'medal']);
 
 export const emptyState = () => ({ here: new Map(), live: new Map(), gaps: new Map(), salt: crypto.randomBytes(8).toString('hex') });
-export const emptySocial = () => ({ follows: {}, hidden: {}, names: {} });
+export const emptySocial = () => ({ follows: {}, hidden: {}, names: {}, autoFollowed: {} });
 
 /** The opaque handle a member is shown as: stable while the server runs, not their account id. */
 export const handleOf = (state, uid) => crypto.createHash('sha256').update(state.salt + ':' + uid).digest('hex').slice(0, 16);
@@ -121,6 +121,23 @@ export function follow(state, social, user, { id, on = true } = {}) {
   return { ok: true, followed: !!on };
 }
 
+/**
+ * Every member follows the owner's account, the way a new account on a social app starts out
+ * following the app's own (owner's rule, 18 November 2026). Once per member: someone who unfollows
+ * or blocks the owner afterwards is never followed back in. True when it added the follow.
+ */
+export function autoFollow(social, uid, ownerUid) {
+  if (!uid || !ownerUid || uid === ownerUid) return false;
+  if (!social.autoFollowed) social.autoFollowed = {};
+  if (social.autoFollowed[uid]) return false;
+  social.autoFollowed[uid] = true;
+  if (hiddenEither(social, uid, ownerUid)) return false;
+  const list = listOf(social.follows, uid);
+  if (list.includes(ownerUid)) return false;
+  list.push(ownerUid);
+  return true;
+}
+
 /** Swiped away: hidden from each other for good, and any follow between them dropped. */
 export function hide(state, social, user, { id } = {}) {
   const to = uidOf(state, social, String(id || ''));
@@ -192,7 +209,7 @@ export function person(state, social, viewer, hid, now = Date.now()) {
 /** An account deleted: out of every list. */
 export function forgetUser(state, social, uid) {
   state.here.delete(uid); state.live.delete(uid)
-  delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]
+  delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]; if (social.autoFollowed) delete social.autoFollowed[uid]
   for (const k of Object.keys(social.follows)) social.follows[k] = social.follows[k].filter(x => x !== uid)
   for (const k of Object.keys(social.hidden)) social.hidden[k] = social.hidden[k].filter(x => x !== uid)
 }

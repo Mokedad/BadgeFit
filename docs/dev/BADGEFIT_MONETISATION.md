@@ -32,6 +32,23 @@ Still for after the PCT on 6 December 2026. Nothing here charges money yet.
 - **Before any real payment:** the licences below (exercise media, openGym code), Apple's paid apps
   agreement, banking and tax in App Store Connect.
 
+- **The owner's account never pays** (and admins): everything is always on for them.
+- **Everyone follows the owner** (built, api/nearby.js autoFollow): once per member, on their app's
+  first check-in, like a new account on Instagram. Unfollow and block are respected and never
+  undone. The owner's posts reach everyone's bell; while the owner trains, followers see it.
+- **Focus: police recruitment, the PCT first,** then the Academy (an Academy prep plan with more
+  running and lifting: steady and long runs for formation running, circuits, heavier strength,
+  grip to 35 kg; built properly from the Academy's own pre-entry plan once the owner has it).
+- **TrueCoach:** it has no public API for other apps (only a Zapier connector, on the coach's
+  side), so BadgeFit cannot post into it. Plan: a recruit brings a TrueCoach plan in with Plan from
+  a photo, and after a session copies a tidy summary to paste into the workout's comment for their
+  coach ("Copy for TrueCoach"). Putting the Academy's own programme in the app for everyone needs
+  the Academy's permission; our own Academy prep plan does not.
+- **On the job (Probationary Constable, Constable):** Mentors (the Pass stays free) and, later,
+  creators: publish a plan for a job they know (a specialist unit's selection, say), sell it in
+  BadgeFit, keep most of each sale, share it to Instagram. Needs their employer's approval for paid
+  side work, no police insignia, plans checked before they go up, and the licences below.
+
 Built so far (build 180): the ready ring, the surprise after a workout, My Hayden (colour and gear)
 and the pace sound. Every member gets everything until payments go on; guests are asked to sign up
 for the pace sound.

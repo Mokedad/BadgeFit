@@ -119,3 +119,25 @@ test('unblock: see each other again, follow again by choice; followers listed', 
   n.follow(st, so, ann, { id });
   assert.deepEqual(n.followersOf(so, 'u2'), ['u1']);
 });
+
+test("everyone follows the owner's account once; an unfollow or a block is kept", () => {
+  const social = n.emptySocial();
+  assert.equal(n.autoFollow(social, 'u1', 'owner'), true);
+  assert.deepEqual(social.follows.u1, ['owner']);
+  assert.ok(n.followersOf(social, 'owner').includes('u1'));
+  // Not twice, and not again after an unfollow.
+  assert.equal(n.autoFollow(social, 'u1', 'owner'), false);
+  social.follows.u1 = [];
+  assert.equal(n.autoFollow(social, 'u1', 'owner'), false);
+  assert.deepEqual(social.follows.u1, []);
+  // The owner does not follow themselves; no owner, nothing.
+  assert.equal(n.autoFollow(social, 'owner', 'owner'), false);
+  assert.equal(n.autoFollow(social, 'u2', null), false);
+  // Someone who blocked the owner first is not made to follow.
+  social.hidden.u3 = ['owner'];
+  assert.equal(n.autoFollow(social, 'u3', 'owner'), false);
+  assert.equal((social.follows.u3 || []).length, 0);
+  // A deleted account is forgotten here too.
+  n.forgetUser(n.emptyState(), social, 'u1');
+  assert.equal(social.autoFollowed.u1, undefined);
+});
