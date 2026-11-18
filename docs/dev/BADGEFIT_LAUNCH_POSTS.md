@@ -1,69 +1,98 @@
-# BadgeFit launch kit: getting beta testers (18 November 2026)
+# BadgeFit launch kit: getting beta testers (revised 18 November 2026)
 
-Accounts: instagram.com/badgefit.au, tiktok.com/@badgefit.au, the BadgeFit Facebook page, and
-badgefit.au@gmail.com. Bio link on every one: **badgefit.com.au/links.html**.
+Accounts: instagram.com/badgefit.au, tiktok.com/@badgefit.au, the BadgeFit Facebook page,
+badgefit.au@gmail.com. Bio link everywhere: **badgefit.com.au/links.html**.
 
-The story that sells it: an applicant building the app he trains with, counting down to his own
-PCT on 6 December. Film your own training; never film other people at the gym without asking.
-Never say BadgeFit is linked to the police, and never wear or show police badges or logos.
+## The idea: sell the life, keep the app a secret
 
-## Bios (copy and paste)
+Like army recruiting ads: nobody sells the rifle, they sell who you become. BadgeFit posts are about
+the applicant: the 5 am alarm, the beep test that beat you last time, the day you pass, the uniform
+you want. The app is never the star. It shows up at the very end as "the thing I use", the secret
+the people who pass have and the others don't. An unknown brand wins by being something people
+feel they found, not something sold to them.
 
-- **Instagram / TikTok:** Training for the PCT? BadgeFit is the app I'm building while I train for
-  mine. Free iPhone beta below.
-- **Facebook page "About":** BadgeFit helps police applicants train for the PCT: a plan to your
-  test date, all six standards tracked, and Hayden, your coach. Free iPhone beta at
-  badgefit.com.au. Not affiliated with any police service.
+Rules for every post:
 
-## 10 posts, in this order (about one every two days to 6 December)
+- **The person first, the app last.** No app screens in the first 10 seconds.
+- **Steady footage only.** Phone on a tripod or a wall, or a gimbal for moving shots. No handheld
+  walking shots, no shaky zooms. If an AI tool makes the clip, ask for "locked-off, stable camera,
+  slow push-in" and reject anything that wobbles.
+- **One promise, never a guarantee.** "Train like the ones who pass", never "you will pass".
+- **Never police-branded.** No badges, logos, uniforms or "official". Not affiliated with any
+  police service. Film only yourself, or people who said yes.
+- **Music from inside Instagram or TikTok** (their licensed sounds), never a song added outside.
 
-Each one: 15 to 30 seconds, vertical, the hook in the first 2 seconds on screen as text.
+## The format: chat, ad, comment
 
-1. **"18 days until my PCT. I'm building the app I train with."** You, then the ready ring on
-   your phone. Caption: *Four of six passing. The beep test is the one. Follow along to test day.
-   Want to test the app with me? Link in bio.*
-2. **"The beep test trick nobody told me."** Turning on the line, not running wide. Caption:
-   *Turn right on the line. Running wide costs you every shuttle. Hayden reminds me every
-   interval session.*
-3. **"I made my phone tick so I'd stop running too slow."** The footprints button, a run with the
-   tick audible under music. Caption: *Pace sound: step on every tick. It speeds up on the hard
-   parts. In the BadgeFit beta now.*
-4. **"Push-ups for the PCT: 25, strict."** Your best set, counting on screen. Caption: *Chest to
-   fist height, body straight. What's your number right now?* (Comments = reach.)
-5. **"What the six PCT standards actually are."** Text slides: grip, prone bridge, vertical jump,
-   push-ups, Illinois agility, beep test, with the pass marks. Caption: *Save this. Check your
-   service's current requirements too.*
-6. **"My robot coach got a sweatband."** The finish screen with the surprise, then My Hayden.
-   Caption: *Four weeks of training and Hayden earned his first gear. Next: the lightning bolt
-   for beating my beep goal.*
-7. **"Prone bridge: 90 seconds is harder than it sounds."** A hold with a timer. Caption: *Squeeze
-   your glutes, brace like someone's about to poke your stomach.*
-8. **"Week in my PCT plan."** Fast cuts of each day (gym, intervals, easy run). Caption: *The
-   plan counts down to your test date. Beginner or intermediate. Free beta, link in bio.*
-9. **"Test week: what I'm changing."** Easy week before the test: less volume, same intensity,
-   sleep. Caption: *Arrive fresh. Hayden plans the easy week for you.*
-10. **"PCT day."** Before and after (no filming inside the test venue unless it's allowed).
-    Caption: *Did I pass? Next stop: the Academy, and BadgeFit switches to Academy prep.*
+Every video is three parts, 20 to 35 seconds in all:
 
-Hashtags (a few, not thirty): #PCT #policeapplicant #beeptest #nswpolice #fitnessjourney
+1. **The chat (5 to 8 s).** You to camera, phone propped up, natural light, like talking to a
+   mate. One line that stops the scroll.
+2. **The ad (10 to 20 s).** Cinematic cut: slow motion, early morning light, sweat, the line on
+   the track, chalk, breath. Few words, on screen or as a voice-over. Music builds.
+3. **The ask (2 to 3 s).** Back to you: **"Comment PCT and I'll send you the link."**
+   On screen: *Comment PCT*.
 
-## Facebook group message
+## 10 scripts
 
-Check each group's rules first; some ban promotion, so ask the admins.
+| # | The chat (to camera) | The ad (montage, voice-over or text) | The ask |
+|---|---|---|---|
+| 1 | "Eighteen days until my PCT. Here's what nobody tells you." | 5 am alarm, shoes laced, empty street, first light. *"Everyone wants the badge. Few want the 5 am."* | Comment PCT |
+| 2 | "I failed the beep test at level 6. Twice." | Shuttle runs at dusk, turning on the line, slow motion. *"Level 6 was where I stopped. Not anymore."* | Comment PCT |
+| 3 | "The people who pass don't train harder. They train smarter." | A plan on a whiteboard, a stopwatch, a steady run in rhythm. *"Every session has a reason."* | Comment PCT |
+| 4 | "Twenty-five push-ups sounds easy. Until it's the test." | Push-ups in slow motion, chest to the floor, count on screen. *"Strict. Every one counts."* | Comment PCT |
+| 5 | "What I wish I knew before I applied." | Six quick cuts, one per standard, the pass mark on screen. *"Six standards. Pass every one."* | Comment PCT |
+| 6 | "I run to a tick now. Sounds weird. It works." | Feet hitting the ground in time, earphones in, sunrise. *"Find your pace. Hold it."* | Comment PCT |
+| 7 | "My partner asked why I train at night." | Late gym, quiet, plank on a timer, 90 seconds. *"Because the job doesn't wait."* | Comment PCT |
+| 8 | "Week 3 of 12. Here's my week." | Monday to Sunday in fast steady cuts. *"A plan to the day of your test."* | Comment PCT |
+| 9 | "Test week. I'm doing less, on purpose." | Stretching, sleep, a calm walk. *"Arrive fresh. Trust the work."* | Comment PCT |
+| 10 | "Today is the day." | Car park at dawn, deep breath, walking in (outside only). *"Whatever happens, I trained like I meant it."* | Comment PCT |
 
-> Hi all, I'm sitting my PCT on 6 December and I've been building a free app to train for it:
-> a plan to your test date, all six standards tracked, a beep test trainer and a coach that keeps
-> you on track. It's in beta on iPhone and I'm looking for a few applicants to test it and tell
-> me what's missing. No cost, no catch. If you're keen, comment or message me and I'll send the
-> link. Not affiliated with NSW Police, just an applicant like you.
+Captions stay short: the line from the chat, then *Comment PCT and I'll send you what I use.*
+Hashtags, a few: #PCT #policeapplicant #beeptest #fitnessjourney #nswpolice
 
-## Replies to have ready
+## The auto message: "Comment PCT" sends the link
 
-- *Is it free?* Yes while it's in beta.
-- *Android?* Coming. Message us and you're first on the list.
-- *Is this from NSW Police?* No, it's independent, made by an applicant.
+### Instagram and Facebook (ManyChat, free plan)
 
-## What to track each week
+1. Make Instagram a **Professional** account (Settings, Account type and tools) and connect it to
+   the BadgeFit Facebook page (Accounts Centre).
+2. Sign up at **manychat.com** with the BadgeFit Facebook login, connect Instagram and Facebook.
+3. Create an automation: **When a user comments on your post or reel** → any post → keyword
+   **PCT** (also "pct", "Pct").
+4. Turn on **"Reply to the comment publicly"** with a few replies so it looks human:
+   *"Sent you a DM"* · *"Check your messages"* · *"Link's in your DMs"*.
+5. The DM:
 
-Testers who joined, testers who trained this week, and one question to every tester:
-"What nearly made you stop using it?"
+   > Here you go: BadgeFit, the app I train with for the PCT. It's in free beta on iPhone:
+   > badgefit.com.au/links.html
+   > Tell me what you think. And good luck with your test.
+
+   Add a button "Join the beta" pointing to the same link (the TestFlight link once it's in).
+6. Do the same on Facebook (ManyChat Facebook comment trigger).
+
+Meta's own Business Suite also has automated replies, but only ManyChat does
+"comment a word, get a DM" reliably on both apps.
+
+### TikTok
+
+TikTok does not let other apps answer comments with a DM. So on TikTok:
+
+- Say **"Comment PCT"** anyway (it boosts the video), and reply to those comments with
+  *"Link's in my bio"*. Pin one comment: *Link in bio to try it*.
+- Switch on **keyword auto-replies** in TikTok's direct messages (a Business account:
+  Settings, Business suite, Direct messages, Automatic message, Keyword reply): keyword **PCT**,
+  same message as above. Then the ask can also be *"DM me PCT"*.
+
+## Facebook groups
+
+Check each group's rules or ask the admins first. Post as yourself, about the journey:
+
+> I'm sitting my PCT on 6 December and I've been tracking every session with an app I'm building
+> for applicants. It's in free beta on iPhone. If you want to try it and tell me what's missing,
+> comment PCT and I'll send it. Not affiliated with NSW Police, just an applicant like you.
+
+## Each week
+
+Count: comments with PCT, DMs sent, testers who joined, testers who trained this week. Ask every
+tester one question: "What nearly made you stop using it?"
