@@ -245,7 +245,9 @@ function More({ setTab, calm }) {
       {MORE.map(m => tile(MORE_ICON[m.value] || 'list', m.label, () => setTab(m.value)))}
       {tile('chart', 'Progress', () => nav('/stats'))}
       {tile('list', 'Exercises', () => nav('/library'))}
-      <button key="Hayden" className="pf-mtile" onClick={() => setTab('today')}><span aria-hidden="true"><HaydenMark size={30} /></span><b>Hayden</b></button>
+      {/* Your own Hayden: his colour and the gear he has earned (views/MyHayden.jsx). Hayden's chat is
+          the middle tab of the bar. */}
+      <button key="My Hayden" className="pf-mtile" onClick={() => nav('/my-hayden')}><span aria-hidden="true"><HaydenMark size={30} /></span><b>My Hayden</b></button>
       {tile('gear', 'Settings', () => nav('/settings'))}
     </div>
   }

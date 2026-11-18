@@ -119,6 +119,7 @@ try {
   if (w && !MOBILE) window.location.replace(window.location.pathname.replace(/[^/]*$/, '') + 'api/auth/' + w[1])
 } catch { /* the link page offers the buttons */ }
 const Community = lazyView(() => import('./views/Community.jsx'))
+const MyHayden = lazyView(() => import('./views/MyHayden.jsx'))
 const SettingsRoute = lazyView(() => import('./views/Settings.jsx').then(m => ({ default: m.SettingsRoute })))
 // The app tour's overlay (components/Tour.jsx): fetched when it opens, never before.
 const Tour = lazy(() => import('./components/Tour.jsx'))
@@ -405,6 +406,7 @@ function Shell() {
       <Route path="/police" element={<PoliceFit />} />
       <Route path="/link-app" element={<LinkApp />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/my-hayden" element={<MyHayden />} />
       <Route path="/structural-balance" element={<StructuralBalance />} />
       {isOn(S, 'body') && !S.police?.level && <Route path="/progress-photos" element={<ProgressPhotos />} />}
       {isOn(S, 'body') && <Route path="/measurements" element={<Measurements />} />}

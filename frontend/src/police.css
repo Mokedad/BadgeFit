@@ -1200,3 +1200,114 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .lean-fin-acts{display:flex;gap:10px;justify-content:center}
 .lean-fin-acts .lean-pill{min-width:0;padding:10px 22px}
 .lean-fin-discard{display:block;margin:14px auto 0;border:0;background:none;color:var(--label-2);font-size:13px;text-decoration:underline}
+
+/* The pace sound on a run (components/PaceButton.jsx): the footprints at the top right, the line
+   under the clock, and the options sheet (light, over the run, like the end-of-run choice). */
+.rp-pace .icn{width:17px;height:17px}
+.rp-top>span{white-space:nowrap}
+.rp-pace.on{box-shadow:0 0 0 3px rgba(255,198,41,.35)}
+.rp-pace-line{margin:10px auto 0;max-width:300px;font-size:14.5px;font-weight:700;color:#ffc629;display:flex;align-items:center;justify-content:center;gap:6px}
+.rp-pace-line .icn{width:18px;height:18px;flex:none}
+.rp-pace-line.quiet{color:rgba(255,255,255,.72);font-weight:600}
+.pace-dim{padding:0}
+.pace-sheet{width:100%;max-width:480px;background:#f2f2f7;color:#111;border-radius:26px 26px 0 0;padding:12px 18px calc(var(--sab) + 22px);text-align:left}
+.pace-grab{width:40px;height:5px;border-radius:3px;background:#c7c7cc;margin:0 auto 12px}
+.pace-sheet h3{margin:0 0 3px;font-size:20px;display:flex;align-items:center;gap:8px}
+.pace-sheet h3 .icn{width:22px;height:22px}
+.pace-sub{margin:0 0 12px;color:#6b6b73;font-size:14px;line-height:1.35}
+.pace-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:10px 12px;margin:7px 0;font-weight:700}
+.pace-row small{display:block;font-size:12px;font-weight:500;color:#8a8a92}
+.pace-seg{display:flex;background:#ececef;border-radius:999px;padding:3px;gap:2px;flex:none}
+.pace-seg button{border:0;background:none;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;color:#555}
+.pace-seg button.on{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.pace-step{display:flex;align-items:center;gap:10px;flex:none}
+.pace-step b{font-size:18px;min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
+.pace-step button{width:34px;height:34px;border-radius:50%;border:0;background:#ececef;color:#111;display:grid;place-items:center;padding:0}
+.pace-step button:disabled{opacity:.4}
+.pace-vol{width:150px;accent-color:#ffc629;color-scheme:light}
+.pace-note{margin:8px 2px 12px;color:#6b6b73;font-size:12.5px;text-align:center;line-height:1.35}
+.pace-done{display:block;margin:0 auto;border:0;border-radius:999px;padding:10px 26px;font:inherit;font-weight:800;background:#ffc629;color:#111}
+.pace-quiet{border:0;border-radius:999px;padding:10px 22px;font:inherit;font-weight:700;background:#fff;color:#111}
+.pace-acts{display:flex;gap:10px;justify-content:center}
+.pace-acts .pace-done{margin:0}
+.pace-gate{text-align:center}
+.pace-gate h3{justify-content:center}
+.pace-gate .hb{display:block;margin:0 auto 4px}
+.pace-beats{display:flex;gap:6px;justify-content:center;margin:2px 0 14px;flex-wrap:wrap}
+.pace-beats span{background:#fff;border-radius:999px;padding:6px 10px;font-size:12.5px;font-weight:800}
+.pace-beats span.hot{background:#ffe2c6}
+
+/* Home's ready ring (components/ReadyRing.jsx). */
+.rr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px}
+.rr-days{font-size:14px;color:var(--label-2);font-weight:600}
+.rr-ring{position:relative;width:min(168px,44vw);aspect-ratio:1;border:0;background:none;padding:0;color:inherit;font:inherit}
+.rr-ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+.rr-track{fill:none;stroke:var(--surface-3);stroke-width:13}
+.rr-fill{fill:none;stroke:#ffc629;stroke-width:13;transition:stroke-dasharray .8s ease}
+.rr-fill.pass{stroke:var(--green)}
+.rr-ring.empty .rr-track{stroke:var(--label-3);stroke-width:4;stroke-dasharray:7 9}
+.rr-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rr-mid b{font-size:44px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.rr-mid b i{font-style:normal;font-size:24px;color:var(--label-2);font-weight:800}
+.rr-mid b.q{color:var(--label-3)}
+.rr-mid small{font-size:13px;color:var(--label-2);margin-top:4px;line-height:1.25}
+.rr-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:360px}
+.rr-chip{display:inline-flex;align-items:center;gap:5px;border:0;background:var(--surface);color:var(--label);border-radius:999px;padding:6px 11px;font:inherit;font-size:13px;font-weight:700}
+.rr-chip.ok{color:var(--green)}
+.rr-chip .icn{width:15px;height:15px}
+.rr-flame{color:var(--orange)}
+@media (prefers-reduced-motion:reduce){.rr-fill{transition:none}}
+
+/* BadgeFit's finish screen (sheets.jsx BfFinish): Hayden, Done, the week, one surprise, two small buttons. */
+.bff{text-align:center;padding:4px 0 6px}
+.bff-hb{display:flex;justify-content:center;margin-top:6px}
+.bff-done{margin:4px 0 12px;font-size:26px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}
+.bff-done .icn{width:26px;height:26px;color:var(--green);stroke-width:2.6}
+.bff-card{background:var(--surface);border-radius:20px;padding:14px;text-align:left;margin:0 0 12px}
+.bff-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.bff-row .g{color:var(--green);font-size:14px}
+.bff-bar{height:10px;border-radius:5px;background:var(--surface-3);overflow:hidden;margin:9px 0 6px}
+.bff-bar i{display:block;height:100%;background:var(--green);border-radius:5px}
+.bff-sub{font-size:13px;color:var(--label-2);margin-top:4px}
+.bff-gift{display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:20px;padding:14px;margin:0 0 14px;border:2px dashed #ffc629}
+.bff-gift{background:var(--surface);background:linear-gradient(135deg,color-mix(in srgb,#ffc629 18%,var(--surface)),var(--surface))}
+.bff-gift-i{display:flex;justify-content:center;margin-bottom:2px}
+.bff-gift-i>.icn{width:34px;height:34px;color:#e0a400}
+.bff-gift b{font-size:16px}
+.bff-gift span{font-size:14px;color:var(--label-2);line-height:1.35}
+.bff-gift .bff-pill{margin-top:8px}
+.bff-acts{display:flex;gap:10px;justify-content:center}
+.bff-pill{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:10px 22px;font:inherit;font-size:15px;font-weight:800;background:#ffc629;color:#111}
+.bff-pill.w{background:var(--surface);color:var(--label);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.bff-pill.sm{padding:7px 15px;font-size:14px}
+.bff-pill .icn{width:16px;height:16px}
+
+/* My Hayden (views/MyHayden.jsx). */
+.mh{padding-bottom:28px}
+.mh-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 0}
+.mh-top h1{margin:0;font-size:24px;font-weight:900}
+.mh-pill{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:8px 15px;font:inherit;font-size:14px;font-weight:800;background:var(--surface);color:var(--label);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.mh-pill .icn{width:15px;height:15px}
+.mh-pill.gold{background:#ffc629;color:#111;padding:10px 22px;font-size:15px}
+.mh-hero{display:flex;justify-content:center;margin:4px 0 6px}
+.mh-cols{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 auto 18px;max-width:330px}
+.mh-col{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface);display:grid;place-items:center;padding:0}
+.mh-col.on{box-shadow:0 0 0 3px var(--label)}
+.mh-guest{background:var(--surface);border-radius:20px;padding:16px;text-align:center;margin:0 0 18px}
+.mh-guest b{font-size:17px}
+.mh-guest p{margin:6px 0 12px;color:var(--label-2);font-size:14px}
+.mh-h{font-size:18px;margin:0 0 10px;display:flex;align-items:baseline;gap:8px}
+.mh-h small{font-size:13px;color:var(--label-2);font-weight:600}
+.mh-gear{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:340px){.mh-gear{grid-template-columns:repeat(2,1fr)}}
+.mh-gi{background:var(--surface);border-radius:16px;padding:8px 6px 10px;text-align:center;font-size:12px;line-height:1.3;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mh-gi b{font-size:13px;display:inline-flex;align-items:center;gap:3px}
+.mh-gi b .icn{width:14px;height:14px;color:var(--green);stroke-width:2.6}
+.mh-gi small{color:var(--label-2);font-size:11.5px}
+.mh-gi.got{box-shadow:inset 0 0 0 2px var(--green)}
+.mh-gi.next{box-shadow:inset 0 0 0 2px #ffc629}
+.mh-gi.off .mh-gi-b{filter:grayscale(1);opacity:.45}
+.mh-gi-b{height:66px;display:grid;place-items:center}
+.mh-bar{display:block;width:80%;height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;margin-top:4px}
+.mh-bar i{display:block;height:100%;background:#ffc629}
+.mh-note{text-align:center;color:var(--label-2);font-size:13px;margin:14px 0 0}

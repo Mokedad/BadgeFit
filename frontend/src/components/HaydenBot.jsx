@@ -7,7 +7,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store/useStore.js'
 import { DEMO } from '../lib/demo.js'
-import { lineColour, earnedGear } from '../lib/police/bot-look.js'
+import { lineColour, earnedGear, myColour } from '../lib/police/bot-look.js'
 
 const SHELL = '#eef0ec', SHADE = '#d3d8d4', EDGE = '#8f99aa', VISOR = '#0b1a36', VISOR2 = '#16294f', NAVY = '#16305c', GOLD = '#f2b81a'
 
@@ -108,7 +108,7 @@ export function useBotLook() {
   const user = useStore(s => s.user)
   const S = useStore(s => s.S)
   const guest = !user && !DEMO
-  return useMemo(() => ({ line: lineColour(guest ? null : user?.id || 'demo'), gear: earnedGear(S, { guest }) }), [user?.id, guest, S.workouts, S.police]) // eslint-disable-line react-hooks/exhaustive-deps
+  return useMemo(() => ({ line: guest ? lineColour(null) : myColour(S.police, user?.id || 'demo'), gear: earnedGear(S, { guest }) }), [user?.id, guest, S.workouts, S.police]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export default function HaydenBot({ size = 120, className = '', label = '', extraGear = [], ...look }) {

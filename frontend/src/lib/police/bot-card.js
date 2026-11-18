@@ -1,6 +1,6 @@
 // What a member's bot shares with bots nearby and followers (api/nearby.js cleans it again on the
 // server): first name, line colour, earned gear and three numbers. Nothing else of theirs.
-import { lineColour, earnedGear } from './bot-look.js'
+import { myColour, earnedGear } from './bot-look.js'
 import { readiness } from './standards.js'
 import { stageOf } from './community.js'
 import { todayNow } from './today-now.js'
@@ -30,7 +30,7 @@ export function botCard(S, user, now = new Date(), training = !!S?.active) {
     // Today's session by name, done or not (never the rest of the plan); off with "Show my today".
     ...(P.shareToday !== false && P.start ? (() => { const t = todayNow(S, isoOf(now)); return t.name ? { today: { title: t.name, done: !!t.done } } : {} })() : {}),
     name: String(user?.name || 'Recruit').trim().split(/\s+/)[0],
-    colour: lineColour(user?.id),
+    colour: myColour(P, user?.id),
     gear: earnedGear(S),
     stats: { week: sessionsThisWeek(S, now), ready: readiness(P.results || [], P.beepTarget).pct || 0, streak: weeksInARow(S, now) },
   }

@@ -51,6 +51,14 @@ a setting keeps the plain mark for anyone who prefers it.
   (BADGEFIT_MONETISATION.md).
 - Bots meeting needs the circle from 1.2 first.
 
+## Built (18 November 2026)
+
+- My Hayden (views/MyHayden.jsx, from More): your Hayden in a colour you pick from the ten line
+  colours (S.police.botColour, shown to others too), the gear ladder with what earns each piece
+  and how close the next one is (lib/police/my-hayden.js). Gear earned is still worked out by
+  lib/police/bot-look.js.
+- Gear earned by a session is the surprise at the end of it (lib/police/surprise.js).
+
 ## Next step
 
 Show the sketches (cute, in between, serious) to the owner's wife and a few applicants before

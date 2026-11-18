@@ -12,6 +12,9 @@ import { createPortal } from 'react-dom'
 import RunnerIcon, { FinishFlag } from './RunnerIcon.jsx'
 import { HaydenToggle } from './HaydenBuddy.jsx'
 import { HaydenMark } from './HaydenBot.jsx'
+import { PaceButton, PaceLine, usePaceSound } from './PaceButton.jsx'
+import { useUI } from '../store/useUI.js'
+import { toSignIn } from '../lib/police/guest.js'
 import { useEffect, useRef, useState } from 'react'
 import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
 import { shareSession } from '../lib/police/share-card.js'
@@ -122,6 +125,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   const elapsed = started ? ((paused ? pausedAt.current : now) - segStart.current) / 1000 : 0
   const left = seg?.sec != null ? seg.sec - elapsed : null
   const hr = seg ? hrFor(seg.effort, age) : null
+  // The pace sound (components/PaceButton.jsx): a tick to step on, set by Hayden for each part.
+  const pace = usePaceSound({ seg, active: started && !paused && !done, audio })
 
   const say = s => `${KIND[s.kind]}. ${s.label}${s.sec ? ', ' + (s.sec >= 60 ? Math.round(s.sec / 60) + ' minutes' : s.sec + ' seconds') : ''}.`
   const go = i => {
@@ -343,6 +348,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}><Icon name="speaker" /> {musicMode ? 'On' : 'Off'}</button>}
       {onGps && <button type="button" className={'rp-music' + (gps ? ' on' : '')} onClick={() => onGps(!gps)} aria-pressed={gps}
         title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}><Icon name="mapPin" /> {gps ? 'On' : 'Off'}</button>}
+      <PaceButton pace={pace} started={started} onTip={text => (started ? setBubble({ text, at: Date.now() }) : useUI.getState().toast(text))}
+        onSignUp={() => { onClose(); toSignIn(); location.hash = '#/home' }} />
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
       <HaydenToggle className="rp-hb" />
     </div>
@@ -371,6 +378,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         : <><b>{kmOf(gpsM).toFixed(2)}</b> km · <b>{fmtPace(livePace(gpsTrack.current, now) ?? paceOf(gpsM, (now - runStart.current) / 1000))}</b> /km</>}</div>}
       {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
+      <PaceLine pace={pace} />
       {bubble && <div className="rp-bubble" role="status"><HaydenMark />{bubble.text}</div>}
       {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
@@ -388,6 +396,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <div className="rp-locked-t">{left != null ? fmt(left) : fmt(elapsed)}</div>
       <div className="rp-locked-l">{seg?.label}</div>
       {gps && gpsState === 'on' && <div className="rp-locked-l">{kmOf(gpsM).toFixed(2)} km · {fmtPace(paceOf(gpsM, (now - runStart.current) / 1000))} /km</div>}
+      {pace.allowed && pace.on && pace.spm && <div className="rp-locked-l">{pace.spm} steps a minute</div>}
       <div className="rp-locked-u"><span className="rp-locked-ring" style={{ '--p': hold }} /><Icon name="lock" /> Hold anywhere to unlock</div>
     </div>}
   </div>

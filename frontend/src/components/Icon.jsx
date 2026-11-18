@@ -184,6 +184,9 @@ const P = {
   merge: <><path d="M6.4 3.8v3.4c0 3 5.6 4.6 5.6 8.2v4.8M17.6 3.8v3.4c0 3-5.6 4.6-5.6 8.2" /><path d="m8.8 17 3.2 3.2 3.2-3.2" /></>,
   // pyramid sets: the weight steps up set by set
   steps: <path d="M3.6 19.8h4.6v-4.6h4.6v-4.6h4.6V6h3" />,
+  // BadgeFit's pace sound on a run (components/PaceButton.jsx): two footprints, one a step ahead,
+  // solid like starFill, since two outlined soles read as two loops at button size.
+  footprints: <g fill="currentColor" stroke="none"><ellipse cx="7.6" cy="12.4" rx="3.1" ry="4.5" transform="rotate(-10 7.6 12.4)" /><ellipse cx="8.5" cy="19.1" rx="2.2" ry="1.8" /><ellipse cx="16.4" cy="7.6" rx="3.1" ry="4.5" transform="rotate(10 16.4 7.6)" /><ellipse cx="15.5" cy="14.3" rx="2.2" ry="1.8" /></g>,
   // a note pinned to show next time (flag is Finish workout)
   pin: <path d="M9.2 3.8h5.6M10.2 3.8v5.4l-3.4 3.8h10.4l-3.4-3.8V3.8M12 13v7.2" />,
   // a place on a map (the gym reminder, #614)

@@ -52,6 +52,8 @@ import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
 import TodaySwipe from '../components/TodaySwipe.jsx'
 import { isBadgeFit, isBadgeFitGuest, toSignIn } from '../lib/police/guest.js'
+import ReadyRing from '../components/ReadyRing.jsx'
+import { weeksInARow } from '../lib/police/bot-card.js'
 import { offerHealthOnce } from '../lib/police/health-ask.js'
 import { useUI } from '../store/useUI.js'
 import { REST } from '../lib/rotation.js'
@@ -254,12 +256,16 @@ export default function Home() {
       </div>
 
       <div className="calm-mid">
-        <BadgeLogo size={54} />
-        <h1 className="calm-hi">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
-        {/* The countdown, for a booked test: the number that matters most, said big. */}
-        {left != null && left >= 0 && <div className="calm-count" aria-label={`${left} days to your ${(P.testName || 'PCT').trim()}`}>
-          <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
-        </div>}
+        {/* A member sees how ready they are, the days to go and what to do next (components/ReadyRing.jsx);
+            a guest keeps the welcome and the countdown, said big. */}
+        {guest ? <>
+          <BadgeLogo size={54} />
+          <h1 className="calm-hi">{user?.name ? `Welcome, ${user.name}` : 'Welcome'}</h1>
+          {left != null && left >= 0 && <div className="calm-count" aria-label={`${left} days to your ${(P.testName || 'PCT').trim()}`}>
+            <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
+          </div>}
+        </> : <ReadyRing results={P.results} beepTarget={P.beepTarget} left={left} testName={P.testName} streak={weeksInARow(S)}
+          onFind={() => nav('/police?tab=tests&test=1')} onOpen={() => nav('/police?tab=tests')} />}
         {/* The test date has gone by: Hayden asks how it went, once, and the plan follows the answer
             (lib/police/after-test.js): the Academy, a re-test, or your own training. */}
         {needsAfterTest(P, todayISO()) && <div className="card calm-after">
@@ -275,7 +281,7 @@ export default function Home() {
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
         <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>
         {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
-        {!(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
+        {guest && !(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}

@@ -9,6 +9,12 @@ import { readiness, evaluate, latestResult } from './standards.js'
 export const LINE_COLOURS = ['#f2b81a', '#3fb6ff', '#2fd39a', '#ff7a59', '#b48cff', '#ff5fa2', '#20c3c3', '#9ccc3c', '#ff9f1c', '#6c8cff']
 export const GUEST_COLOUR = '#9aa3b2'
 
+/** The colour a member picked on My Hayden (S.police.botColour), else the one from their account. */
+export function myColour(P, userId) {
+  if (!userId) return GUEST_COLOUR
+  return LINE_COLOURS.includes(P?.botColour) ? P.botColour : lineColour(userId)
+}
+
 /** A member's line colour from their account id (the same on every device), grey for a guest. */
 export function lineColour(userId) {
   if (!userId) return GUEST_COLOUR
@@ -19,13 +25,15 @@ export function lineColour(userId) {
 
 const weekKey = iso => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10) }
 
+/** How many different weeks have a session logged (the sweatband comes at 4). */
+export const weeksTrained = S => new Set((S?.workouts || []).filter(w => w?.d).map(w => weekKey(w.d))).size
+
 /** The gear earned, as a list for components/HaydenBot.jsx. A guest earns none. */
 export function earnedGear(S, { guest = false } = {}) {
   if (guest) return []
   const P = S?.police || {}
   const gear = []
-  const weeks = new Set((S?.workouts || []).filter(w => w?.d).map(w => weekKey(w.d)))
-  if (weeks.size >= 4) gear.push('headband')
+  if (weeksTrained(S) >= 4) gear.push('headband')
   const ready = readiness(P.results || [], P.beepTarget)
   if (ready.passed > 0) gear.push('whistle')
   const beep = latestResult(P.results || [], 'beep')

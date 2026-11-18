@@ -1,9 +1,45 @@
 # BadgeFit monetisation: the idea, pinned (13 November 2026)
 
-Pinned by the owner for the step after the PCT on 6 December 2026 and the first release. Nothing
-here is built. Read this first when monetisation comes up again.
+## Revised by the owner, 18 November 2026 (replaces "the owner's rules" below)
 
-## The owner's rules
+Still for after the PCT on 6 December 2026. Nothing here charges money yet.
+
+- **Prep Pass**, not a free-for-all app and not a trainer marketplace first. The owner paid $99 for
+  a Facebook plan that was a basic PDF, with a coach in Messenger who had no time for them: the
+  "coach" is Hayden, built in, and the human part is Mentors (below).
+- **Prices to test:** $19 once for the 12-week PCT block (the plan is 12 weeks), or $9.99 a month
+  (for a test further off, and the Academy). Monthly over 12 weeks is about $30, so the $19 is the
+  obvious pick. Apple's price points may make it $18.99 or $19.99. Call it a founding price, test
+  it with a "Notify me" button before charging, and test a higher price too.
+- **14 days free, no card (a reverse trial):** a new account gets everything for 14 days, then
+  chooses. Free keeps the whole habit; the Pass is what makes the plan fit you.
+- **Guest, Free, Pass:**
+  - Guest (no account, can stay forever, asked to sign up at good moments, once each): the Simple
+    plan, today's session and runs with Hayden, a grey Hayden, Community to read.
+  - Free: the plan to your test date, saved on every phone, the ready ring and test days, your
+    Hayden in your colour with gear, Community, 3 Hayden questions a week, moving a day and
+    swapping an exercise.
+  - Prep Pass: the plan changes every week to fit you, any session any day and your own plan
+    (plan from a photo), the easy week before the test, the pace sound on runs, saying your sets
+    out loud, unlimited Hayden, the pass guarantee (train 3 days a week, fail: next block free).
+- **Pass days, earned by helping, never by training:** bring a buddy who finishes a week (+14 days
+  each), an answer picked as best (+7 days); someone who passed and helps one person a month
+  (a Mentor) keeps the Pass free. Only things another person confirms earn days. Training earns
+  gear for your Hayden instead (cosmetic, so a typed-in score only cheats yourself).
+- **Stages:** PCT prep (Prep Pass), Academy (the Pass carries on), On the job (Probationary
+  Constable, then Constable: free as a Mentor). Shown as "On the job", never a rank, since officers
+  often have rules about saying they are police online.
+- **Before any real payment:** the licences below (exercise media, openGym code), Apple's paid apps
+  agreement, banking and tax in App Store Connect.
+
+Built so far (build 180): the ready ring, the surprise after a workout, My Hayden (colour and gear)
+and the pace sound. Every member gets everything until payments go on; guests are asked to sign up
+for the pace sound.
+
+## The owner's earlier rules (13 November 2026)
+
+Pinned by the owner for the step after the PCT on 6 December 2026 and the first release. Nothing
+here is built. Superseded by the section above where they differ.
 
 - The app stays free. No subscription and no one-time price for the app.
 - Freemium with in-app purchases.

@@ -10,7 +10,11 @@ import { RoundPick, PickRow, TrainList } from './components/StartPicker.jsx'
 import { countInRun } from './components/CountIn.jsx'
 import { shareWin } from './components/ShareWin.jsx'
 import { winText } from './lib/police/cheer-text.js'
-import { daysUntil } from './lib/police/programme.js'
+import { daysUntil, planWeekOf } from './lib/police/programme.js'
+import { earnedGear } from './lib/police/bot-look.js'
+import { pickSurprise, gearGained } from './lib/police/surprise.js'
+import { sessionsThisWeek } from './lib/police/bot-card.js'
+import HaydenBot from './components/HaydenBot.jsx'
 import { GYM_TYPES, RUN_TYPES, gymTypesFor, ensureFullBody } from './lib/police/train-types.js'
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
@@ -4149,8 +4153,41 @@ function KeepInRoutine({ additions }) {
   </div>
 }
 
-function FinishSummary({ w, prs, e1prs = [], additions = [], close }) {
+// BadgeFit's finish: Hayden cheering, Done, where you are in the plan, one surprise that is always
+// real (lib/police/surprise.js) and two small buttons. The numbers, the body map and what's next
+// stay with openGym's summary below.
+function BfFinish({ w, surprise, additions = [], close }) {
   const st = useStore(s => s.S)
+  const user = useStore(s => s.user)
+  const plan = st.police?.start ? planWeekOf(st.police, todayISO()) : null
+  const week = sessionsThisWeek(st)
+  const vol = sessionVolume(w, st)
+  return <div className="bff">
+    <div className="fin-x"><button type="button" className="iconbtn" aria-label={t('Close')} onClick={() => closeThenNav(close, '/home')}><Icon name="xmark" /></button></div>
+    <div className="bff-hb"><HaydenBot size={92} eyes="happy" pose="cheer" /></div>
+    <h3 className="bff-done">Done <Icon name="check" /></h3>
+    <div className="bff-card">
+      <div className="bff-row"><b>{plan?.week && !plan.after ? `Week ${plan.week} of ${plan.last}` : 'This week'}</b>
+        <b className="g">{week} {week === 1 ? 'session' : 'sessions'} this week</b></div>
+      {plan?.week && !plan.after && <div className="bff-bar" aria-hidden="true"><i style={{ width: Math.min(100, Math.round(plan.week / plan.last * 100)) + '%' }} /></div>}
+      <div className="bff-sub">{fmtDur(w.end - w.start)}{vol > 0 ? ' · ' + fmtVol(vol, st.unit) : ''}</div>
+    </div>
+    {surprise && <div className={'bff-gift ' + surprise.kind} role="status">
+      <div className="bff-gift-i">{surprise.kind === 'gear' ? <HaydenBot size={64} eyes="happy" pose="cheer" gear={[surprise.gear]} /> : <Icon name={surprise.icon} />}</div>
+      <b>{surprise.title}</b>
+      <span>{surprise.sub}</span>
+      {surprise.kind === 'gear' && <button type="button" className="bff-pill w sm" onClick={() => closeThenNav(close, '/my-hayden')}>See your Hayden</button>}
+    </div>}
+    <div className="bff-acts">
+      {user && <button type="button" className="bff-pill w" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="share" /> Share</button>}
+      <button type="button" className="bff-pill" onClick={() => closeThenNav(close, '/home')}>Home</button>
+    </div>
+    <KeepInRoutine additions={additions} />
+  </div>
+}
+function FinishSummary({ w, prs, e1prs = [], additions = [], close, surprise = null }) {
+  const st = useStore(s => s.S)
+  if (st.police?.level && surprise) return <BfFinish w={w} surprise={surprise} additions={additions} close={close} />
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
     {/* Sticky, so the summary can be left from the top however far it has been scrolled. */}
     <div className="fin-x"><button type="button" className="iconbtn" aria-label={t('Close')} onClick={() => closeThenNav(close, '/home')}><Icon name="xmark" /></button></div>
@@ -4276,6 +4313,10 @@ function doFinishWorkout() {
   w.vol = workoutVolume(w)
   // Read before the session is gone: the summary offers these to their routines (#592).
   const additions = past ? [] : routineAdditions(A, st.routines)
+  // BadgeFit: the gear Hayden had before this session, to spot what it earned (the surprise).
+  const bf = !!st.police?.level && !past
+  const guest = !useStore.getState().user
+  const gearBefore = bf ? earnedGear(st, { guest }) : []
   let shown = w
   update(s => {
     if (past) {
@@ -4306,7 +4347,12 @@ function doFinishWorkout() {
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} additions={additions} close={close} />, { kind: 'center', locked: true, wide: true })
+  const surprise = bf ? pickSurprise({
+    newGear: gearGained(gearBefore, earnedGear(S(), { guest })),
+    bests: prs.map(id => exerciseNameFor(EXIDX[id] || exOr(id))),
+    sessions: (S().workouts || []).length,
+  }) : null
+  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} additions={additions} close={close} surprise={surprise} />, { kind: 'center', locked: true, wide: true })
   // BadgeFit: a finished session always lands on Home, wherever it was started (Hayden, Plan),
   // so the day shows done where you look first.
   if (st.police?.level && !past) {

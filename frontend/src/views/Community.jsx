@@ -21,7 +21,7 @@ import { exerciseNameFor } from '../lib/i18n.js'
 import { Button, Segmented, TextArea, TextField } from '../components/ui.jsx'
 import { useNearby, toggleFollow, sendCheer, hideBot } from '../components/NearbyBots.jsx'
 import { botSvg } from '../components/HaydenBot.jsx'
-import { lineColour, earnedGear } from '../lib/police/bot-look.js'
+import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import '../police.css'
 
@@ -281,7 +281,7 @@ export default function Community() {
   useEffect(() => { if (user) api('/api/bell').then(r => setPeople(r?.people || [])).catch(() => {}) }, [user, live.length])
   const update = (id, next) => setPosts(prev => (next ? prev.map(p => (p.id === id ? next : p)) : prev.filter(p => p.id !== id)))
   const pickArea = () => menuSheet({ title: 'Show', sections: [{ items: [{ icon: 'list', label: 'Everything', on: !area, onClick: () => setArea(null) }, ...AREAS.map(a => ({ icon: 'dot', label: a.label, on: area === a.id, onClick: () => setArea(a.id) }))] }] })
-  const me = { colour: lineColour(user?.id), gear: earnedGear(S) }
+  const me = { colour: myColour(S.police, user?.id), gear: earnedGear(S) }
   const training = id => live.some(l => l.id === id && l.training)
 
   return <div className="narrow pf cm">
