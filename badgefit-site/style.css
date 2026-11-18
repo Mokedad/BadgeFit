@@ -58,3 +58,32 @@ body.links{background:var(--navy);color:#fff;min-height:100vh;display:grid;place
 .links .addr{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-weight:800}
 .links .copy{border:0;border-radius:999px;padding:8px 14px;background:var(--gold);color:#111;font-weight:800;font-size:14px}
 .links .how .fine{color:rgba(255,255,255,.75)}
+
+/* Screenshots: fixed 390x844 proportions, never stretched (object-fit: contain). */
+.phone{width:100%;max-width:300px;margin:0 auto}
+.phone img{display:block;width:100%;height:auto;aspect-ratio:390/844;object-fit:contain;border-radius:34px;box-shadow:0 20px 50px rgba(11,26,54,.25);border:6px solid #0b1a36;background:#f2f2f7}
+.tilt img{transform:rotate(2deg)}
+@media (max-width:760px){.phone{max-width:250px}}
+
+/* Feature cards: one vector symbol each, no screenshot. */
+.feat .sym{display:grid;place-items:center;aspect-ratio:1;max-width:300px;width:100%;margin:0 auto;border-radius:44px;background:linear-gradient(160deg,#13264a,#0b1a36);box-shadow:0 20px 50px rgba(11,26,54,.22)}
+.sym-i{width:38%;height:38%;fill:none;stroke:#ffc629;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.feat.rev .sym{order:2}
+
+/* Social row: matching 24px brand marks, one colour. */
+.socials{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.soc{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;text-decoration:none}
+.soc:hover,.soc:focus-visible{background:#ffc629;color:#0b1a36}
+.soc.soon{opacity:.35;cursor:default}
+.soc-i{width:20px;height:20px;fill:currentColor}
+.sitelink{margin:6px 0 14px;font-weight:800}
+.sitelink a{color:#ffc629}
+footer .socials .soc{background:rgba(255,255,255,.12)}
+.links .socials{margin-top:18px}
+.links .logo.big{width:72px;height:72px}
+
+/* Beta test: QR code for a scan from another device (the phone camera opens the TestFlight link). */
+.qr{display:flex;flex-direction:column;align-items:center;gap:6px;margin:18px auto}
+.qr img{width:180px;height:180px;background:#fff;border-radius:16px;padding:8px;box-sizing:content-box}
+.links .qr img{width:160px;height:160px}
+.links .qr .fine{color:rgba(255,255,255,.7)}
