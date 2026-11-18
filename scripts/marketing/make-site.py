@@ -101,7 +101,6 @@ index = f'''<!doctype html>
     </div>
   </div>
 </section>
-{feats}
 <section class="band hayden" id="hayden">
   <h2>Your Hayden starts grey</h2>
   <p class="sub">Sign up and he takes your colour. Train and he earns gear. Pass, and he wears the gold badge.</p>
