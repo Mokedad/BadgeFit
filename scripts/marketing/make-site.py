@@ -135,7 +135,6 @@ index = f'''<!doctype html>
 </section>
 <section class="beta" id="join">
   <h2>Get in before it goes public</h2>
-  <div class="qr"><img src="img/beta-qr.png" alt="QR code: scan with your iPhone camera to open the BadgeFit beta" width="180" height="180" loading="lazy"><p class="fine">Scan with your iPhone camera</p></div>
   <ol class="steps">
     <li><b>1</b><span>Get <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight</a> from the App Store</span></li>
     <li><b>2</b><span>Open the beta link on your iPhone and tap Accept</span></li>
