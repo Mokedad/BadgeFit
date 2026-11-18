@@ -148,7 +148,6 @@ index = f'''<!doctype html>
   {social()}
   <p><b>BadgeFit</b> · Train for the PCT. Earn the badge.</p>
   <p>BadgeFit is an independent training app and is not affiliated with, or endorsed by, any police service. General information only, not medical advice: see your doctor before starting a new training plan.</p>
-  <p>Built on <a href="https://github.com/DuarteSantos8/openGym">openGym</a>, free software under the AGPL-3.0. <a href="https://github.com/Mokedad/BadgeFit">Source code</a>.</p>
 </footer>
 </body>
 </html>
