@@ -1,23 +1,19 @@
 # BadgeFit website
 
-One static page (`index.html`, `style.css`, `img/`). No build step: host it on GitHub Pages,
-Netlify, Cloudflare Pages or any web host.
+Two static pages, no build step: `index.html` (the landing page for beta testers) and
+`links.html` (the link-in-bio page for Instagram and TikTok), with `style.css` and `img/`.
+deploy/setup.sh copies this folder onto the server (SITE_DOMAIN, badgefit.com.au).
 
-## Before you publish
+## Placeholders to fill
 
-Replace these placeholders in `index.html`:
+| Placeholder      | What goes there                                         |
+|------------------|---------------------------------------------------------|
+| `TESTFLIGHT_URL` | The TestFlight public link (App Store Connect)          |
+| `INSTAGRAM_URL`  | The Instagram profile                                   |
+| `TIKTOK_URL`     | The TikTok profile                                      |
+| `SOURCE_URL`     | The public source code (the AGPL licence requires it)   |
 
-| Placeholder     | What goes there                                              |
-|-----------------|--------------------------------------------------------------|
-| `APP_URL`       | Where the app runs (your server, or the App Store/Play link) |
-| `INSTAGRAM_URL` | Your Instagram profile                                       |
-| `TIKTOK_URL`    | Your TikTok profile                                          |
-| `YOUTUBE_URL`   | Your YouTube channel (or remove the link)                    |
-| `SOURCE_URL`    | Your public source code (the AGPL licence requires it)       |
+## Screenshots
 
-The screenshots in `img/` come from the app itself. Retake them after design changes.
-
-## Checks before launch
-
-- Business name, trade mark (IP Australia) and domain for "BadgeFit" are free to use.
-- The standards and pass marks still match your target service's current requirements.
+`img/` holds screenshots of the app without exercise pictures: the exercise media are licensed
+to openGym only and must not appear on the website. Retake them after design changes.

@@ -3,128 +3,61 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BadgeFit: Police Fitness Test Training</title>
-<meta name="description" content="Train for the police physical test: beep test, push-ups, prone bridge, handgrip, vertical jump and Illinois agility. A 12-week programme, nutrition plans and Hayden, your AI recruit coach.">
-<meta property="og:title" content="BadgeFit: Train for the test. Earn the badge.">
-<meta property="og:description" content="12-week police applicant programme, test tracker, nutrition and an AI coach that keeps you going.">
-<meta property="og:image" content="img/today.jpg">
-<meta name="theme-color" content="#0a1628">
+<title>BadgeFit: Train for the PCT</title>
+<meta name="description" content="BadgeFit trains you for the police PCT: beep test, push-ups, prone bridge, handgrip, vertical jump and Illinois agility. A plan to your test date, Hayden your coach, and a community of applicants. Free iPhone beta.">
+<meta property="og:title" content="BadgeFit: Train for the PCT. Earn the badge.">
+<meta property="og:description" content="A plan to your test date, the six standards tracked, Hayden your coach. Join the free iPhone beta.">
+<meta property="og:image" content="img/ring.jpg">
+<meta name="theme-color" content="#0b1a36">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header class="nav">
-  <a class="brand" href="#top"><span class="shield" aria-hidden="true">🛡️</span>BadgeFit</a>
-  <nav><a href="#standards">Standards</a><a href="#programme">Programme</a><a href="#jarvis">Hayden</a><a href="#food">Nutrition</a></nav>
-  <a class="btn small" href="APP_URL">Open the app</a>
+  <a class="brand" href="#top"><svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4 40 10v12c0 10-7 18-16 22C15 40 8 32 8 22V10Z" fill="#0b1a36" stroke="#ffc629" stroke-width="2.5"/><path d="m24 15 2.6 5.5 6 .7-4.5 4.1 1.2 5.9L24 28.3l-5.3 2.9 1.2-5.9-4.5-4.1 6-.7Z" fill="#ffc629"/></svg>BadgeFit</a>
+  <a class="btn small" href="TESTFLIGHT_URL">Join the beta</a>
 </header>
-
 <main id="top">
 <section class="hero">
   <div class="hero-text">
-    <p class="eyebrow">Police applicant fitness</p>
-    <h1>Train for the test.<br><span>Earn the badge.</span></h1>
-    <p class="lead">A 12-week programme built by someone who has trained for police recruitment for over a year. Every standard tracked, every set logged, and Hayden, your AI recruit coach, in your corner every single day.</p>
-    <div class="cta">
-      <a class="btn" href="APP_URL">Start training free</a>
-      <a class="btn ghost" href="#standards">See the standards</a>
-    </div>
-    <p class="fine">Works on iPhone, Android and the web. Syncs to Apple Watch, Wear OS and Garmin.</p>
+    <p class="eyebrow">For police applicants</p>
+    <h1>Train for the PCT.<br><span>Earn the badge.</span></h1>
+    <p class="lead">A plan to your test date, all six standards tracked, and Hayden, your coach, in your pocket. Built by an applicant training for the same test.</p>
+    <div class="cta"><a class="btn" href="TESTFLIGHT_URL"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8v11.4M7.6 11.2 12 15.6l4.4-4.4M4.6 19.4h14.8" /></svg>Join the free iPhone beta</a></div>
+    <p class="fine">Beta on iPhone through Apple's TestFlight. Android is coming.</p>
   </div>
-  <div class="phone"><img src="img/today.jpg" alt="BadgeFit app: Hayden daily briefing, test readiness and today's session" width="520" height="1126"></div>
+  <div class="phone tilt"><img src="img/hayden.jpg" alt="My Hayden in BadgeFit: pick his colour, earn his gear" width="520" height="1125"></div>
 </section>
-
-<section class="quote">
-  <p>“Every rep you press into that bar is you pressing into the life you want.”</p>
-  <span>Hayden, your recruit coach</span>
+<section class="band" id="standards">
+  <h2>Six standards. Pass every one.</h2>
+  <div class="grid six"><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="5.8" r="1.9" /><path d="M7 8.8v4.6l-1.2 6.2M7 11.4l4.4 1.9" /><rect x="12.2" y="10.8" width="2.3" height="5" rx=".9" /><rect x="15.9" y="10.8" width="2.3" height="5" rx=".9" /><path d="M14.5 13.3h1.4" /></svg><h3>Handgrip</h3><p class="mark">30 kg <small>each hand</small></p></article><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.4" r="7.2" /><path d="M12 9.6v3.8h2.8M9.6 3.4h4.8" /></svg><h3>Prone bridge</h3><p class="mark">90 s <small></small></p></article><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.6V4.4M6.2 10.6 12 4.4l5.8 6.2" /></svg><h3>Vertical jump</h3><p class="mark">30 cm <small></small></p></article><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.2" r="2" /><path d="M12 8.4v5.6M12 14 9.2 20.5M12 14l2.8 6.5M8 10.6h8M5.4 9.1v3M18.6 9.1v3" /></svg><h3>Push-ups</h3><p class="mark">25 <small>reps</small></p></article><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 7.2h2.9c1.6 0 2.8.9 3.8 2.4l3 4.8c1 1.5 2.2 2.4 3.8 2.4h2.9M3.6 16.8h2.9c1.6 0 2.8-.9 3.8-2.4l.7-1.1M15.6 9.9l.7-1.1c1-1.5 2.2-2.4 3.8-2.4h1.9" /><path d="m17.9 4.3 2.8 2.1-2.8 2.1M17.9 14.7l2.8 2.1-2.8 2.1" /></svg><h3>Illinois agility</h3><p class="mark">20 s <small>or under</small></p></article><article><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 9.4h3.2l4.6-3.8v12.8l-4.6-3.8H4.6Z" /><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4" /></svg><h3>Beep test</h3><p class="mark">7.1 <small>level</small></p></article></div>
+  <p class="note">The NSW applicant standards as BadgeFit trains them. Always check your service's current requirements.</p>
 </section>
-
-<section id="standards" class="band">
-  <h2>The six standards. Pass every one.</h2>
-  <p class="sub">The physical test most applicants face. Log every attempt and watch your readiness climb.</p>
-  <div class="grid six">
-    <article><span class="ico">✊</span><h3>Handgrip</h3><p class="mark">30 kg <small>each hand</small></p><p>Best of 2 on a dynamometer. The academy asks for 35 kg, so train past it.</p></article>
-    <article><span class="ico">🧱</span><h3>Prone bridge</h3><p class="mark">90 s</p><p>Head, hips and heels in one line. Break at the hips and the clock stops.</p></article>
-    <article><span class="ico">⬆️</span><h3>Vertical jump</h3><p class="mark">30 cm</p><p>Standing reach to jump height. Built with squats and jump squats.</p></article>
-    <article><span class="ico">💪</span><h3>Push-ups</h3><p class="mark">25 reps</p><p>Strict form, on toes or knees, one attempt.</p></article>
-    <article><span class="ico">🔀</span><h3>Illinois agility</h3><p class="mark">≤ 20 s</p><p>From a prone start, weave the cone course. Best of 2.</p></article>
-    <article><span class="ico">📣</span><h3>Beep test</h3><p class="mark">Level 7.1</p><p>We train you to 7.2 and beyond, so the pass feels comfortable.</p></article>
+<section class="feat"><div class="phone"><img src="img/ring.jpg" alt="The ready ring in the BadgeFit app" width="520" height="1125" loading="lazy"></div><div class="ft"><h2>The ready ring</h2><p>Your six tests as six arcs. Gold fills toward the pass mark, green once you pass. One look tells you what to work on next.</p></div></section><section class="feat rev"><div class="phone"><img src="img/pace.jpg" alt="Pace sound on runs in the BadgeFit app" width="520" height="1125" loading="lazy"></div><div class="ft"><h2>Pace sound on runs</h2><p>Tap the footprints and step on every tick. Hayden sets the beat for each part of the run, and it plays under your music.</p></div></section><section class="feat"><div class="phone"><img src="img/finish.jpg" alt="A reward every session in the BadgeFit app" width="520" height="1125" loading="lazy"></div><div class="ft"><h2>A reward every session</h2><p>Finish a workout and there is always something real: a new best, gear for your Hayden, a milestone or a tip for the test.</p></div></section><section class="feat rev"><div class="phone"><img src="img/hayden.jpg" alt="Your own Hayden in the BadgeFit app" width="520" height="1125" loading="lazy"></div><div class="ft"><h2>Your own Hayden</h2><p>Pick his colour. He earns gear as you train: a sweatband, a whistle, a lightning bolt, and the gold badge when you pass.</p></div></section>
+<section class="band dark" id="plans">
+  <h2>A plan for where you are</h2>
+  <div class="plans">
+    <article><h3>PCT prep <small>12 weeks to your test</small></h3><ul class="week"><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><rect x="14.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><path d="M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2" /></svg><b>Mon</b><span>Chest, shoulders and abs</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Tue</b><span>Intervals for the beep test</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><rect x="14.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><path d="M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2" /></svg><b>Wed</b><span>Squats and push power</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Thu</b><span>Easy run</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><rect x="14.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><path d="M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2" /></svg><b>Fri</b><span>Arms, back and grip</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Sat</b><span>Steady run or beep focus</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 14.2A7.8 7.8 0 0 1 9.8 4.6a8.2 8.2 0 1 0 9.6 9.6Z" /></svg><b>Sun</b><span>Rest and recover</span></li></ul></article>
+    <article><h3>Academy prep <small>after you pass</small></h3><ul class="week"><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><rect x="14.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><path d="M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2" /></svg><b>Mon</b><span>Strength A: squat and pull-ups</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Tue</b><span>Steady run at formation pace</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.4" r="7.2" /><path d="M12 9.6v3.8h2.8M9.6 3.4h4.8" /></svg><b>Wed</b><span>Academy circuit</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Thu</b><span>Intervals</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><rect x="14.9" y="7.9" width="3.2" height="8.2" rx="1.3" /><path d="M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2" /></svg><b>Fri</b><span>Strength B: deadlift and press</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.2" cy="4.9" r="1.9" /><path d="M13.4 9.1 9.6 11.4l1.7 3.3-2.4 5.4M13.4 9.1l3.4 1.5 1.4 3.4M11.3 14.7l4.3.9 1.5 4.5M9.6 11.4 6 10.2" /></svg><b>Sat</b><span>Long easy run</span></li><li><svg class="wi" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 14.2A7.8 7.8 0 0 1 9.8 4.6a8.2 8.2 0 1 0 9.6 9.6Z" /></svg><b>Sun</b><span>Rest and mobility</span></li></ul></article>
   </div>
-  <p class="note">Standards differ between states and change over time. Always check your service's current requirements.</p>
+  <p class="note light">Beginner or intermediate. Your weights go up as you get stronger, and the runs build slowly so your shins hold up.</p>
 </section>
-
-<section id="programme" class="split">
-  <div class="phone small"><img src="img/plan.jpg" alt="The 12-week plan: week picker, phases and the daily sessions" width="520" height="1126" loading="lazy"></div>
-  <div>
-    <h2>12 weeks. 3 phases. One goal.</h2>
-    <p class="sub">Beginner or intermediate, the plan builds itself into your app as real workouts with automatic progression.</p>
-    <ol class="steps">
-      <li><b>Weeks 1-4: Foundation.</b> Learn every lift, build your running base, test where you stand.</li>
-      <li><b>Weeks 5-8: Strength.</b> Heavier sets, harder intervals, 50 m repeats and time ladders.</li>
-      <li><b>Weeks 9-12: Peak.</b> Heavy and explosive, 20 m shuttle sprints and beep-specific work. Peak for test day.</li>
-    </ol>
-    <div class="week">
-      <span><b>Mon</b> Chest, shoulders &amp; abs</span>
-      <span><b>Tue</b> VO2 max intervals</span>
-      <span><b>Wed</b> Squats &amp; push power</span>
-      <span><b>Thu</b> Easy run, zone 2</span>
-      <span><b>Fri</b> Arms, back &amp; abs</span>
-      <span><b>Sat</b> Hard steady run or beep focus</span>
-      <span><b>Sun</b> Recovery walk, sauna, boots</span>
-    </div>
-  </div>
-</section>
-
-<section class="split rev">
-  <div>
-    <h2>The rep range rule</h2>
-    <p class="sub">Simple, honest progression. You always know what to lift next.</p>
-    <div class="rule">
-      <div><b>3</b><span>below range</span><em class="down">Move down</em></div>
-      <div><b>4-5</b><span>in range</span><em class="stay">Stay</em></div>
-      <div><b>6+</b><span>top of range</span><em class="up">+2.5 kg</em></div>
-    </div>
-    <p>Pick a range (4-6, 6-8, 10-12 or 12-15). Hit the top and the weight goes up next set. Fall short and it comes down. Where you finish this week is where you start next week, and the app remembers for you.</p>
-  </div>
-  <div class="phone small"><img src="img/reps.jpg" alt="Rep range calculator telling you to move up next set" width="520" height="1126" loading="lazy"></div>
-</section>
-
-<section id="jarvis" class="band dark">
-  <h2>Meet Hayden, your AI recruit coach</h2>
-  <p class="sub">A daily briefing read aloud, and a coach you can ask anything.</p>
-  <div class="grid three">
-    <article><h3>Knows your numbers</h3><p>Your level, your week, your latest test results. Ask “what should I work on?” and Hayden names your biggest gap in real numbers.</p></article>
-    <article><h3>Talks like a trainer</h3><p>Motivating, never fluffy. Practical answers first, then the push you need to go again.</p></article>
-    <article><h3>In your ear</h3><p>Tap “Hear it” and your briefing is read aloud before you train. Works offline.</p></article>
-  </div>
-</section>
-
-<section id="food" class="split">
-  <div class="phone small"><img src="img/tests.jpg" alt="Test tracker showing passes and progress on each standard" width="520" height="1126" loading="lazy"></div>
-  <div>
-    <h2>Eat for the badge</h2>
-    <p class="sub">Your daily calories, protein, carbs, fat and water, worked out from your weight and goal.</p>
-    <ul class="checks">
-      <li><b>High protein</b>: lose fat and build muscle at the same time. Our recommended plan.</li>
-      <li><b>Intermittent fasting 16:8</b>: how to start, when to eat around training, and who should not fast.</li>
-      <li><b>Carb cycling</b>: fuel the hard days, cut on the easy ones.</li>
-      <li><b>Balanced deficit</b>: the simplest start for beginners.</li>
-      <li><b>Recovery</b>: sauna, compression boots, sleep, done properly.</li>
-    </ul>
-  </div>
-</section>
-
-<section class="band final">
-  <h2>Your future self is waiting.<br>Start week 1 today.</h2>
-  <a class="btn" href="APP_URL">Start training free</a>
-  <p class="social">Follow the journey: <a href="INSTAGRAM_URL">Instagram</a> · <a href="TIKTOK_URL">TikTok</a> · <a href="YOUTUBE_URL">YouTube</a></p>
+<section class="beta" id="join">
+  <h2>Be one of the first testers</h2>
+  <ol class="steps">
+    <li><b>1</b><span>Get <a href="https://apps.apple.com/app/testflight/id899247664">TestFlight</a> from the App Store</span></li>
+    <li><b>2</b><span>Tap the beta link and Accept</span></li>
+    <li><b>3</b><span>Install BadgeFit and start week 1</span></li>
+  </ol>
+  <a class="btn" href="TESTFLIGHT_URL"><svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8v11.4M7.6 11.2 12 15.6l4.4-4.4M4.6 19.4h14.8" /></svg>Join the beta</a>
+  <p class="fine">Free while in beta. Tell us what to fix: that is the deal.</p>
+  <p class="social"><a href="INSTAGRAM_URL">Instagram</a> · <a href="TIKTOK_URL">TikTok</a></p>
 </section>
 </main>
-
 <footer>
-  <p><b>BadgeFit</b> · Train for the test. Earn the badge.</p>
-  <p>BadgeFit is an independent training programme and is not affiliated with, or endorsed by, any police service. General information only, not medical advice: see your doctor before starting a new training or eating plan.</p>
-  <p>The BadgeFit app is built on <a href="https://github.com/DuarteSantos8/openGym">openGym</a>, free software under the AGPL-3.0. <a href="SOURCE_URL">Source code</a>.</p>
+  <p><b>BadgeFit</b> · Train for the PCT. Earn the badge.</p>
+  <p>BadgeFit is an independent training app and is not affiliated with, or endorsed by, any police service. General information only, not medical advice: see your doctor before starting a new training plan.</p>
+  <p>Built on <a href="https://github.com/DuarteSantos8/openGym">openGym</a>, free software under the AGPL-3.0. <a href="SOURCE_URL">Source code</a>.</p>
 </footer>
 </body>
 </html>
