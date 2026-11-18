@@ -132,6 +132,24 @@ export function hide(state, social, user, { id } = {}) {
   return { ok: true };
 }
 
+/** Unblock: hidden from each other no more (a follow is not brought back; follow again if you like). */
+export function unhide(state, social, user, { id } = {}) {
+  const hid = String(id || '');
+  const mine = social.hidden[user.id] || [];
+  const to = mine.find(uid => handleOf(state, uid) === hid);
+  if (!to) return { error: 'not blocked', status: 404 };
+  social.hidden[user.id] = mine.filter(x => x !== to);
+  return { ok: true };
+}
+
+/** The people this member has blocked, by first name, to unblock. */
+export function hiddenList(state, social, user) {
+  return { people: (social.hidden[user.id] || []).map(uid => ({ id: handleOf(state, uid), ...cleanCard(social.names[uid] || {}, null), stats: null })) };
+}
+
+/** Everyone who follows `uid` (to tell them about a new post). */
+export const followersOf = (social, uid) => Object.keys(social.follows).filter(k => (social.follows[k] || []).includes(uid) && !hiddenEither(social, k, uid));
+
 /** The bell: everyone the member follows, active ones first (BadgeFit open in the last 3 minutes). */
 export function bell(state, social, user, now = Date.now()) {
   const people = (social.follows[user.id] || []).filter(uid => !hiddenEither(social, user.id, uid)).map(uid => {

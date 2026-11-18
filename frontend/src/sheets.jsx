@@ -4175,7 +4175,7 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close }) {
       {isOn(st, 'motivation') && <Button variant="tinted" icon="share" data-fin-share onClick={() => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w)}>{t('Share')}</Button>}
       {/* BadgeFit: the sharing lives here, at the end of the workout, not under Home's tick. */}
       {st.police?.level && <div className="fin-bf">
-        {useStore.getState().user && <button type="button" className="fin-bf-b" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="sparkles" /> Tell your crew</button>}
+        {useStore.getState().user && <button type="button" className="fin-bf-b" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="sparkles" /> Share to Community</button>}
       </div>}
     </div>
     <div style={{ height: 14 }} />

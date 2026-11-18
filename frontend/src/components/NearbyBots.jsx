@@ -18,6 +18,7 @@ import { botSvg } from './HaydenBot.jsx'
 import { showCheers } from './CheerBubble.jsx'
 import { useRun } from '../store/useRun.js'
 import { useLocation } from 'react-router-dom'
+import { nextScene, wander } from '../lib/police/bot-play.js'
 
 const EVERY_MS = 30000
 export const useNearby = create(() => ({ near: [], said: {}, live: [], tucked: [] }))
@@ -76,7 +77,7 @@ export const openBotCard = (b, onChange) => useUI.getState().openSheet(close => 
 // What a bot does by itself, now and then: a wave, a little dance, a cheer, a hello.
 const LIFE = [{ pose: 'wave', eyes: 'happy', say: 'Hi!' }, { pose: 'cheer', eyes: 'happy', cls: 'nb-dance' }, { pose: 'fist', eyes: 'determined' }, { pose: 'wave', eyes: 'happy', cls: 'nb-hop' }]
 
-function OtherBot({ b, said, act }) {
+function OtherBot({ b, said, act, at }) {
   const press = useRef(null), lastTap = useRef(0), holdT = useRef(0), tapT = useRef(0)
   const [dx, setDx] = useState(0)
   const down = e => {
@@ -104,7 +105,7 @@ function OtherBot({ b, said, act }) {
     tapT.current = setTimeout(() => openBotCard(b), 330)
   }
   const look = act || { pose: 'idle', eyes: 'open' }
-  return <button type="button" className={'nb-bot' + (look.cls ? ' ' + look.cls : '') + (b.training ? ' nb-training' : '')} style={{ transform: dx ? `translateX(${dx}px)` : undefined, opacity: dx ? Math.max(0.2, 1 - Math.abs(dx) / 160) : undefined }}
+  return <button type="button" className={'nb-bot nb-free' + (look.cls ? ' ' + look.cls : '') + (b.training ? ' nb-training' : '')} style={{ left: (at?.x ?? 6) + '%', top: (at?.y ?? 60) + '%', transform: dx ? `translateX(${dx}px)` : undefined, opacity: dx ? Math.max(0.2, 1 - Math.abs(dx) / 160) : undefined }}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { press.current = null; setDx(0) }} onContextMenu={e => e.preventDefault()}
     aria-label={`${b.name}${b.training ? ', training now' : ''}. Tap for their card, double tap to send love, hold to follow, flick to move aside`}>
     {(said || look.say) && <span className="hb-say nb-say" aria-hidden="true">{said || look.say}</span>}
@@ -185,43 +186,42 @@ export default function NearbyBots({ hidden = false }) {
   const all = [...near, ...live.filter(b => b.training && !near.some(n => n.id === b.id))].map(b => ({ ...b, training: b.training || live.some(l => l.id === b.id && l.training) }))
   const out = all.filter(b => !tucked.includes(b.id)).slice(0, 3)
   const aside = all.filter(b => tucked.includes(b.id))
-  const acts = useLife(out.map(b => b.id).join(','), out.length)
-  // On Home they stand in the empty top corner, clear of the week and the buttons.
+  const play = usePlay(out.map(b => b.id).join(','), out.length)
   const path = useLocation().pathname
-  const top = path === '/home'
-  // Community shows the same people as bubbles at its top: no second row over the feed.
+  // Community shows the same people as bubbles at its top: no bots over the feed.
   if (path === '/community') hidden = true
   if (hidden || !all.length || covered) return null
   return <>
-    {out.length > 0 && <div className={'nb-row' + (top ? ' nb-top' : '') + (acts.hands ? ' nb-hands' : '')} aria-label="Bots about">{out.map((b, i) => <OtherBot key={b.id} b={b} said={saidMap[b.id]} act={acts.list[i]} />)}</div>}
+    {/* They wander the screen like Hayden and play together now and then (lib/police/bot-play.js). */}
+    {out.length > 0 && <div className="nb-field" aria-label="Bots about">{out.map((b, i) => <OtherBot key={b.id} b={b} said={saidMap[b.id]} act={play.acts[i]} at={play.places[i]} />)}</div>}
     {/* Flicked aside: they hang out together in the corner. A tap brings them back. */}
-    {aside.length > 0 && <button type="button" className={'nb-corner' + (top ? ' nb-top' : '')} onClick={untuckAll} aria-label={`${aside.length} ${aside.length === 1 ? 'bot' : 'bots'} hanging out. Tap to bring them back`}>
+    {aside.length > 0 && <button type="button" className="nb-corner" onClick={untuckAll} aria-label={`${aside.length} ${aside.length === 1 ? 'bot' : 'bots'} hanging out. Tap to bring them back`}>
       {aside.slice(0, 4).map(b => <span key={b.id} className="nb-svg" dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, head: true, eyes: 'happy' }) }} />)}
     </button>}
   </>
 }
 
-/**
- * Bots have a life of their own: every so often one waves, dances or says hi, and two or more
- * now and then hold hands and sway together.
- */
-function useLife(key, n) {
-  const [acts, setActs] = useState({ list: [], hands: false })
+/** Plays out scenes (wander, high five, chat, a game) one step every 1.5 s, a new one every few seconds. */
+function usePlay(key, n) {
+  const [st, setSt] = useState(() => ({ places: wander(n), acts: [] }))
   useEffect(() => {
     if (!n) return
-    let t = 0, off = 0
-    const next = () => {
-      const hands = n > 1 && Math.random() < 0.35
-      const list = Array.from({ length: n }, () => (hands ? { pose: 'cheer', eyes: 'happy' } : Math.random() < 0.5 ? LIFE[Math.floor(Math.random() * LIFE.length)] : null))
-      setActs({ list, hands })
-      off = setTimeout(() => setActs({ list: [], hands: false }), 2600)
-      t = setTimeout(next, 7000 + Math.random() * 7000)
+    const timers = []
+    let stop = false
+    const run = () => {
+      if (stop) return
+      const sc = nextScene(n)
+      setSt(x => ({ ...x, places: sc.places, acts: [] }))
+      // Walk there first (1.6 s), then the steps.
+      sc.steps.forEach((step, i) => timers.push(setTimeout(() => !stop && setSt(x => ({ ...x, acts: step })), 1700 + i * 1500)))
+      timers.push(setTimeout(() => !stop && setSt(x => ({ ...x, acts: [] })), 1700 + sc.steps.length * 1500))
+      timers.push(setTimeout(run, 1700 + sc.steps.length * 1500 + 4000 + Math.random() * 5000))
     }
     // Hello first, as they arrive.
-    setActs({ list: Array.from({ length: n }, () => LIFE[0]), hands: false })
-    off = setTimeout(() => setActs({ list: [], hands: false }), 2200)
-    t = setTimeout(next, 6000)
-    return () => { clearTimeout(t); clearTimeout(off) }
+    setSt({ places: wander(n), acts: Array.from({ length: n }, () => ({ pose: 'wave', eyes: 'happy', say: 'Hi!' })) })
+    timers.push(setTimeout(run, 3000))
+    return () => { stop = true; timers.forEach(clearTimeout) }
   }, [key, n])
-  return acts
+  return st
 }
+

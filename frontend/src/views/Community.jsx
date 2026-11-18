@@ -163,6 +163,10 @@ function BellSheet({ close }) {
   const [list, setList] = useState(null)
   useEffect(() => { api('/api/cheers/history').then(r => setList(r?.cheers || [])).catch(() => setList([])) }, [])
   const back = async c => { const on = await toggleFollow({ id: c.who, name: c.from, followed: false }); if (on) setList(l => l.map(x => (x.who === c.who ? { ...x, followed: true } : x))) }
+  // Blocked by mistake? They are listed here to unblock (then follow again from their page).
+  const [blocked, setBlocked] = useState(null)
+  const showBlocked = () => api('/api/nearby/hidden').then(r => setBlocked(r?.people || [])).catch(() => setBlocked([]))
+  const unblock = async b => { if (await call('/api/nearby/unhide', { id: b.id })) { setBlocked(l => l.filter(x => x.id !== b.id)); toast(`${b.name} unblocked. Follow them again from their page.`) } }
   return <div className="cm-bell">
     <h3>Your bell</h3>
     {list == null ? <p className="pf-sub">Loading</p> : !list.length ? <p className="pf-sub">Cheers, replies and new followers show up here.</p>
@@ -173,6 +177,12 @@ function BellSheet({ close }) {
         </button>
         {c.who && !c.followed && <button type="button" className="cm-follow" onClick={() => back(c)}>Follow back</button>}
       </div>)}
+    {blocked == null ? <button type="button" className="pf-link cm-blocked-l" onClick={showBlocked}>People you blocked</button>
+      : <div className="cm-blocked"><div className="menu-sec">People you blocked</div>
+        {!blocked.length ? <p className="pf-sub">Nobody.</p> : blocked.map(b => <div key={b.id} className="cm-bell-row">
+          <span className="cm-bell-m"><Bot b={b} size={34} /><span><b>{b.name}</b></span></span>
+          <button type="button" className="cm-follow" onClick={() => unblock(b)}>Unblock</button>
+        </div>)}</div>}
   </div>
 }
 
@@ -237,7 +247,7 @@ function GuestTeaser() {
   const tile = (v, label) => <div><b>{v}</b><span>{label}</span></div>
   return <div className="card cm-guest">
     <span className="cm-guest-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ eyes: 'happy', pose: 'cheer' }) }} />
-    <h3>Train with the crew</h3>
+    <h3>Train with the community</h3>
     {n && n.posts > 0 && <div className="pf-strip pf-strip3">{tile(n.wins, n.wins === 1 ? 'win shared' : 'wins shared')}{tile(n.cheers, 'cheers given')}{tile(n.people, n.people === 1 ? 'recruit' : 'recruits')}</div>}
     <p className="pf-sub">{n && n.posts > 0 ? 'This week. ' : ''}Recruits share their wins and cheer each other on. Sign in to join them.</p>
     <Button variant="primary" onClick={() => toSignIn(nav)}>Sign in to join</Button>

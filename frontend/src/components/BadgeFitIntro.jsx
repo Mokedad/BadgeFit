@@ -37,7 +37,7 @@ export default function BadgeFitIntro() {
       <section className="bfi-slide">
         <BadgeLogo size={72} />
         <h2 className="bf-word">Welcome to Badge<span>Fit</span></h2>
-        <p>Your plan to the PCT, Hayden your trainer, and a crew cheering you on. Swipe to see how it works.</p>
+        <p>Your plan to the PCT, Hayden your trainer, and a community cheering you on. Swipe to see how it works.</p>
       </section>
       <section className="bfi-slide">
         <div className="bfi-pic">

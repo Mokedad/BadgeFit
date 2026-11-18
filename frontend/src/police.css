@@ -1140,3 +1140,10 @@ button.pd-tick{border:0;padding:0;cursor:pointer}
 .cm-plan-ex .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;background:#fff;flex:none}
 .cm-plan-ex span{flex:1;min-width:0;font-size:14px}
 .cm-plan-ex small{color:var(--label-2);font-size:13px;white-space:nowrap}
+
+/* Bots about, free: they wander and play (components/NearbyBots.jsx, lib/police/bot-play.js). */
+.nb-field{position:fixed;inset:0;z-index:39;pointer-events:none}
+.nb-bot.nb-free{position:absolute;transition:left 1.6s ease-in-out,top 1.6s ease-in-out,opacity .2s}
+.nb-bot.nb-free .hb-say{white-space:nowrap;font-size:14px;font-weight:700;min-width:30px;width:auto;padding:0 8px}
+@media (prefers-reduced-motion:reduce){.nb-bot.nb-free{transition:none}}
+.cm-blocked-l{margin-top:12px;display:block}

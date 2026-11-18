@@ -605,7 +605,7 @@ function LogForm({ std, P, onDone }) {
     setP(p => ({ results: [...(p.results || []), entry] }))
     useUI.getState().toast(resultLine(std, ev))
     onDone()
-    // A pass or a new best: offer to tell the crew (members), so the cheers come back.
+    // A pass or a new best: offer to share it to Community (members), so the cheers come back.
     if (ev.pass || best) shareWin(winText({ kind: 'result', name: std.name.replace(/ \(.*\)$/, ''), value: fmtResult(std.id, v), pass: ev.pass, best }))
   }
   return <div className="pf-log">

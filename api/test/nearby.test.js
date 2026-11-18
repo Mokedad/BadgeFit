@@ -105,3 +105,17 @@ test("a member's page: stage, today, counts, and nothing for someone hidden", ()
   assert.equal(n.person(st, so, ann, id, 20), null);
   assert.equal(n.person(st, so, ann, 'nobody', 20), null);
 });
+
+test('unblock: see each other again, follow again by choice; followers listed', () => {
+  const st = n.emptyState(), so = n.emptySocial();
+  const id = n.remember(st, so, 'u2', 'Bob');
+  n.follow(st, so, ann, { id });
+  n.hide(st, so, ann, { id });
+  assert.deepEqual(n.hiddenList(st, so, ann).people.map(p => [p.id, p.name]), [[id, 'Bob']]);
+  assert.equal(n.person(st, so, ann, id), null);
+  assert.equal(n.unhide(st, so, ann, { id }).ok, true);
+  assert.equal(n.unhide(st, so, ann, { id }).status, 404);
+  assert.equal(n.person(st, so, ann, id).followed, false);
+  n.follow(st, so, ann, { id });
+  assert.deepEqual(n.followersOf(so, 'u2'), ['u1']);
+});

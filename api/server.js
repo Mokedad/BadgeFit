@@ -3241,6 +3241,17 @@ const routes = {
     if (!r.error) saveBots();
     communityAnswer(res, r);
   },
+  'POST /api/nearby/unhide': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const r = nearby.unhide(NEAR, loadBots(), user, { id: body.id });
+    if (!r.error) saveBots();
+    communityAnswer(res, r);
+  },
+  'GET /api/nearby/hidden': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    json(res, 200, nearby.hiddenList(NEAR, loadBots(), user));
+  },
   'GET /api/bell': async (req, res) => {
     const user = communityGuard(req, res); if (!user) return;
     json(res, 200, nearby.bell(NEAR, loadBots(), user));
@@ -3294,7 +3305,12 @@ const routes = {
     const body = await readBody(req);
     const feed = loadCommunity();
     const r = community.addPost(feed, user, { text: body.text, topic: body.topic, area: body.area, stage: body.stage, session: body.session, plan: body.plan });
-    if (!r.error) saveCommunity(feed);
+    if (!r.error) {
+      saveCommunity(feed);
+      // Your followers hear about it on their bell (one each, a few words of it).
+      const what = (r.post.session && r.post.session.title) || (r.post.plan && 'a plan, ' + r.post.plan.name) || String(r.post.text || '').slice(0, 50);
+      for (const f of nearby.followersOf(loadBots(), user.id).slice(0, 500)) sendCheer(f, user.id, { from: user.name, colour: cardColour(user.id), kind: 'post', what, ref: r.post.id });
+    }
     communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user, { fresh: freshAuthor })[0] }, 201);
   },
   'POST /api/community/reply': async (req, res) => {

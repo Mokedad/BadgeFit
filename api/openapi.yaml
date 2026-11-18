@@ -3497,6 +3497,30 @@ paths:
         '200': { description: '`{ live: [...] }`' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/nearby/unhide:
+    post:
+      tags: [community]
+      operationId: postNearbyUnhide
+      summary: Unblock someone (BadgeFit)
+      description: You can see each other again. A follow that the block ended is not brought back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: string } } }
+      responses:
+        '200': { description: '`{ ok }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not blocked }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/nearby/hidden:
+    get:
+      tags: [community]
+      operationId: getNearbyHidden
+      summary: The people you blocked
+      responses:
+        '200': { description: '`{ people: [...] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/bell:
     get:
       tags: [community]

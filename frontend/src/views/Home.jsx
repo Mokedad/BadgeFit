@@ -285,7 +285,7 @@ export default function Home() {
           <button className="calm-link" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf fin-bf-sheet">
             <h3>Share today</h3>
             <button type="button" className="fin-bf-b" onClick={() => { close(); shareToday() }}><Icon name="share" /> Picture card</button>
-            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })) }}><Icon name="sparkles" /> Tell your crew</button>}
+            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })) }}><Icon name="sparkles" /> Share to Community</button>}
           </div>)}>Share</button>
           <span aria-hidden="true">·</span>
           <button className="calm-link" onClick={() => nav('/workout')}>Add a workout</button>

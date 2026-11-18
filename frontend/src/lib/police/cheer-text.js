@@ -1,7 +1,7 @@
 // What Hayden's cheer bubble says (components/CheerBubble.jsx), from what the server kept for you
 // (api/cheers.js): first names and a few words only.
 
-const SYM = { love: '❤️', like: '👍', cheer: '💪', reply: '💬', training: '🏃', best: '⭐', plan: '📋', follow: '🔔' }
+const SYM = { love: '❤️', like: '👍', cheer: '💪', reply: '💬', training: '🏃', best: '⭐', plan: '📋', follow: '🔔', post: '📣' }
 export const cheerSym = kind => SYM[kind] || '💪'
 
 /** "Sam cheered your win: Hit 7.4 on the beep test" */
@@ -14,6 +14,7 @@ export function cheerLine(c) {
     case 'best': return `${who} picked your answer as the best`
     case 'plan': return `${who} follows your plan${c.what ? ': ' + c.what : ''}`
     case 'follow': return `${who} followed you`
+    case 'post': return `${who} posted${c.what ? ': ' + c.what : ''}`
     case 'reply': return `${who} replied to ${c.what || 'your post'}`
     default: return `${who} cheered ${c?.what || 'you on'}`
   }
@@ -27,7 +28,7 @@ export function cheerSummary(list) {
   return items.length === 1 ? cheerLine(last) : `${cheerLine(last)}, and ${items.length - 1} more`
 }
 
-/** The text offered when sharing a win with the crew (components/ShareWin.jsx). */
+/** The text offered when sharing a win to Community (components/ShareWin.jsx). */
 export function winText({ kind, name, value, unit, pass, best, week, of } = {}) {
   if (kind === 'result') {
     const what = `${name}: ${value}${unit && unit !== 'level' ? ' ' + unit : ''}`
