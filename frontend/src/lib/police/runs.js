@@ -61,6 +61,9 @@ export const RUNS = [
   { id: 'int-ladder', cat: 'intervals', name: 'Distance ladder', km: 'about 4 km', why: 'Easy then hard for the same distance, up the ladder and back down.', segments: [warm(), ...[100, 200, 300, 400, 300, 200, 100].flatMap(d => [runDist(d, `Run ${d} m easy`, 'z2'), runDist(d, `Run ${d} m hard`, 'z4')]), cool()] },
   // --- tempo
   { id: 'tempo-20', cat: 'tempo', name: 'Tempo run, 20 min', km: 'about 5 km', why: 'One even, comfortably hard effort. Teaches your body to clear fatigue at speed.', segments: [warm(), work(m(20), 'Comfortably hard, even pace', 'z4'), cool()] },
+  // The Academy prep plan's steady run (programme.js, key 'steady'): formation pace, even and together.
+  { id: 'steady-30', cat: 'tempo', name: 'Steady run, 30 min', km: '4-5 km', why: 'Formation pace: one even pace the whole way, no stopping. The way an Academy squad runs.', segments: [warm(5), work(m(20), 'Steady, even pace', 'z3'), cool(5)] },
+  { id: 'steady-40', cat: 'tempo', name: 'Steady run, 40 min', km: '6-7 km', why: 'Formation pace for longer: even, together, no stopping. Builds what Academy runs ask of you.', segments: [warm(5), work(m(30), 'Steady, even pace', 'z3'), cool(5)] },
   { id: 'tempo-cruise', cat: 'tempo', name: 'Cruise intervals 3 × 8 min', km: 'about 6 km', why: 'Tempo pace in three blocks: more time at threshold for the same effort.', segments: [warm(), ...rounds(3, [work(m(8), '8 min comfortably hard', 'z4'), rest(m(2), '2 min easy jog', 'z2')]), cool()] },
   // --- run-walk: the first weeks for someone who cannot yet jog 20 minutes without stopping
   { id: 'run-walk-1', cat: 'base', name: 'Run-walk, 1 min on', km: 'about 2 km', why: 'Jog 1 minute, walk 2, eight times. The way everyone starts: it builds the habit without wrecking you.', segments: [work(m(5), 'Brisk walk to warm up', 'z1'), ...rounds(8, [work(60, 'Easy jog', 'z2'), rest(120, 'Walk')]), cool(3)] },
@@ -129,9 +132,11 @@ export function runForDay(day) {
   if (rw) return runById('run-walk-' + rw[1])
   if (day.key === 'easy') return runById(/(\d+) km/.exec(day.title)?.[1] >= 7 ? 'easy-45' : 'easy-30')
   if (day.key === 'tempo') return runById('tempo-20')
+  if (day.key === 'steady') return runById(/(\d+) km/.exec(day.title)?.[1] >= 6 ? 'steady-40' : 'steady-30')
+  if (day.key === 'long') return runById(/(\d+) km/.exec(day.title)?.[1] >= 8 ? 'long-60' : 'easy-45')
   if (day.key === 'walk') return runById('recovery-walk')
   if (day.key === 'vo2' || day.key === 'vo2b') {
-    const name = day.title.replace(/^(VO2 max|Beep focus): /, '')
+    const name = day.title.replace(/^(VO2 max|Beep focus|Intervals): /, '')
     return runById(BY_PLAN_NAME[name]) || runById('vo2-4x4')
   }
   return null

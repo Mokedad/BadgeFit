@@ -54,6 +54,7 @@ import TodaySwipe from '../components/TodaySwipe.jsx'
 import { isBadgeFit, isBadgeFitGuest, toSignIn } from '../lib/police/guest.js'
 import ReadyRing from '../components/ReadyRing.jsx'
 import { weeksInARow } from '../lib/police/bot-card.js'
+import { installPlanIn, onBadgeFitPlan } from '../lib/police/install-plan.js'
 import { offerHealthOnce } from '../lib/police/health-ask.js'
 import { useUI } from '../store/useUI.js'
 import { REST } from '../lib/rotation.js'
@@ -216,6 +217,13 @@ export default function Home() {
     const tm = setTimeout(() => { import('../sheets.jsx').then(m => offerHealthOnce(useStore.getState().S, m.confirmSheet, useUI.getState().toast)).catch(() => {}) }, 2500)
     return () => clearTimeout(tm)
   }, [S.police?.start])
+  // Members who said "I passed" before the Academy prep plan existed move onto it once, from the
+  // week they are in (lib/police/install-plan.js).
+  useEffect(() => {
+    const P0 = S.police
+    if (!P0?.level || P0.afterTest !== 'passed' || P0.track === 'academy' || !onBadgeFitPlan(P0) || S.active) return
+    useStore.getState().update(s => { installPlanIn(s, { level: s.police.level, choice: s.police.planChoice === 'run' ? 'run' : 'badgefit', track: 'academy' }) })
+  }, [S.police?.afterTest, S.police?.track]) // eslint-disable-line react-hooks/exhaustive-deps
   const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
 
   // BadgeFit with a plan: the calm Home. One screen that reads like a trainer, not an app: a
@@ -272,8 +280,16 @@ export default function Home() {
           <b>How did your {(P.testName || 'PCT').trim()} go?</b>
           <div className="calm-after-row">{AFTER_CHOICES.map(c => <button key={c.id} type="button" onClick={() => {
             const name = (P.testName || 'PCT').trim()
-            useStore.getState().update(s => { s.police = { ...(s.police || {}), ...afterPatch(c.id, s.police, todayISO()) } })
-            useUI.getState().toast(c.id === 'passed' ? 'Congratulations! Next stop: the Academy.' : c.id === 'retest' ? 'We go again. Set your new date on the PCT page.' : 'Your plan carries on. Train well.')
+            useStore.getState().update(s => {
+              s.police = { ...(s.police || {}), ...afterPatch(c.id, s.police, todayISO()) }
+              // Passed: the Academy prep plan (more running, more lifting) takes over the BadgeFit plan;
+              // a re-test goes back to the PCT plan. A plan of your own is left as it is.
+              const P2 = s.police
+              if (P2.level && onBadgeFitPlan(P2) && (c.id === 'passed' || (c.id === 'retest' && P2.track === 'academy'))) {
+                installPlanIn(s, { level: P2.level, choice: P2.planChoice === 'run' ? 'run' : 'badgefit', track: c.id === 'passed' ? 'academy' : undefined })
+              } else if (c.id === 'passed') s.police = { ...s.police, track: 'academy' }
+            })
+            useUI.getState().toast(c.id === 'passed' ? 'Congratulations! Your plan is now Academy prep: more running, more lifting.' : c.id === 'retest' ? 'We go again. Set your new date on the PCT page.' : 'Your plan carries on. Train well.')
             if (c.id === 'passed') shareWin(`I passed my ${name}! Next stop: the Academy.`)
             if (c.id === 'retest') nav('/police?tab=tests')
           }}><Icon name={c.icon} /><span>{c.label}</span><small>{c.sub}</small></button>)}</div>

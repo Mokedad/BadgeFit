@@ -33,3 +33,22 @@ Simple / Plus body / The lot.
 
 After the PCT on 6 December 2026, with the result of the owner's own test as the first run of
 the "How did it go?" conversation.
+
+## Built: the Academy prep plan (18 November 2026)
+
+"I passed" on Home now moves a member on the BadgeFit plan onto the Academy prep plan
+(lib/police/programme.js, `track: 'academy'`; installed by lib/police/install-plan.js). Members who
+had already said they passed move over once, from the week they are in. A re-test goes back to
+the PCT plan; a plan of their own (uploaded, or Hayden's) is left alone.
+
+The week: Strength A (squat, push press, pull-ups, walking lunge, farmers walk, plank), a steady
+run at formation pace (4 to 6 km, intermediate 5 to 7), the Academy Circuit (burpees, push-ups,
+sit-ups, jump squats, kettlebell swings, mountain climbers, farmers walk, done as one group with a
+minute between rounds), intervals, Strength B (deadlift, bench, rows, pulldown, hammer curls,
+push-ups, leg raises), a long easy run (6 to 9 km, intermediate 7 to 10) and a rest day. Three
+4-week blocks (base, strength, Academy ready), the six standards re-tested at the end of each, and
+the last week ends on the Academy start day once a date is set. Runs grow by a kilometre at most.
+
+Next: the owner joins the Academy's TrueCoach programme (session 1, March 2027) and sends it, and
+this plan is adjusted to it (our own plan, trained for the same things; the Academy's programme
+itself only goes in with their permission).

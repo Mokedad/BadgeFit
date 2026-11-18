@@ -49,7 +49,7 @@ export function policeBrief(S, today) {
     afterTest: pw.after || undefined,
     planWeeks: pw.last || null,
     finalWeekNow: pw.final || undefined,
-    phase: P.level && week ? { n: phaseOf(P.level, pw.tw).n, range: phaseOf(P.level, pw.tw).range } : null,
+    phase: P.level && week ? { n: phaseOf(P.level, pw.tw, P.track).n, range: phaseOf(P.level, pw.tw, P.track).range } : null,
     daysToTest: days != null && days >= 0 ? days : null,
     weeksToTest: days != null && days >= 0 ? Math.round((days / 7) * 10) / 10 : null,
     today: dayLine(todayDay),

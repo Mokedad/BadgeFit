@@ -30,12 +30,13 @@ import { MEALS, mealSettings } from '../lib/police/meal-reminders.js'
 import { BRAND } from '../lib/police/brand.js'
 import { DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL, BEEP_LEVELS, evaluate, readiness, fmtResult, bestResult, parseBeep } from '../lib/police/standards.js'
 import { REP_RANGES, rangeById, nextSetAdvice } from '../lib/police/set-advice.js'
-import { LEVELS, PHASES, WEEKS, WARMUP, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, planStart, PHASE_WORDS, weekPlan, phaseOf, templateWeek, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
+import { LEVELS, PHASES, ACADEMY_PHASES, WEEKS, WARMUP, zone2, startForTest, daysUntil, planOptsOf, planWeekOf, planStart, PHASE_WORDS, weekPlan, phaseOf, templateWeek, buildPoliceProgramme, applyPhaseRange } from '../lib/police/programme.js'
 import { DIETS, PRINCIPLES, RECOVERY, DISCLAIMER, SUPPLEMENTS, macroTargets, proteinFor, proteinTable, creatineFor } from '../lib/police/nutrition.js'
 import { RUN_CARE, RUN_CARE_INTRO, findCare } from '../lib/police/run-care.js'
 import { addMeal, removeMeal, dayTotals, lastDays, quickMeals, bodyProgress } from '../lib/police/meals.js'
 import { bwSheet, startFlow, confirmSheet } from '../sheets.jsx'
 import { deleteRoutine } from '../lib/routines.js'
+import { installPlanIn } from '../lib/police/install-plan.js'
 import { briefing, setLine, resultLine } from '../lib/police/jarvis.js'
 import MusicBar from '../components/MusicBar.jsx'
 import { useRun } from '../store/useRun.js'
@@ -290,8 +291,8 @@ function TestCountdown({ S, P }) {
       // The plan keeps its start and stretches or shrinks to the new date.
       next.start = prev.start || planStart(d, todayISO())
       const w = planWeekOf(next, todayISO()).tw || 1
-      next.phase = phaseOf(prev.level, w).n
-      if (prev.keys) s.routines = applyPhaseRange(s.routines, prev.level, w, prev.keys)
+      next.phase = phaseOf(prev.level, w, prev.track).n
+      if (prev.keys) s.routines = applyPhaseRange(s.routines, prev.level, w, prev.keys, prev.track)
     }
     s.police = next
   })
@@ -346,19 +347,8 @@ function BodyCard({ S, P }) {
  * restart the weeks; the routines of the plan it replaces are removed, your own are kept.
  */
 function installPlan(update, P, { level, choice = 'badgefit', date = P.testDate, kg = null }) {
-  const built = buildPoliceProgramme(level, Date.now(), { beepFocus: !!P.beepFocus || choice === 'run', runFocus: choice === 'run' })
-  const start = P.start && P.planV === 3 ? P.start : planStart(date || null, todayISO())
-  const weekAt = planWeekOf({ start, testDate: date || undefined }, todayISO()).tw || 1
-  update(s => {
-    const old = Object.values(s.police?.keys || {})
-    const routines = applyPhaseRange(built.routines, level, weekAt, built.keys).map(({ police, ...r }) => r)
-    s.routines = [...(s.routines || []), ...routines]
-    saveProgramme(s, built.programme)
-    startProgramme(s, built.programme.id)
-    for (const id of old) if (!routines.some(r => r.id === id)) deleteRoutine(s, id)
-    s.police = { ...(s.police || {}), level, start, planV: 3, planChoice: choice, programmeId: built.programme.id, keys: built.keys, phase: phaseOf(level, weekAt).n,
-      ...(date ? { testDate: date } : {}), ...(kg > 30 ? { weightKg: kg } : {}) }
-  })
+  // The same plan track as now: the Academy prep plan stays the Academy prep plan.
+  update(s => installPlanIn(s, { level, choice, date, kg, track: P.track }))
 }
 
 const PLAN_CHOICES = [
@@ -453,13 +443,13 @@ function Setup({ S, P }) {
 /** When the calendar has moved into a new phase, offers to move the lifts to its rep range. */
 function PhaseSync({ S, P, week }) {
   const update = useStore(s => s.update)
-  const phase = phaseOf(P.level, week)
+  const phase = phaseOf(P.level, week, P.track)
   if (!P.keys || (P.phase || 1) >= phase.n) return null
   return <div className="pf-note">
     <b>Phase {phase.n} starts this week.</b> Move your lifts to {phase.range} reps?
     <Button size="sm" variant="primary" onClick={() => {
       update(s => {
-        s.routines = applyPhaseRange(s.routines, P.level, week, P.keys)
+        s.routines = applyPhaseRange(s.routines, P.level, week, P.keys, P.track)
         s.police = { ...(s.police || {}), phase: phase.n }
       })
       useUI.getState().toast(`Phase ${phase.n}: ${phase.range} reps. Heavier now.`)
@@ -707,7 +697,7 @@ function Strength({ S, P }) {
   const guest = !useStore(s => s.user) && !DEMO
   const level = guest ? 'beginner' : P.level || 'beginner'
   const pw = planWeekOf(P, todayISO())
-  const now = P.start && pw.week ? phaseOf(level, pw.tw || pw.week) : null
+  const now = P.start && pw.week ? phaseOf(level, pw.tw || pw.week, P.track) : null
   return <>
     {now && <div className="card">
       <div className="row between"><h3>Where you are</h3><span className="pf-chip">Phase {now.n}</span></div>
@@ -716,7 +706,7 @@ function Strength({ S, P }) {
     {/* Hayden already says this during a workout; the calculator is here for the curious. */}
     <Fold id="repscalc" title="What weight for the next set?"><Reps S={S} start={now && rangeById(now.range)?.id === now.range ? now.range : null} /></Fold>
     <Fold id="phases" title="The three phases">
-      {PHASES[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
+      {(P.track === 'academy' ? ACADEMY_PHASES : PHASES)[level].map(p => <p key={p.n} className="pf-sub"><b>Weeks {p.weeks[0]}-{p.weeks[1]}, {p.range} reps.</b> {p.focus}</p>)}
     </Fold>
     <Fold id="warmup" title="Warm-up and cool-down">
       <p className="pf-sub">4 rounds, 30 s each, 30 s rest after each round. Same again at the end.</p>
@@ -1042,8 +1032,8 @@ export default function PoliceFit() {
       delete next.firstWeek
       if (start !== prev.start) {
         const w = planWeekOf(next, todayISO()).tw || 1
-        next.phase = phaseOf(prev.level, w).n
-        if (prev.keys) s.routines = applyPhaseRange(s.routines, prev.level, w, prev.keys)
+        next.phase = phaseOf(prev.level, w, prev.track).n
+        if (prev.keys) s.routines = applyPhaseRange(s.routines, prev.level, w, prev.keys, prev.track)
       }
       s.police = next
     })

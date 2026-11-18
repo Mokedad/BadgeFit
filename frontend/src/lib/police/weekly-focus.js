@@ -17,7 +17,7 @@ export function weeklyFocus(P, today) {
   const days = P.testDate ? daysUntil(P.testDate, today) : null
   const weeksLeft = pw.after ? 0 : Math.max(0, pw.last - pw.week) // full weeks after this one
   const name = (P.testName || '').trim() || 'PCT'
-  const phase = phaseOf(P.level, pw.tw || 1)
+  const phase = phaseOf(P.level, pw.tw || 1, P.track)
   const ready = readiness(P.results, P.beepTarget || DEFAULT_BEEP_TARGET)
   const untested = ready.rows.filter(r => !r.ev)
   const failing = ready.rows.filter(r => r.ev && !r.ev.pass).sort((a, b) => a.ev.pct - b.ev.pct)

@@ -36,8 +36,25 @@ export const PHASES = {
   ],
 }
 
-export const phaseOf = (level, week) =>
-  (PHASES[level] || PHASES.beginner).find(p => week >= p.weeks[0] && week <= p.weeks[1]) || PHASES.beginner[0]
+// The Academy prep plan (after the PCT is passed): heavier, more running, the same three blocks.
+export const ACADEMY_PHASES = {
+  beginner: [
+    { n: 1, weeks: [1, 4], range: '10-12', focus: 'Base. More running and more volume than the PCT plan.' },
+    { n: 2, weeks: [5, 8], range: '6-8', focus: 'Strength. Heavier lifts, longer runs, harder circuits.' },
+    { n: 3, weeks: [9, 12], range: '6-8', focus: 'Academy ready. Hold the volume, sharpen up, arrive fresh.' },
+  ],
+  intermediate: [
+    { n: 1, weeks: [1, 4], range: '10-12', focus: 'Base. More running and more volume than the PCT plan.' },
+    { n: 2, weeks: [5, 8], range: '6-8', focus: 'Strength. Heavier lifts, longer runs, harder circuits.' },
+    { n: 3, weeks: [9, 12], range: '4-6', focus: 'Academy ready. Heavy and fit, then arrive fresh.' },
+  ],
+}
+
+/** The phase of a week. `track` 'academy' reads the Academy prep plan's phases. */
+export const phaseOf = (level, week, track) => {
+  const all = track === 'academy' ? ACADEMY_PHASES : PHASES
+  return (all[level] || all.beginner).find(p => week >= p.weeks[0] && week <= p.weeks[1]) || all.beginner[0]
+}
 
 const RANGE = { '4-6': [4, 6], '6-8': [6, 8], '10-12': [10, 12], '12-15': [12, 15] }
 
@@ -89,6 +106,46 @@ const GYM = {
   },
 }
 
+// The Academy prep plan's gym days (weekPlan, opts.track 'academy'): two strength days built
+// on the big lifts, and a circuit like Academy PT, done as one group: a set of each, round and
+// round, a minute's rest after each round. ['reps', [lo, hi] beginner, [lo, hi] intermediate]
+// is body-weight reps with their own range (pull-ups are not twelve for anyone at first).
+GYM.acadA = {
+  name: 'Strength A: Squat & Pull', emoji: 'barbell',
+  ex: [
+    ['0043', 4, 4, 'lift'], // barbell full squat
+    ['1200', 3, 4, 'lift'], // push press
+    ['0652', 3, 4, ['reps', [3, 6], [6, 10]]], // pull-up
+    ['1460', 3, 3, 'lift'], // walking lunge
+    ['2133', 3, 3, ['hold', 40, 60]], // farmers walk (grip: the Academy asks for 35 kg)
+    ['0463', 3, 3, ['hold', 60, 90]], // front plank
+  ],
+}
+GYM.acadB = {
+  name: 'Strength B: Deadlift & Press', emoji: 'dumbbell',
+  ex: [
+    ['0032', 3, 4, 'lift'], // barbell deadlift
+    ['0025', 3, 4, 'lift'], // barbell bench press
+    ['0027', 3, 3, 'lift'], // barbell bent over row
+    ['2291', 3, 3, 'lift'], // cable wide grip lat pulldown
+    ['0313', 2, 3, 'lift'], // dumbbell hammer curl (grip)
+    ['0662', 2, 3, 'bw'], // push-up
+    ['0472', 3, 3, 'bw'], // hanging leg raise
+  ],
+}
+GYM.circuit = {
+  name: 'Academy Circuit', emoji: 'timer', circuit: true,
+  ex: [
+    ['1160', 3, 4, ['reps', [8, 10], [10, 15]]], // burpee
+    ['0662', 3, 4, 'bw'], // push-up
+    ['0736', 3, 4, ['reps', [15, 20], [20, 30]]], // sit up
+    ['0514', 3, 4, 'bw'], // jump squat
+    ['0549', 3, 4, 'lift'], // kettlebell swing
+    ['0630', 3, 4, ['hold', 30, 45]], // mountain climber
+    ['2133', 3, 4, ['hold', 40, 60]], // farmers walk (the carry)
+  ],
+}
+
 /** Every exercise the BadgeFit plan uses: the plain, filmed versions, which an uploaded program's
  *  names prefer when the library offers several (lib/police/find-exercise.js). */
 export const PLAN_EXERCISES = new Set(Object.values(GYM).flatMap(d => (Array.isArray(d) ? d : d.ex || []).map(x => x[0])))
@@ -97,6 +154,10 @@ const BW_REPS = { beginner: [8, 12], intermediate: [12, 20] }
 
 function gymExercise([id, setsB, setsI, kind], level, range) {
   const sets = level === 'intermediate' ? setsI : setsB
+  if (Array.isArray(kind) && kind[0] === 'reps') {
+    const [lo, hi] = level === 'intermediate' ? kind[2] : kind[1]
+    return { id, sets, repsMin: lo, reps: hi, prog: 'double', weight: 0 }
+  }
   if (Array.isArray(kind)) {
     const sec = level === 'intermediate' ? kind[2] : kind[1]
     return { id, mode: 'time', sets, sec, prog: 'time', weight: 0 }
@@ -162,6 +223,16 @@ const easyKm = (level, week) => {
   return Math.round(from + ((to - from) * (week - 1)) / (WEEKS - 1))
 }
 const tempoMin = week => Math.min(28, 18 + Math.floor((week - 1) * 1))
+// The Academy prep plan's runs grow slowly over the 12 weeks: shins and feet are where recruits
+// get hurt when the kilometres jump.
+const steadyKm = (level, week) => {
+  const [from, to] = level === 'intermediate' ? [5, 7] : [4, 6]
+  return Math.round(from + ((to - from) * (week - 1)) / (WEEKS - 1))
+}
+const longKm = (level, week) => {
+  const [from, to] = level === 'intermediate' ? [7, 10] : [6, 9]
+  return Math.round(from + ((to - from) * (week - 1)) / (WEEKS - 1))
+}
 
 /** The VO2 format for a week (1-based): the phase's list, one per week of the phase. */
 export const vo2For = (week, extra = false) => {
@@ -203,6 +274,7 @@ export function weekPlan(level, week, age, opts = {}) {
   // week of the 12-week template it trains (templateWeek).
   const n = Math.max(1, week | 0 || 1)
   const w = templateWeek(n, opts.planWeeks)
+  if (opts.track === 'academy') return academyWeek(lv, n, w, age, opts)
   const phase = phaseOf(lv, w)
   const vo2 = vo2For(w)
   const test = TEST_WEEKS.includes(w)
@@ -268,6 +340,47 @@ export function weekPlan(level, week, age, opts = {}) {
 const lengthOf = L => { const x = Math.round(Number(L)); return x >= 1 ? x : WEEKS }
 
 /**
+ * A week of the Academy prep plan (after the PCT is passed): more running and more lifting.
+ * Strength A, a steady run at formation pace, the circuit, intervals, Strength B, a long run and a
+ * rest day. The six standards are re-tested at the end of each block, so the PCT fitness holds,
+ * and the last week ends on the Academy's start day when a date is set.
+ */
+function academyWeek(lv, n, w, age, opts) {
+  const phase = phaseOf(lv, w, 'academy')
+  const vo2 = vo2For(w)
+  const test = TEST_WEEKS.includes(w)
+  const rng = `${phase.range} reps`
+  const z2 = zone2(age)
+  const zoneText = z2 ? `Zone 2: keep your heart rate about ${z2.target} bpm (${z2.lo}-${z2.hi})` : 'Zone 2: about 75% of max heart rate (220 minus your age)'
+  const rounds = lv === 'intermediate' ? 4 : 3
+  const days = [
+    { day: 1, kind: 'gym', key: 'acadA', title: GYM.acadA.name, details: [`Squat and push press in the ${rng} range`, 'Pull-ups: as many clean ones as you can each set. A band helps if you need one'] },
+    { day: 2, kind: 'run', key: 'steady', title: `Steady run, ${steadyKm(lv, w)} km`, details: ['Formation pace: one even pace the whole way, no stopping', 'You can say a sentence, but not sing: zone 3'] },
+    { day: 3, kind: 'gym', key: 'circuit', title: GYM.circuit.name, details: [`${rounds} rounds: one set of each, straight into the next, 1 min rest after each round`, 'Keep moving. This is what Academy PT feels like'] },
+    { day: 4, kind: 'run', key: 'vo2', title: `Intervals: ${vo2.name}`, details: [vo2.how, 'Warm up 10 min easy first', 'Keeps your beep test sharp'] },
+    { day: 5, kind: 'gym', key: 'acadB', title: GYM.acadB.name, details: [`Deadlift, bench and rows in the ${rng} range`, 'Grip: farmers walks and hammer curls. The Academy asks for 35 kg each hand'] },
+    { day: 6, kind: 'run', key: 'long', title: `Long run, ${longKm(lv, w)} km`, details: ['Easy pace: you can hold a conversation', 'Builds the engine for long days on your feet', zoneText] },
+    { day: 0, kind: 'rest', key: null, title: 'Rest and recover', details: ['Mobility 15 min: hips, ankles, shoulders', 'Sleep 8 hours'] },
+  ]
+  for (const d of days) {
+    if (d.kind === 'gym') d.recovery = ['If you have one: sauna after, 15-20 min, hydrate']
+    d.dayName = DAY_NAMES[d.day]
+  }
+  if (w <= 2) days[1].details = [...days[1].details, 'More running than you are used to? Keep it easy, and walk a minute if you need to']
+  const final = n === lengthOf(opts.planWeeks)
+  if (final) for (const d of days) if (d.kind === 'gym' || d.kind === 'run') d.details = [...d.details, 'Last week before the Academy: half the sets and distance, arrive fresh']
+  if (final && opts.testDow != null) {
+    const at = days.findIndex(d => d.day === opts.testDow)
+    const before = days.findIndex(d => d.day === (opts.testDow + 6) % 7)
+    if (before >= 0 && before !== at) days[before] = { day: days[before].day, dayName: days[before].dayName, kind: 'rest', key: null, title: 'Easy day before the Academy', details: ['Rest, or a 20 min easy walk', 'Pack your gear, sleep 8+ hours'] }
+    days[at] = { day: days[at].day, dayName: days[at].dayName, kind: 'test', key: null, title: 'Academy starts', details: ['Good luck. You trained for this', 'Keep training with BadgeFit around the Academy timetable'] }
+    return finish(days, { lv, w, n, phase, test: true, final, track: 'academy' })
+  }
+  if (test) days[5] = { ...days[5], kind: 'test', title: 'Test day: keep all six standards', details: ['Warm up 10 min, then with 5 min rest between: grip, push-ups, prone bridge, vertical jump, Illinois agility, beep test', 'Grip goal for the Academy: 35 kg each hand'] }
+  return finish(days, { lv, w, n, phase, test, final, track: 'academy' })
+}
+
+/**
  * The template week (1..12) that plan week `n` of an `L`-week plan trains. Up to 12 weeks the
  * plan is weeks 1..L. Longer plans repeat the 12-week cycle: the weeks left over come first as
  * a lead-in from week 1, then whole cycles, so the last cycle's week 12 is the test week. After
@@ -294,9 +407,12 @@ function finish(days, { lv, w, n = w, phase, test, final = false }) {
 export function routineFor(key, level, range, w = 1) {
   if (GYM[key]) {
     const g = GYM[key]
-    return { name: g.name, emoji: g.emoji, ex: g.ex.map(e => gymExercise(e, level, range)) }
+    // A circuit is one group (a superset of every exercise): a set of each, then a minute's rest.
+    return { name: g.name, emoji: g.emoji, ex: g.ex.map(e => ({ ...gymExercise(e, level, range), ...(g.circuit ? { sg: 'circuit', restSec: 60 } : {}) })) }
   }
   const im = level === 'intermediate'
+  if (key === 'steady') return { name: 'Steady Run', emoji: 'figureRun', ex: [cardio('0685', Math.round(steadyKm(level, w) * 6), im ? 11 : 10)] }
+  if (key === 'long') return { name: 'Long Run', emoji: 'figureRun', ex: [cardio('0685', Math.round(longKm(level, w) * 6.5), im ? 9.5 : 9)] }
   if (key === 'vo2') return { name: 'VO2 Max Intervals', emoji: 'figureRun', ex: [cardio('0685', vo2For(w).min, im ? 13 : 11)] }
   if (key === 'easy') return { name: 'Easy Run', emoji: 'figureRun', ex: [cardio('0685', Math.round(easyKm(level, w) * 6.5), im ? 10 : 8.5)] }
   if (key === 'vo2b') return { name: 'Beep Focus Intervals', emoji: 'figureRun', ex: [cardio('0685', vo2For(w, true).min, im ? 13 : 11)] }
@@ -323,9 +439,10 @@ export function buildPoliceProgramme(level, now = Date.now(), opts = {}) {
   }
   const days = {}
   for (const d of plan.days) if (d.key && keys[d.key]) (days[d.day] = days[d.day] || []).push(keys[d.key])
+  const academy = opts.track === 'academy'
   const programme = {
-    id: uid(), name: `${BRAND.name} Applicant, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
-    src: 'police-' + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
+    id: uid(), name: `${BRAND.name} ${academy ? 'Academy prep' : 'Applicant'}, ${lv === 'intermediate' ? 'Intermediate' : 'Beginner'} (12 weeks)`, at: now,
+    src: (academy ? 'police-academy-' : 'police-') + lv, days, weeks: Array.from({ length: WEEKS }, () => ({})),
   }
   return { routines, programme, keys }
 }
@@ -335,13 +452,14 @@ export function buildPoliceProgramme(level, now = Date.now(), opts = {}) {
  * tagged `police`, or named in `keys` (day key → routine id, as buildPoliceProgramme returns), and only exercises that follow the range ('lift') change;
  * body-weight reps, holds and cardio keep their own targets. Returns the new array.
  */
-export function applyPhaseRange(routines, level, week, keys = {}) {
+export function applyPhaseRange(routines, level, week, keys = {}, track) {
   const lv = level === 'intermediate' ? 'intermediate' : 'beginner'
-  const [lo, hi] = RANGE[phaseOf(lv, week).range]
+  const [lo, hi] = RANGE[phaseOf(lv, week, track).range]
   const keyOf = Object.fromEntries(Object.entries(keys).map(([k, id]) => [id, k]))
   return (routines || []).map(r => {
     const g = GYM[r.police || keyOf[r.id]]
-    if (!g) return r
+    // A circuit keeps its own reps: it is about moving, not the phase's rep range.
+    if (!g || g.circuit) return r
     const lifts = new Set(g.ex.filter(e => e[3] === 'lift').map(e => e[0]))
     return { ...r, ex: (r.ex || []).map(e => (lifts.has(e.id) ? { ...e, repsMin: lo, reps: hi } : e)) }
   })
@@ -388,6 +506,8 @@ export function planOptsOf(P) {
     testDow: Number.isFinite(t) ? new Date(t).getUTCDay() : null,
     testName: (P?.testName || 'PCT').slice(0, 24),
     planWeeks: planLengthOf(P),
+    // After "I passed" (lib/police/after-test.js): the Academy prep plan.
+    ...(P?.track === 'academy' ? { track: 'academy' } : {}),
   }
 }
 
