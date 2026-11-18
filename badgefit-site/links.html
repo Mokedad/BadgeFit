@@ -20,7 +20,16 @@
   <a class="lk" href="https://www.tiktok.com/@badgefit.au">TikTok</a>
   <a class="lk" href="https://www.facebook.com/profile.php?id=61596880432285">Facebook</a>
   <a class="lk" href="mailto:badgefit.au@gmail.com">Email us</a>
+  <div class="how" id="how">
+    <p><b>Comment PCT</b> under our video and we'll send you the app.</p>
+    <p class="fine">Button not opening? It's in Instagram's browser. Tap the <b>⋯</b> at the top right and choose <b>Open in Safari</b>, or email us:</p>
+    <p class="addr"><span id="mail">badgefit.au@gmail.com</span> <button type="button" class="copy" onclick="copyMail(this)">Copy</button></p>
+  </div>
   <p class="fine">Not affiliated with any police service.</p>
 </main>
+<script>
+function copyMail(btn){var t=document.getElementById('mail').textContent;function ok(){btn.textContent='Copied';}
+if(navigator.clipboard){navigator.clipboard.writeText(t).then(ok,function(){btn.textContent=t;});}else{btn.textContent=t;}}
+</script>
 </body>
 </html>

@@ -52,3 +52,9 @@ body.links{background:var(--navy);color:#fff;min-height:100vh;display:grid;place
 .lk{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.1);border-radius:16px;padding:15px;margin:10px 0;font-weight:800;text-decoration:none}
 .lk.gold{background:var(--gold);color:#111}
 .links .fine{color:rgba(255,255,255,.5);margin-top:20px}
+
+.links .how{margin:22px 0 0;background:rgba(255,255,255,.08);border-radius:16px;padding:14px;font-size:15px;line-height:1.45}
+.links .how p{margin:6px 0}
+.links .addr{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-weight:800}
+.links .copy{border:0;border-radius:999px;padding:8px 14px;background:var(--gold);color:#111;font-weight:800;font-size:14px}
+.links .how .fine{color:rgba(255,255,255,.75)}
