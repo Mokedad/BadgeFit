@@ -132,3 +132,22 @@ footer .socials .soc{background:rgba(255,255,255,.12)}
 
 .tc-i{color:var(--green)}.best .tc-i{color:#b08200}
 .tc-list{align-content:start}
+
+/* Plans table: easy to scan, minimal type. */
+.cmp thead th{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.cmp thead th small{font-size:12px;font-weight:600;letter-spacing:0}
+.cmp tbody th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.5)}
+.cmp td{font-size:15px;font-weight:500;white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:9px;vertical-align:1px}
+.dot.g{background:var(--gold)}.dot.r{background:#34c759}.dot.x{background:rgba(255,255,255,.3)}
+.legend{display:flex;justify-content:center;gap:18px;margin:14px 0 0;font-size:13px;color:rgba(255,255,255,.7)}
+.legend .dot{margin-right:6px}
+#plans .note.light{max-width:32em;margin:12px auto 0}
+@media (max-width:760px){
+  #plans h2{font-size:26px}
+  .cmp thead th{padding:14px 8px 10px;font-size:15px}
+  .cmp thead th small{font-size:11px}
+  .cmp tbody th{width:40px;padding:11px 0 11px 12px;font-size:11px}
+  .cmp td{padding:11px 8px;font-size:13.5px;white-space:normal}
+  .dot{margin-right:6px}
+}
