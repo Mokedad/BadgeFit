@@ -87,3 +87,19 @@ footer .socials .soc{background:rgba(255,255,255,.12)}
 .qr img{width:180px;height:180px;background:#fff;border-radius:16px;padding:8px;box-sizing:content-box}
 .links .qr img{width:160px;height:160px}
 .links .qr .fine{color:rgba(255,255,255,.7)}
+
+/* Standards beside the ready ring screenshot. */
+.pair{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:40px;align-items:center;max-width:1000px;margin:0 auto;text-align:left}
+.pair-text h2{text-align:left}
+.pair .grid.six{grid-template-columns:repeat(2,1fr);margin:0}
+.pair .phone{max-width:280px;margin:0}
+@media (max-width:760px){.pair{grid-template-columns:1fr;gap:24px;text-align:center}.pair-text h2{text-align:center}.pair .phone{margin:0 auto}.pair .grid.six{grid-template-columns:repeat(2,1fr)}}
+
+/* Plans always side by side, even on a phone. */
+.plans{grid-template-columns:1fr 1fr!important;gap:12px!important}
+.plans article{padding:14px!important}
+.plans h3{font-size:16px!important}
+.plans .week li{padding:6px 8px!important;gap:6px!important}
+.plans .week b{width:auto!important;font-size:11px!important}
+.plans .week span{font-size:13px}
+.plans .week .wi{display:none}
