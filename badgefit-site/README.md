@@ -8,10 +8,9 @@ deploy/setup.sh copies this folder onto the server (SITE_DOMAIN, badgefit.com.au
 
 | Placeholder      | What goes there                                         |
 |------------------|---------------------------------------------------------|
-| `TESTFLIGHT_URL` | The TestFlight public link (App Store Connect)          |
-| `INSTAGRAM_URL`  | The Instagram profile                                   |
-| `TIKTOK_URL`     | The TikTok profile                                      |
-| `SOURCE_URL`     | The public source code (the AGPL licence requires it)   |
+| Join the beta    | Until the TestFlight public link is in, the buttons open an email to badgefit.au@gmail.com. Replace every `mailto:badgefit.au@gmail.com?subject=...` join link with the TestFlight link. |
+| Socials          | instagram.com/badgefit.au, tiktok.com/@badgefit.au, the Facebook page (filled in). |
+| Source code      | github.com/Mokedad/BadgeFit: must be public for the AGPL licence. |
 
 ## Screenshots
 
