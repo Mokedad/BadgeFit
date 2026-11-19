@@ -3427,6 +3427,47 @@ paths:
         '400': { description: Nonce missing, expired or used }
         '401': { description: The token did not verify }
         '403': { description: Account disabled, or the server is invite-only }
+  /api/community/reply-edit:
+    post:
+      tags: [community]
+      operationId: postCommunityReplyEdit
+      summary: Edit your own comment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, replyId, text]
+              properties:
+                id: { type: string }
+                replyId: { type: string }
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: The comment with its new words }
+        '403': { description: Not your comment }
+  /api/community/followers:
+    get:
+      tags: [community]
+      operationId: getCommunityFollowers
+      summary: The admin's followers, newest first
+      description: Admins only. Each follower's name, colour, when they joined, NEW within 7 days, and whether followed back. Also the owner's auto-follow switch.
+      responses:
+        '200': { description: The followers }
+        '403': { description: Not an admin }
+  /api/community/followers/auto:
+    post:
+      tags: [community]
+      operationId: postCommunityFollowersAuto
+      summary: The owner's switch to follow every new member back
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { on: { type: boolean } } }
+      responses:
+        '200': { description: The switch as it is now }
+        '403': { description: Only the owner }
   /api/nearby:
     post:
       tags: [community]

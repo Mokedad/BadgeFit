@@ -138,6 +138,22 @@ export function autoFollow(social, uid, ownerUid) {
   return true;
 }
 
+/**
+ * The owner follows every new member back, once (owner's rule, 19 November 2026), unless they
+ * switched that off (`social.ownerAuto === false`). Blocks win, and an unfollow afterwards stays.
+ */
+export function ownerFollowsBack(social, uid, ownerUid) {
+  if (!uid || !ownerUid || uid === ownerUid || social.ownerAuto === false) return false;
+  if (!social.ownerFollowed) social.ownerFollowed = {};
+  if (social.ownerFollowed[uid]) return false;
+  social.ownerFollowed[uid] = true;
+  if (hiddenEither(social, uid, ownerUid)) return false;
+  const list = listOf(social.follows, ownerUid);
+  if (list.includes(uid)) return false;
+  list.push(uid);
+  return true;
+}
+
 /** Swiped away: hidden from each other for good, and any follow between them dropped. */
 export function hide(state, social, user, { id } = {}) {
   const to = uidOf(state, social, String(id || ''));
@@ -209,7 +225,7 @@ export function person(state, social, viewer, hid, now = Date.now()) {
 /** An account deleted: out of every list. */
 export function forgetUser(state, social, uid) {
   state.here.delete(uid); state.live.delete(uid)
-  delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]; if (social.autoFollowed) delete social.autoFollowed[uid]
+  delete social.follows[uid]; delete social.hidden[uid]; delete social.names[uid]; if (social.autoFollowed) delete social.autoFollowed[uid]; if (social.ownerFollowed) delete social.ownerFollowed[uid]
   for (const k of Object.keys(social.follows)) social.follows[k] = social.follows[k].filter(x => x !== uid)
   for (const k of Object.keys(social.hidden)) social.hidden[k] = social.hidden[k].filter(x => x !== uid)
 }

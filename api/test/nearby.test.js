@@ -141,3 +141,17 @@ test("everyone follows the owner's account once; an unfollow or a block is kept"
   n.forgetUser(n.emptyState(), social, 'u1');
   assert.equal(social.autoFollowed.u1, undefined);
 });
+
+test('the owner follows every new member back once, unless switched off', () => {
+  const s = n.emptySocial();
+  assert.equal(n.ownerFollowsBack(s, 'u2', 'u1'), true);
+  assert.deepEqual(s.follows.u1, ['u2']);
+  assert.equal(n.ownerFollowsBack(s, 'u2', 'u1'), false);
+  // Unfollowed afterwards: never followed back in again.
+  s.follows.u1 = [];
+  assert.equal(n.ownerFollowsBack(s, 'u2', 'u1'), false);
+  assert.equal(n.ownerFollowsBack(s, 'u1', 'u1'), false);
+  s.ownerAuto = false;
+  assert.equal(n.ownerFollowsBack(s, 'u3', 'u1'), false);
+  assert.deepEqual(s.follows.u1, []);
+});

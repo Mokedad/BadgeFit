@@ -106,3 +106,27 @@ test('areas, search, following, blocks, best answers and shared plans', () => {
   assert.equal(c.view(f, bob).find(p => p.id === q.id).replies[0].best, true);
   assert.equal(c.markBest(f, ann, { id: q.id, replyId: reply.id }).best, null);
 });
+
+test('your own comment can be edited, nobody else\'s', () => {
+  const f = c.emptyFeed();
+  const { post } = c.addPost(f, ann, { text: 'Beep 7 today' }, 1);
+  const { reply } = c.addReply(f, bob, { id: post.id, text: 'nice' }, 2);
+  assert.equal(c.editReply(f, ann, { id: post.id, replyId: reply.id, text: 'hacked' }).status, 403);
+  assert.equal(c.editReply(f, bob, { id: post.id, replyId: reply.id, text: '  ' }).error, 'write something first');
+  assert.deepEqual(c.editReply(f, bob, { id: post.id, replyId: reply.id, text: 'Nice work!' }).reply, { id: reply.id, text: 'Nice work!', edited: true });
+  const seen = c.view(f, ann)[0].replies[0];
+  assert.equal(seen.text, 'Nice work!');
+  assert.equal(seen.edited, true);
+});
+
+test('a shared week: seven days of gym, run or rest, shown with the post; a bad one is dropped', () => {
+  const f = c.emptyFeed();
+  const days = ['gym', 'run', 'gym', 'run', 'gym', 'run', 'rest'].map((k, i) => ({ k, name: 'Day ' + i }))
+  const { post } = c.addPost(f, ann, { week: { label: 'Week 3 of 12', days } }, 1);
+  assert.equal(post.week.days.length, 7);
+  assert.equal(c.view(f, bob)[0].week.label, 'Week 3 of 12');
+  assert.equal(c.cleanWeek({ days: days.slice(0, 3) }), null);
+  assert.equal(c.cleanWeek({ days: days.map(d => ({ ...d, k: 'swim' })) }).days[0].k, 'rest');
+  // The author's colour, when known, rides along for their Hayden.
+  assert.equal(c.view(f, bob, { colour: uid => (uid === 'u1' ? '#3fb6ff' : null) })[0].colour, '#3fb6ff');
+});

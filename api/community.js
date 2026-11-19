@@ -60,7 +60,7 @@ export function cleanPlan(x) {
  * `authors` (only these people: the Following tab, or one person's page), `blocked(uid)` (people
  * the viewer hid, or who hid them), `fresh(uid)` (a plan's author has trained under two weeks).
  */
-export function view(feed, viewer, { admin = false, before = null, handle = null, area = null, q = null, authors = null, blocked = null, fresh = null } = {}) {
+export function view(feed, viewer, { admin = false, before = null, handle = null, area = null, q = null, authors = null, blocked = null, fresh = null, colour = null } = {}) {
   let posts = (feed.posts || []).filter(p => admin || !p.hidden || p.uid === viewer?.id);
   if (blocked) posts = posts.filter(p => !blocked(p.uid));
   if (area) posts = posts.filter(p => p.area === area);
@@ -69,15 +69,15 @@ export function view(feed, viewer, { admin = false, before = null, handle = null
   if (words) posts = posts.filter(p => [p.text, p.name, p.plan?.name, p.session?.title, ...(p.replies || []).map(r => r.text)].some(t => String(t || '').toLowerCase().includes(words)));
   posts = posts.slice().sort((a, b) => b.at - a.at);
   if (before) posts = posts.filter(p => p.at < before);
-  const who = uid => (handle && uid !== viewer?.id ? { who: handle(uid) } : {});
+  const who = uid => ({ ...(handle && uid !== viewer?.id ? { who: handle(uid) } : {}), ...(colour && colour(uid) ? { colour: colour(uid) } : {}) });
   return posts.slice(0, PAGE).map(p => ({
     id: p.id, name: p.name, topic: p.topic, text: p.text, at: p.at,
-    ...(p.area && { area: p.area }), ...(p.stage && { stage: p.stage }), ...(p.session && { session: p.session }),
+    ...(p.area && { area: p.area }), ...(p.stage && { stage: p.stage }), ...(p.session && { session: p.session }), ...(p.week && { week: p.week }),
     ...(p.plan && { plan: p.plan, planFollowers: (p.planFollowers || []).length, planFollowed: (p.planFollowers || []).includes(viewer?.id), ...(fresh && fresh(p.uid) && { planNew: true }) }),
     cheers: (p.cheers || []).length, cheered: (p.cheers || []).includes(viewer?.id),
     mine: p.uid === viewer?.id, hidden: !!p.hidden, ...who(p.uid),
     ...(admin && { reports: (p.reports || []).length }),
-    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(p.best === r.id && { best: true }), ...who(r.uid) })),
+    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
   }));
 }
 
@@ -117,17 +117,29 @@ export function teaser(feed, now = Date.now()) {
   return { posts: week.length, wins: week.filter(p => p.topic === 'win').length, cheers: week.reduce((a, p) => a + (p.cheers || []).length, 0), people: new Set(week.map(p => p.uid)).size };
 }
 
+/**
+ * A week as shared from Plan ("Share my week"): the label and seven days, each gym, run or rest,
+ * with a short name. Shown as a coloured strip; the plan itself (to try) rides along as `plan`.
+ */
+const KINDS = ['gym', 'run', 'rest'];
+export function cleanWeek(x) {
+  const days = (Array.isArray(x?.days) ? x.days : []).slice(0, 7).map(d => ({ k: KINDS.includes(d?.k) ? d.k : 'rest', name: clean(d?.name, 40) }));
+  if (days.length !== 7) return null;
+  return { label: clean(x?.label, 60) || 'My week', days };
+}
+
 /** Adds a post; returns { post } or { error }. */
-export function addPost(feed, user, { text, topic, crew, area, stage, session, plan }, now = Date.now()) {
+export function addPost(feed, user, { text, topic, crew, area, stage, session, plan, week }, now = Date.now()) {
   const t = clean(text, MAX_POST);
-  const ses = cleanSession(session), pl = cleanPlan(plan);
-  // Today's session or a plan can stand without words.
-  if (!t && !ses && !pl) return { error: 'write something first' };
+  const ses = cleanSession(session), pl = cleanPlan(plan), wk = cleanWeek(week);
+  // Today's session, a plan or a week can stand without words.
+  if (!t && !ses && !pl && !wk) return { error: 'write something first' };
   const post = { id: newId(), uid: user.id, name: nameOf(user), topic: TOPICS.includes(topic) ? topic : 'journey', text: t, at: now, cheers: [], reports: [], replies: [] };
   if (AREAS.includes(area)) post.area = area;
   if (STAGES.includes(stage)) post.stage = stage;
   if (ses) post.session = ses;
   if (pl) post.plan = pl;
+  if (wk) post.week = wk;
   // The crew: people training for the same test date (YYYY-MM-DD), so they can find each other.
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(crew || ''))) post.crew = String(crew);
   feed.posts = [...(feed.posts || []), post].slice(-MAX_POSTS);
@@ -146,6 +158,20 @@ export function addReply(feed, user, { id, text }, now = Date.now()) {
   post.replies = [...(post.replies || []), reply];
   // owner: who to tell (server.js, cheers.js); never sent to the client.
   return { reply, owner: post.uid, post };
+}
+
+/** Changes the words of your own reply (Instagram's Edit). */
+export function editReply(feed, user, { id, replyId, text }) {
+  const post = find(feed, id);
+  if (!post) return { error: 'post not found' };
+  const r = (post.replies || []).find(x => x.id === replyId);
+  if (!r) return { error: 'reply not found' };
+  if (r.uid !== user.id) return { error: 'only your own comments can be edited', status: 403 };
+  const t = clean(text, MAX_REPLY);
+  if (!t) return { error: 'write something first' };
+  r.text = t;
+  r.edited = true;
+  return { reply: { id: r.id, text: r.text, edited: true } };
 }
 
 /** Cheer on, or off again. */

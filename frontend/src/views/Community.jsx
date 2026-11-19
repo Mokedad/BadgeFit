@@ -2,7 +2,7 @@
 // The people you follow stand at the top as their bots (a green ring while they train); under
 // them one feed, Everyone or Following. A post is words, today's session, or a plan to follow.
 // Text is shown as text (React escapes it; nothing is rendered as HTML or as a link). No photos.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -19,10 +19,11 @@ import { Thumb } from '../components/Media.jsx'
 import { EXIDX } from '../lib/exercises.js'
 import { exerciseNameFor } from '../lib/i18n.js'
 import { Button, Segmented, TextArea, TextField } from '../components/ui.jsx'
-import { useNearby, toggleFollow, sendCheer, hideBot } from '../components/NearbyBots.jsx'
+import { useNearby, toggleFollow, hideBot } from '../components/NearbyBots.jsx'
 import { botSvg } from '../components/HaydenBot.jsx'
 import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
+import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
@@ -71,17 +72,58 @@ function PlanCard({ p, onChange }) {
   </div>
 }
 
-function Post({ p, onChange, admin, openPerson }) {
+/** A hold (half a second) on a comment opens its menu; a right-click does too. */
+function useHold(onHold) {
+  const t = useRef(null), at = useRef(null)
+  const clear = () => { clearTimeout(t.current); t.current = null }
+  return {
+    onPointerDown: e => { at.current = { x: e.clientX, y: e.clientY }; clear(); t.current = setTimeout(() => { t.current = null; try { navigator.vibrate?.(10) } catch { /* none */ } onHold() }, 500) },
+    onPointerMove: e => { if (at.current && Math.hypot(e.clientX - at.current.x, e.clientY - at.current.y) > 10) clear() },
+    onPointerUp: clear, onPointerCancel: clear, onPointerLeave: clear,
+    onContextMenu: e => { e.preventDefault(); clear(); onHold() },
+  }
+}
+
+/** One comment, the way Instagram shows it: name and words on one line, then time · Reply · Edit. */
+function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest }) {
+  const canDelete = r.mine || p.mine || admin
+  const hold = useHold(() => menuSheet({ title: r.name, sections: [{ items: [
+    { icon: 'chat', label: 'Reply', onClick: () => onReply(r) },
+    ...(r.mine ? [{ icon: 'pencil', label: 'Edit', onClick: () => onEdit(r) }] : []),
+    ...(p.mine && !r.mine ? [{ icon: 'check', label: r.best ? 'Unmark as helpful' : 'This helped', onClick: () => onBest(r.id) }] : []),
+    ...(canDelete ? [{ icon: 'trash', danger: true, label: 'Delete', onClick: () => onDelete(r.id) }] : []),
+  ] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] }))
+  return <div className={'cm-reply' + (r.best ? ' best' : '')} {...hold}>
+    <p>{r.who ? <button type="button" className="cm-rname" onClick={() => openPerson(r.who)}>{r.name}</button> : <b>{r.name}</b>} {r.text}</p>
+    <div className="cm-reply-a">
+      <span>{ago(r.at)}{r.edited ? ' · edited' : ''}{r.best ? ' · Helped' : ''}</span>
+      <button type="button" onClick={() => onReply(r)}>Reply</button>
+      {r.mine && <button type="button" onClick={() => onEdit(r)}>Edit</button>}
+    </div>
+  </div>
+}
+
+function Post({ p, onChange, admin, openPerson, me }) {
   const [reply, setReply] = useState('')
+  const [editing, setEditing] = useState(null)
   const [open, setOpen] = useState(false)
+  const input = useRef(null)
   const cheer = async () => { const r = await call('/api/community/cheer', { id: p.id }); if (r) onChange({ ...p, cheers: r.cheers, cheered: r.cheered }) }
   const send = async () => {
     if (!reply.trim()) return
+    if (editing) {
+      const r = await call('/api/community/reply-edit', { id: p.id, replyId: editing, text: reply })
+      if (r) { onChange({ ...p, replies: p.replies.map(x => (x.id === editing ? { ...x, text: r.reply.text, edited: true } : x)) }); setReply(''); setEditing(null) }
+      return
+    }
     const r = await call('/api/community/reply', { id: p.id, text: reply })
     if (r) { onChange({ ...p, replies: [...p.replies, r.reply] }); setReply('') }
   }
+  const focus = () => setTimeout(() => input.current?.focus?.(), 50)
+  const onReply = r => { setOpen(true); setEditing(null); setReply(`@${r.name} `); focus() }
+  const onEdit = r => { setOpen(true); setEditing(r.id); setReply(r.text); focus() }
   const best = async replyId => { const r = await call('/api/community/best', { id: p.id, replyId }); if (r) onChange({ ...p, replies: p.replies.map(x => ({ ...x, best: x.id === r.best })) }) }
-  const del = replyId => confirmSheet({ title: replyId ? 'Delete this reply?' : 'Delete this post?', confirmText: 'Delete', danger: true, onConfirm: async () => {
+  const del = replyId => confirmSheet({ title: replyId ? 'Delete this comment?' : 'Delete this post?', confirmText: 'Delete', danger: true, onConfirm: async () => {
     const r = await call('/api/community/delete', { id: p.id, replyId })
     if (r) onChange(replyId ? { ...p, replies: p.replies.filter(x => x.id !== replyId) } : null)
   } })
@@ -92,11 +134,13 @@ function Post({ p, onChange, admin, openPerson }) {
       ...(p.who ? [{ icon: 'xmark', danger: true, label: `Block ${p.name}`, onClick: () => hideBot({ id: p.who, name: p.name }) }] : []),
     ] : []),
   ] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })
-  const top = p.replies.find(r => r.best)
+  // Instagram's way: the last two comments under the post, "View all" for the rest.
+  const shown = open ? p.replies : p.replies.slice(-2)
+  const one = r => <Comment key={r.id} r={r} p={p} admin={admin} openPerson={openPerson} onReply={onReply} onEdit={onEdit} onDelete={del} onBest={best} />
   return <article className={'card cm-post' + (p.hidden ? ' cm-hidden' : '')}>
     <header className="cm-h">
       <button type="button" className="cm-person" disabled={!p.who} onClick={() => openPerson(p.who)} aria-label={p.who ? `${p.name}: their page` : p.name}>
-        <span className="cm-av" aria-hidden="true">{(p.name || '?').charAt(0).toUpperCase()}</span>
+        <span className="cm-av-bot"><Bot b={p.mine ? me : { colour: p.colour }} size={40} eyes="happy" /></span>
         <span className="cm-who"><b>{p.name}</b><span>{[stageLabel(p.stage), ago(p.at)].filter(Boolean).join(' · ')}</span></span>
       </button>
       <button className="cm-x" aria-label="More" onClick={more}><Icon name="more" /></button>
@@ -104,24 +148,19 @@ function Post({ p, onChange, admin, openPerson }) {
     {p.hidden && <p className="pf-warn">Hidden after reports{admin ? ` (${p.reports})` : ''}.{admin && <button className="pf-link" onClick={async () => { const r = await call('/api/community/delete', { id: p.id, restore: true }); if (r) onChange({ ...p, hidden: false }) }}> Show it again</button>}</p>}
     {p.text && <p className="cm-text">{p.text}</p>}
     {p.session && <SessionCard s={p.session} />}
+    {p.week && <WeekStrip week={p.week} />}
     {p.plan && <PlanCard p={p} onChange={onChange} />}
-    {top && !open && <div className="cm-best"><p>{top.text}</p><small>{top.name}</small></div>}
     <div className="cm-acts">
       <button className={'cm-cheer' + (p.cheered ? ' on' : '')} onClick={cheer} aria-pressed={p.cheered} disabled={p.mine} aria-label={p.mine ? `${p.cheers || 0} cheers` : p.cheered ? 'Cheered' : 'Cheer'}><Icon name="sparkles" /> {p.cheers || (p.mine ? 0 : 'Cheer')}</button>
-      <button onClick={() => setOpen(!open)} aria-label="Replies"><Icon name="chat" /> {p.replies.length || 'Reply'}</button>
+      <button onClick={() => { setOpen(true); focus() }} aria-label="Comment"><Icon name="chat" /> {p.replies.length || 'Comment'}</button>
     </div>
-    {open && <div className="cm-replies">
-      {p.replies.map(r => <div key={r.id} className={'cm-reply' + (r.best ? ' best' : '')}>
-        {r.who ? <button type="button" className="cm-rname" onClick={() => openPerson(r.who)}>{r.name}</button> : <b>{r.name}</b>} <span className="pf-sub">{ago(r.at)}{r.best ? ' · Best answer' : ''}</span>
-        <p>{r.text}</p>
-        <div className="cm-reply-a">
-          {p.mine && !r.mine && <button type="button" onClick={() => best(r.id)}>{r.best ? 'Unmark' : 'This helped'}</button>}
-          {(r.mine || p.mine || admin) && <button type="button" onClick={() => del(r.id)}>Delete</button>}
-        </div>
-      </div>)}
+    {p.replies.length > 2 && !open && <button type="button" className="cm-viewall" onClick={() => setOpen(true)}>View all {p.replies.length} comments</button>}
+    {shown.length > 0 && <div className="cm-replies">{shown.map(one)}</div>}
+    {open && <div className="cm-add">
+      {editing && <div className="cm-editing">Editing your comment <button type="button" onClick={() => { setEditing(null); setReply('') }} aria-label="Stop editing"><Icon name="xmark" /></button></div>}
       <div className="mb-row">
-        <TextField value={reply} maxLength={500} placeholder="Encourage, answer, share" onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send() }} />
-        <Button size="sm" variant="primary" onClick={send}>Send</Button>
+        <TextField ref={input} value={reply} maxLength={500} placeholder="Add a comment…" onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send() }} />
+        <button type="button" className="cm-send" disabled={!reply.trim()} onClick={send}>{editing ? 'Save' : 'Post'}</button>
       </div>
     </div>}
   </article>
@@ -131,6 +170,7 @@ function Post({ p, onChange, admin, openPerson }) {
 function PersonSheet({ id, close }) {
   const [d, setD] = useState(null)
   const [shown, setShown] = useState(1)
+  const [note, setNote] = useState('')
   const load = () => api('/api/community/person?id=' + encodeURIComponent(id)).then(setD).catch(() => setD({ error: true }))
   useEffect(() => { load() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <p className="pf-sub">Loading</p>
@@ -139,15 +179,25 @@ function PersonSheet({ id, close }) {
   const plans = d.posts.filter(p => p.plan), posts = d.posts.filter(p => !p.plan)
   const tile = (n, label) => <div className="nb-tile"><b>{n}</b><span>{label}</span></div>
   const setPost = next => setD(x => ({ ...x, posts: x.posts.map(p => (p.id === next.id ? next : p)) }))
+  const follow = async () => { const on = await toggleFollow(b); setD(x => ({ ...x, person: { ...x.person, followed: on, followers: x.person.followers + (on === b.followed ? 0 : on ? 1 : -1) } })) }
+  // The answer shows here under the buttons, never as a toast over their name.
+  const cheerThem = async () => {
+    try { await post('/api/nearby/cheer', { id: b.id, kind: 'love' }); setNote(`Cheer sent to ${b.name}`) }
+    catch (e) { setNote(e?.status === 429 ? 'One cheer at a time. Try again in a minute' : `Could not reach ${b.name} right now`) }
+  }
   return <div className="cm-page">
     <button type="button" className="cm-x cm-page-x" aria-label="More" onClick={() => menuSheet({ title: b.name, sections: [{ items: [{ icon: 'xmark', danger: true, label: `Block ${b.name}`, onClick: () => { close(); hideBot(b) } }] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })}><Icon name="more" /></button>
     <span className="nb-card-bot" dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, gear: b.gear || [], eyes: 'happy', pose: 'wave', act: b.training ? 'run' : null }) }} />
     <h3>{b.name}</h3>
     <p className="pf-sub">{[b.training ? 'Training now' : stageLabel(b.stage), `following ${b.following}`, `${b.followers} ${b.followers === 1 ? 'follower' : 'followers'}`].filter(Boolean).join(' · ')}</p>
-    <div className="cm-page-acts">
-      <button className="pf-go" onClick={() => sendCheer(b, 'love')}><Icon name="sparkles" /> Cheer</button>
-      <button className="btn" onClick={async () => { const on = await toggleFollow(b); setD(x => ({ ...x, person: { ...x.person, followed: on, followers: x.person.followers + (on === b.followed ? 0 : on ? 1 : -1) } })) }}>{b.followed ? 'Following' : b.followsYou ? 'Follow back' : 'Follow'}</button>
+    {/* Two buttons: Follow first (Cheer waits); once followed, a tick (tap to unfollow) and Cheer. */}
+    <div className="cm-fc">
+      {b.followed
+        ? <button type="button" className="cm-tick" aria-label={`Following ${b.name}. Tap to unfollow`} onClick={() => confirmSheet({ title: `Unfollow ${b.name}?`, confirmText: 'Unfollow', danger: true, onConfirm: follow })}><Icon name="check" /></button>
+        : <button type="button" className="cm-fbtn gold" onClick={follow}>{b.followsYou ? 'Follow back' : 'Follow'}</button>}
+      <button type="button" className={'cm-fbtn' + (b.followed ? ' gold' : ' off')} disabled={!b.followed} onClick={cheerThem}><Icon name="sparkles" /> Cheer</button>
     </div>
+    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? '' : 'Follow first, then cheer them on')}</p>
     {b.today && <SessionCard s={b.today} />}
     {b.stats && <div className="nb-tiles">{tile(b.stats.week, 'this week')}{tile(b.stats.ready + '%', 'PCT ready')}{tile(b.stats.streak, b.stats.streak === 1 ? 'week in a row' : 'weeks in a row')}</div>}
     {plans.length > 0 && <><div className="menu-sec">Shared plans</div>{plans.map(p => <PlanCard key={p.id} p={p} onChange={setPost} />)}</>}
@@ -157,6 +207,29 @@ function PersonSheet({ id, close }) {
   </div>
 }
 export const openPerson = id => id && sheet(close => <PersonSheet id={id} close={close} />)
+
+/** The admin's followers: everyone who follows you, newest first, NEW for this week. */
+function FollowersSheet({ close }) {
+  const [d, setD] = useState(null)
+  useEffect(() => { api('/api/community/followers').then(setD).catch(() => setD({ error: true })) }, [])
+  if (!d) return <p className="pf-sub">Loading</p>
+  if (d.error) return <p className="pf-sub">Could not load your followers right now.</p>
+  const setAuto = async on => { const r = await call('/api/community/followers/auto', { on }); if (r) setD(x => ({ ...x, auto: r.auto })) }
+  const back = async f => { const on = await toggleFollow({ id: f.who, name: f.name, followed: f.followed }); setD(x => ({ ...x, people: x.people.map(y => (y.who === f.who ? { ...y, followed: on } : y)), following: x.following + (on === f.followed ? 0 : on ? 1 : -1) })) }
+  const joined = iso => { if (!iso) return ''; const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000); return days < 1 ? 'Joined today' : days < 2 ? 'Joined yesterday' : 'Joined ' + new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }
+  return <div className="cm-folls">
+    <h3>Followers</h3>
+    {d.owner && <label className="cm-auto"><span><b>Follow new members automatically</b><small>Every sign-up, you follow back</small></span>
+      <input type="checkbox" role="switch" checked={!!d.auto} onChange={e => setAuto(e.target.checked)} /></label>}
+    <div className="cm-folls-n"><div><b>{d.count}</b><small>followers</small></div><div className="new"><b>+{d.thisWeek}</b><small>this week</small></div><div><b>{d.following}</b><small>you follow</small></div></div>
+    <div className="menu-sec">Newest first</div>
+    {!d.people.length ? <p className="pf-sub">Nobody yet. Everyone who signs up shows here.</p> : d.people.map(f => <div key={f.who} className="cm-bell-row">
+      <button type="button" className="cm-bell-m" onClick={() => { close(); openPerson(f.who) }}><Bot b={f} size={38} /><span><b>{f.name}{f.isNew && <span className="cm-new">New</span>}</b><small>{joined(f.joined)}</small></span></button>
+      {f.followed ? <span className="cm-on"><Icon name="check" /> Following</span> : <button type="button" className="cm-follow" onClick={() => back(f)}>Follow back</button>}
+    </div>)}
+    <p className="pf-sub">Only admins see this.</p>
+  </div>
+}
 
 /** The bell: every cheer, reply and follow lately, newest first, each with Follow back. */
 function BellSheet({ close }) {
@@ -218,6 +291,7 @@ function Compose({ close, onPosted }) {
     {opt('question', 'chat', 'Ask a question', 'Applicants, recruits and grads answer')}
     {opt('win', 'trophy', 'Share a win', 'A PB, a pass, a milestone')}
     {opt('plan', 'clipboard', 'Share a plan', routines.length ? 'A workout or program that works for you' : 'Add a workout of your own first', !routines.length)}
+    <button type="button" className="cm-opt" onClick={() => { close(); shareWeekSheet() }}><span className="cm-opt-i" aria-hidden="true"><Icon name="calendar" /></span><span><b>Share my week</b><small>Your week as a card. Others can try it</small></span></button>
     <div className="menu-sec" style={{ marginTop: 12 }}>You are</div>
     <Segmented options={STAGES.map(s => ({ value: s.id, label: s.label }))} value={stageOf(P)} onChange={setStage} />
   </div>
@@ -282,12 +356,14 @@ export default function Community() {
   const update = (id, next) => setPosts(prev => (next ? prev.map(p => (p.id === id ? next : p)) : prev.filter(p => p.id !== id)))
   const pickArea = () => menuSheet({ title: 'Show', sections: [{ items: [{ icon: 'list', label: 'Everything', on: !area, onClick: () => setArea(null) }, ...AREAS.map(a => ({ icon: 'dot', label: a.label, on: area === a.id, onClick: () => setArea(a.id) }))] }] })
   const me = { colour: myColour(S.police, user?.id), gear: earnedGear(S) }
+  const compose = () => sheet(close => <Compose close={close} onPosted={p => setPosts(prev => [p, ...(prev || [])])} />)
   const training = id => live.some(l => l.id === id && l.training)
 
   return <div className="narrow pf cm">
     <div className="calm-head cm-head">
       <h1>Community</h1>
       {user && <div className="cm-tools">
+        <button type="button" className="cm-newpost" onClick={compose}><Icon name="plus" /> Post</button>
         <button type="button" className={searching ? 'on' : ''} onClick={() => { setSearching(!searching); setQ('') }} aria-label="Search"><Icon name="magnifier" /></button>
         <button type="button" className={area ? 'on' : ''} onClick={pickArea} aria-label="Topics"><Icon name="slider" /></button>
         <button type="button" onClick={() => sheet(close => <BellSheet close={close} />)} aria-label="Your bell"><Icon name="bell" /></button>
@@ -298,8 +374,10 @@ export default function Community() {
         : <>
           {searching && <TextField value={q} autoFocus placeholder="Find a question, an answer or a person" onChange={e => setQ(e.target.value)} />}
           <div className="cm-bubbles" data-noswipe>
-            <button type="button" className="cm-bub" onClick={() => sheet(close => <Compose close={close} onPosted={p => setPosts(prev => [p, ...(prev || [])])} />)} aria-label="Share with the community">
+            <button type="button" className="cm-bub" onClick={compose} aria-label="Share with the community">
               <span className="cm-ring"><Bot b={me} eyes="happy" /><i className="cm-plus" aria-hidden="true">+</i></span><small>You</small></button>
+            {user.admin && <button type="button" className="cm-bub" onClick={() => sheet(close => <FollowersSheet close={close} />)} aria-label="Your followers">
+              <span className="cm-ring cm-ring-f"><Icon name="person" /></span><small>Followers</small></button>}
             {people.map(b => { const on = b.training || training(b.id); return <button key={b.id} type="button" className={'cm-bub' + (on ? ' live' : '')} onClick={() => openPerson(b.id)} aria-label={`${b.name}${on ? ', training now' : ''}`}>
               <span className="cm-ring"><Bot b={b} eyes={on ? 'determined' : 'open'} /></span><small>{b.name}</small>{on && <em>Training</em>}</button> })}
           </div>
@@ -310,8 +388,8 @@ export default function Community() {
           </div>
           {error && <p className="pf-warn pf-pad">Could not load the feed: {error}</p>}
           {posts === null && !error && <p className="pf-sub pf-pad">Loading</p>}
-          {posts?.length === 0 && <div className="card"><h3>{q ? 'Nothing found' : tab === 'following' ? 'Nobody you follow has posted yet' : 'Be the first'}</h3><p className="pf-sub">{tab === 'following' && !q ? 'Tap a name in Everyone to follow someone.' : 'Tap You at the top to share where you are starting from.'}</p></div>}
-          {posts?.map(p => <Post key={p.id} p={p} admin={!!user?.admin} openPerson={openPerson} onChange={next => update(p.id, next)} />)}
+          {posts?.length === 0 && <div className="card"><h3>{q ? 'Nothing found' : tab === 'following' ? 'Nobody you follow has posted yet' : 'Be the first'}</h3><p className="pf-sub">{tab === 'following' && !q ? 'Tap a name in Everyone to follow someone.' : 'Tap + Post to share where you are starting from.'}</p></div>}
+          {posts?.map(p => <Post key={p.id} p={p} me={me} admin={!!user?.admin} openPerson={openPerson} onChange={next => update(p.id, next)} />)}
           {posts?.length > 0 && more && <Button onClick={() => load(posts.at(-1).at)}>Older posts</Button>}
         </>}
     <p className="pf-sub pf-pad">Posts are seen by everyone on {BRAND.name}. Not affiliated with any police service. Report anything abusive from a post's menu.</p>

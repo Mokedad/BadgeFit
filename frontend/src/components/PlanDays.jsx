@@ -4,6 +4,8 @@
 // Every day is read from the schedule as it really is (lib/police/today-now.js: a swap, a removal
 // or an added workout included), so Plan and Home always say the same thing. Hold a picture to
 // take that exercise out of the workout; + adds one. Changing a day is the swap button.
+// "Week" shows all seven days: tap one to open it (its workout, Move, Swap, Rest and Hayden);
+// after a change Plan goes back to the three days, the changed days marked for a moment.
 import { DEMO } from '../lib/demo.js'
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
@@ -23,6 +25,10 @@ import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 import { swallowNextClick } from '../lib/swallow-click.js'
 import { useUI } from '../store/useUI.js'
+import { mondayOf, weekDays, moveDay, moveLine } from '../lib/police/week-edit.js'
+import { REST } from '../lib/rotation.js'
+import { openJarvis } from './JarvisFab.jsx'
+import { shareWeekSheet } from './ShareWeek.jsx'
 
 /** Sets and reps (or seconds) of one exercise in a routine, as a plan: two steppers and Save. */
 function SetsReps({ close, r, i, ex }) {
@@ -139,6 +145,81 @@ function Pic({ ex, onHold, onMove, idx, faint = false }) {
   </figure>
 }
 
+
+const DOW = iso => new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
+const DOW_LONG = iso => new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long' })
+const amount = e => (e.mode === 'time' ? `${e.sets} × ${e.sec} s` : e.mode === 'cardio' ? `${e.min} min` : `${e.sets} × ${e.repsMin && e.repsMin !== e.reps ? e.repsMin + '-' : ''}${e.reps}`)
+
+/** Move a day's session to another day of the same week: pick the day, Hayden says what happens. */
+function MoveSheet({ close, from, days, S, onSaved }) {
+  const today = todayISO()
+  const [to, setTo] = useState(null)
+  const src = dayInfo(S, from)
+  const dst = to ? dayInfo(S, to) : null
+  const save = () => {
+    let changed = []
+    useStore.getState().update(s => { changed = moveDay(s, from, to, d => effectiveRoutineIds(s, d)) })
+    close()
+    if (!changed.length) onSaved([])
+  }
+  return <div className="wk-move">
+    <h3>Move {src.name}</h3>
+    <p className="pf-sub">Pick the day. What is there swaps with it.</p>
+    <div className="wk-pick">{days.map(d => <button key={d} type="button" disabled={d < today || d === from} className={d === to ? 'on' : ''} onClick={() => setTo(d)}>
+      {DOW(d)}<small>{Number(d.slice(8))}</small></button>)}</div>
+    {dst && <div className="wk-hay"><HaydenFace /><span>{moveLine(src.name, dst.name, DOW_LONG(to), DOW_LONG(from))}</span></div>}
+    <button type="button" className="pf-go" disabled={!to} onClick={save}>Save and show me</button>
+  </div>
+}
+
+const HaydenFace = () => <span className="wk-hay-i" aria-hidden="true"><Icon name="sparkles" /></span>
+
+/** The whole week, a day per row; the tapped day opens with its workout and what you can do. */
+function WeekView({ S, onSaved }) {
+  const today = todayISO()
+  const [off, setOff] = useState(0)
+  const days = weekDays(mondayOf(today, off))
+  const [open, setOpen] = useState(today)
+  const rest = iso => {
+    if (iso === today && S.active) { dayOverrideSheet(iso); return }
+    useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [iso]: REST } })
+  }
+  return <div className="wk">
+    <div className="pd-nav">
+      <button className="calm-back" onClick={() => setOff(o => Math.max(0, o - 1))} disabled={off === 0} aria-label="Week before"><Icon name="chevronLeft" /></button>
+      <b>{off === 0 ? 'This week' : off === 1 ? 'Next week' : `In ${off} weeks`} · {Number(days[0].slice(8))}-{Number(days[6].slice(8))} {new Date(days[6] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short' })}</b>
+      <button className="calm-back" onClick={() => setOff(o => Math.min(12, o + 1))} aria-label="Next week"><Icon name="chevronRight" /></button>
+    </div>
+    {days.map(iso => {
+      const d = dayInfo(S, iso)
+      const past = iso < today
+      const on = open === iso
+      const kind = d.kind === 'walk' ? 'run' : d.kind
+      const exs = d.gym.flatMap(r => r.ex)
+      return <div key={iso} className={'wk-day wkk-' + kind + (on ? ' open' : '') + (past ? ' past' : '')}>
+        <button type="button" className="wk-row" onClick={() => setOpen(on ? null : iso)} aria-expanded={on}>
+          <small>{iso === today ? 'Today' : DOW(iso)}</small><i className="wk-dot" aria-hidden="true" />
+          <b>{d.name}</b>{d.trained && <span className="wk-ok" aria-label="Done"><Icon name="check" /></span>}
+          <span>{d.minutes ? d.minutes + ' min' : ''}</span>
+        </button>
+        {on && <div className="wk-body">
+          {exs.length > 0 && <div className="wk-exs">
+            {exs.slice(0, 4).map((e, i) => { const x = EXIDX[e.id]; return x ? <div key={e.id + i}><span>{exerciseNameFor(x)}</span><em>{amount(e)}</em></div> : null })}
+            {exs.length > 4 && <div className="wk-more">+ {exs.length - 4} more</div>}
+          </div>}
+          {!exs.length && d.runs.length > 0 && d.runs[0].why && <p className="pf-sub">{d.runs[0].why}</p>}
+          {!past && !d.trained && <div className="wk-acts">
+            {kind !== 'rest' && <button type="button" onClick={() => useUI.getState().openSheet(close => <MoveSheet close={close} from={iso} days={days} S={useStore.getState().S} onSaved={onSaved} />)}><Icon name="calendar" />Move</button>}
+            <button type="button" onClick={() => dayOverrideSheet(iso)}><Icon name="swap" />Swap</button>
+            {kind !== 'rest' && <button type="button" onClick={() => rest(iso)}><Icon name="moon" />Rest</button>}
+          </div>}
+          <button type="button" className="wk-hay" onClick={() => openJarvis()}><HaydenFace /><span>{kind === 'rest' ? 'Feeling fresh? ' : iso === today ? 'Sore or short on time? ' : 'Busy that day? '}<b>Ask Hayden</b></span></button>
+        </div>}
+      </div>
+    })}
+  </div>
+}
+
 export default function PlanDays({ first = null }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -147,6 +228,23 @@ export default function PlanDays({ first = null }) {
   // Back no further than the plan's first day (or today, for a plan that starts next week).
   const floor = [S.police?.start || today, today].sort()[0]
   const [focus, setFocus] = useState(today)
+  // Three days (the default) or the whole week. A change made in the week comes back here, marked.
+  const [view, setView] = useState('days')
+  const [changed, setChanged] = useState([])
+  useEffect(() => { if (!changed.length) return; const t = setTimeout(() => setChanged([]), 6000); return () => clearTimeout(t) }, [changed])
+  const saved = days => {
+    if (!days.length) return
+    setView('days'); setFocus(today); setChanged(days)
+    useUI.getState().toast('Saved. Your week is updated. Home and Hayden follow it.')
+  }
+  // Any change to a day made from the Week view (Move, Swap, Rest) lands back on the three days.
+  const lastPlan = useRef(S.dayPlan)
+  useEffect(() => {
+    const prev = lastPlan.current || {}, now = S.dayPlan || {}
+    lastPlan.current = now
+    if (view !== 'week' || prev === now) return
+    saved([...new Set([...Object.keys(prev), ...Object.keys(now)])].filter(k => prev[k] !== now[k]).sort())
+  }, [S.dayPlan]) // eslint-disable-line react-hooks/exhaustive-deps
   const go = n => setFocus(f => { const to = shiftISO(f, n); return n < 0 && to < floor ? f : to })
   const d = dayInfo(S, focus)
   const past = focus < today
@@ -186,15 +284,26 @@ export default function PlanDays({ first = null }) {
   const next = [1, 2].map(n => dayInfo(S, shiftISO(focus, n)))
   // What fits today's time (45 minutes unless more was chosen): the rest shows faint.
   const fits = new Set(d.gym.length ? fitSession(buildCombinedEntries(S, d.gym.map(r => r.id)).entries, S.police?.sessionCap ?? 45).map(e => `${e.rid}:${e.id}`) : [])
+  const top = <div className="pd-top">
+    <div className="pd-seg" role="tablist">
+      <button role="tab" aria-selected={view === 'days'} className={view === 'days' ? 'on' : ''} onClick={() => setView('days')}>3 days</button>
+      <button role="tab" aria-selected={view === 'week'} className={view === 'week' ? 'on' : ''} onClick={() => setView('week')}>Week</button>
+    </div>
+    {member && <button type="button" className="pd-share" onClick={() => shareWeekSheet()}><Icon name="share" /> Share</button>}
+  </div>
+  if (view === 'week') return <div className="pd">{top}<WeekView S={S} onSaved={saved} /></div>
+  const mark = iso => (changed.includes(iso) ? ' pd-changed' : '')
+  const chip = iso => (changed.includes(iso) ? <span className="pd-chg"><Icon name="check" /> changed</span> : null)
   return <div className="pd">
+    {top}
     <div className="pd-nav">
       <button className="calm-back" onClick={() => go(-1)} disabled={shiftISO(focus, -1) < floor} aria-label="Day before"><Icon name="chevronLeft" /></button>
       <b>{label(focus, today)}</b>
       <button className="calm-back" onClick={() => go(1)} aria-label="Next day"><Icon name="chevronRight" /></button>
     </div>
-    <div data-noswipe className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={down} onPointerUp={up}>
+    <div data-noswipe className={'pd-focus pfk-' + d.kind + (past ? ' past' : '') + mark(focus)} onPointerDown={down} onPointerUp={up}>
       <div className="pd-h">
-        <span className="pd-m"><b>{d.name}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
+        <span className="pd-m"><b>{d.name}</b>{chip(focus)}{d.minutes ? <small>{d.minutes} min</small> : null}</span>
         {d.trained ? (focus === today
           ? <button type="button" className="pd-tick" onClick={() => reopen(focus)} aria-label="Done. Tap to train this again"><Icon name="check" /></button>
           : <span className="pd-tick" aria-label="Done"><Icon name="check" /></span>)
@@ -211,10 +320,10 @@ export default function PlanDays({ first = null }) {
         : <div className="pd-run"><Thumb ex={EXIDX[RUN_PIC]} /></div>)}
       {first}
     </div>
-    {next.map(n => <button key={n.iso} className={'pf-day pf-tile pfk-' + n.kind} onClick={() => setFocus(n.iso)}>
+    {next.map(n => <button key={n.iso} className={'pf-day pf-tile pfk-' + n.kind + mark(n.iso)} onClick={() => setFocus(n.iso)}>
       <div className="pf-tile-h">
         <span className="pf-tile-d">{label(n.iso, today) === 'Tomorrow' ? 'Tmrw' : new Date(n.iso + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })}</span>
-        <span className="pf-tile-m"><b>{n.name}</b>{n.minutes ? <small>{n.minutes} min</small> : null}</span>
+        <span className="pf-tile-m"><b>{n.name}</b>{chip(n.iso)}{n.minutes ? <small>{n.minutes} min</small> : null}</span>
         <span className="pf-tile-p" aria-hidden="true">
           {n.gym.length ? n.gym[0].ex.slice(0, 3).map(e => EXIDX[e.id]).filter(Boolean).map(ex => <Thumb key={ex.id} ex={ex} />)
             : n.kind !== 'rest' && EXIDX[RUN_PIC] ? <Thumb ex={EXIDX[RUN_PIC]} /> : <span className="pf-tile-i"><Icon name={n.kind === 'rest' ? 'moon' : 'figureRun'} /></span>}

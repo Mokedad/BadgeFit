@@ -2303,9 +2303,15 @@ function knowFromFeed(hid) {
 /** Every member follows the owner's account, once (nearby.autoFollow), on their app's first check-in. */
 function followOwner(user) {
   const owner = ownerId();
-  if (!owner || !nearby.autoFollow(loadBots(), user.id, owner)) return;
+  if (!owner) return;
+  const bots = loadBots();
+  const toOwner = nearby.autoFollow(bots, user.id, owner);
+  // …and the owner follows them back, once, while their "Follow new members" switch is on.
+  const back = nearby.ownerFollowsBack(bots, user.id, owner);
+  if (!toOwner && !back) return;
   const o = db.users.find(u => u.id === owner);
-  if (o) nearby.remember(NEAR, loadBots(), owner, o.name);
+  if (o) nearby.remember(NEAR, bots, owner, o.name);
+  if (back) nearby.remember(NEAR, bots, user.id, user.name);
   saveBots();
 }
 const handleFor = uid => nearby.handleOf(NEAR, uid);
@@ -2321,7 +2327,8 @@ function freshAuthor(uid) {
     return !first || days.size < 4 || Date.now() - Date.parse(first + 'T00:00:00Z') < 14 * 86400000;
   } catch { return true; }
 }
-const cardColour = uid => NEAR.here.get(uid)?.card?.colour;
+// The colour someone picked for their Hayden: live from their app, else the last one seen.
+const cardColour = uid => NEAR.here.get(uid)?.card?.colour || loadBots().names?.[uid]?.colour;
 const NEAR_PINGS = createWindow({ max: 240, windowMs: 3600000 });
 setInterval(() => NEAR_PINGS.sweep(), 600000).unref();
 
@@ -3317,7 +3324,7 @@ const routes = {
     const before = Number(q.get('before')) || null;
     const area = community.AREAS.includes(q.get('area')) ? q.get('area') : null;
     const authors = q.get('following') ? new Set(loadBots().follows[user.id] || []) : null;
-    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor }), topics: community.TOPICS });
+    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor, colour: cardColour }), topics: community.TOPICS });
   },
   // One member's page: their card, the numbers, and what they have posted and shared.
   'GET /api/community/person': async (req, res) => {
@@ -3327,7 +3334,7 @@ const routes = {
     const p = nearby.person(NEAR, loadBots(), user, hid);
     if (!p) return json(res, 404, { error: 'not found' });
     const { uid, ...card } = p;
-    json(res, 200, { person: card, posts: community.view(loadCommunity(), user, { handle: handleFor, authors: new Set([uid]), fresh: freshAuthor }).slice(0, 20) });
+    json(res, 200, { person: card, posts: community.view(loadCommunity(), user, { handle: handleFor, authors: new Set([uid]), fresh: freshAuthor, colour: cardColour }).slice(0, 20) });
   },
   'POST /api/community/best': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
@@ -3357,14 +3364,14 @@ const routes = {
     const user = communityGuard(req, res, COMMUNITY_POSTS); if (!user) return;
     const body = await readBody(req);
     const feed = loadCommunity();
-    const r = community.addPost(feed, user, { text: body.text, topic: body.topic, area: body.area, stage: body.stage, session: body.session, plan: body.plan });
+    const r = community.addPost(feed, user, { text: body.text, topic: body.topic, area: body.area, stage: body.stage, session: body.session, plan: body.plan, week: body.week });
     if (!r.error) {
       saveCommunity(feed);
       // Your followers hear about it on their bell (one each, a few words of it).
-      const what = (r.post.session && r.post.session.title) || (r.post.plan && 'a plan, ' + r.post.plan.name) || String(r.post.text || '').slice(0, 50);
+      const what = (r.post.session && r.post.session.title) || (r.post.week && 'their week') || (r.post.plan && 'a plan, ' + r.post.plan.name) || String(r.post.text || '').slice(0, 50);
       for (const f of nearby.followersOf(loadBots(), user.id).slice(0, 500)) sendCheer(f, user.id, { from: user.name, colour: cardColour(user.id), kind: 'post', what, ref: r.post.id });
     }
-    communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user, { fresh: freshAuthor })[0] }, 201);
+    communityAnswer(res, r.error ? r : { post: community.view({ posts: [r.post] }, user, { fresh: freshAuthor, colour: cardColour })[0] }, 201);
   },
   'POST /api/community/reply': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
@@ -3373,6 +3380,36 @@ const routes = {
     const r = community.addReply(feed, user, { id: String(body.id || ''), text: body.text });
     if (!r.error) { saveCommunity(feed); sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'reply', what: cheers.postLabel(r.post), ref: r.post.id }); }
     communityAnswer(res, r.error ? r : { reply: { ...r.reply, uid: undefined, mine: true } }, 201);
+  },
+  // Your own comment, new words (Instagram's Edit).
+  'POST /api/community/reply-edit': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.editReply(feed, user, { id: String(body.id || ''), replyId: String(body.replyId || ''), text: body.text });
+    if (!r.error) saveCommunity(feed);
+    communityAnswer(res, r);
+  },
+  // The owner's followers (admins only): newest first, when they joined, and whether followed back.
+  'GET /api/community/followers': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    if (!isAdmin(user)) return json(res, 403, { error: 'admins only' });
+    const bots = loadBots();
+    const mine = new Set(bots.follows[user.id] || []);
+    const week = Date.now() - 7 * 86400000;
+    const people = nearby.followersOf(bots, user.id).map(uid => db.users.find(u => u.id === uid)).filter(u => u && !u.disabled)
+      .map(u => ({ who: handleFor(u.id), name: u.name, colour: cardColour(u.id), joined: u.created || null, isNew: Date.parse(u.created || 0) > week, followed: mine.has(u.id) }))
+      .sort((a, b) => String(b.joined || '').localeCompare(String(a.joined || '')));
+    json(res, 200, { people, count: people.length, thisWeek: people.filter(p => p.isNew).length, following: mine.size, auto: bots.ownerAuto !== false, owner: ownerId() === user.id });
+  },
+  // The owner's switch: follow every new member back automatically (on unless switched off).
+  'POST /api/community/followers/auto': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    if (!isAdmin(user) || ownerId() !== user.id) return json(res, 403, { error: 'only the owner' });
+    const body = await readBody(req);
+    loadBots().ownerAuto = body.on !== false;
+    saveBots();
+    json(res, 200, { auto: loadBots().ownerAuto });
   },
   'POST /api/community/cheer': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
