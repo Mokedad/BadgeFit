@@ -243,14 +243,16 @@ export function report(feed, user, id) {
   return { reported: true, hidden: !!post.hidden };
 }
 
-/** Deletes a post (or one reply, with replyId). Own content, or anything for an admin. */
+/** Deletes a post (your own, or any as an admin), or one reply (only your own, with replyId). */
 export function remove(feed, user, { id, replyId }, admin = false) {
   const post = find(feed, id);
   if (!post) return { error: 'post not found' };
   if (replyId) {
     const r = (post.replies || []).find(x => x.id === replyId);
     if (!r) return { error: 'reply not found' };
-    if (!admin && r.uid !== user.id && post.uid !== user.id) return { error: 'not yours to delete', status: 403 };
+    // A comment is deleted only by the person who wrote it (owner's rule, 19 November 2026): not the
+    // post's author, not an admin. An abusive comment is reported; an admin can remove the whole post.
+    if (r.uid !== user.id) return { error: 'only the person who wrote it can delete a comment', status: 403 };
     post.replies = post.replies.filter(x => x.id !== replyId);
     return { deleted: true };
   }

@@ -1,8 +1,8 @@
 // Hayden's two small cards on Home (BadgeFit), the "trigger" that brings someone back:
 //  - the comeback: two or more planned days missed in a row before today. Said kindly, once a day,
 //    with a short session to get going again;
-//  - the check-in: one question a week after starting, once, so the owner hears what nearly made
-//    people stop (POST /api/feedback, shown on the owner's numbers page).
+//  - the check-in: one small question for someone back after 3 or more days away, at most once a
+//    week, so the owner hears what nearly made people stop (POST /api/feedback, the numbers page).
 import { effectiveRoutineIds } from '../history.js'
 import { excusedOn } from '../day-notes.js'
 
@@ -28,11 +28,24 @@ export function missedInARow(S, today) {
 /** Show the comeback card today: 2+ missed, nothing trained yet today, not waved off today. */
 export const showComeback = (S, today) => !!S.police?.level && !S.active && !trainedOn(S, today) && S.police?.comebackOff !== today && missedInARow(S, today) >= 2
 
-/** Show the check-in: a week or more since the plan started, signed in, not answered or skipped. */
+const days = (a, b) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / DAY)
+
+/**
+ * A visit to the app today: the day is remembered, and someone back after 3 or more days away is
+ * asked Hayden's question today. Returns the patch for S.police, or null when today is noted.
+ */
+export function visitPatch(P, today) {
+  if (P?.seenOn === today) return null
+  const away = P?.seenOn && days(P.seenOn, today) >= 3
+  return { seenOn: today, ...(away ? { askOn: today } : {}) }
+}
+
+/** Show the check-in: back today after 3+ days away, signed in, and not asked in the last week. */
 export function showCheckin(S, today, signedIn) {
-  const start = S.police?.start
-  if (!signedIn || !start || S.police?.checkin) return false
-  return Date.parse(today + 'T12:00:00Z') - Date.parse(start + 'T12:00:00Z') >= 7 * DAY && (S.workouts || []).length > 0
+  const P = S.police || {}
+  if (!signedIn || P.askOn !== today) return false
+  if (P.askedOn && days(P.askedOn, today) < 7) return false
+  return (S.workouts || []).length > 0
 }
 
 export const CHECKIN_Q = 'What nearly made you stop using BadgeFit?'

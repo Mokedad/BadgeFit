@@ -29,7 +29,7 @@ test('gone after three minutes, or when they leave', () => {
   assert.equal(n.ping(st, so, ann, { ...GYM }, 20).near.length, 0);
 });
 
-test('a like or love arrives once, not twice in a few seconds', () => {
+test('a like or love can be sent again and again, but not twice in the same instant', () => {
   const st = n.emptyState(), so = n.emptySocial();
   n.ping(st, so, bob, { ...NEXT_DOOR, card: { name: 'Bob' } }, 0);
   const id = n.ping(st, so, ann, { ...GYM, card: { name: 'Ann', colour: '#ff5fa2' } }, 0).near[0].id;

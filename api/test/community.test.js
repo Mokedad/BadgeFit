@@ -45,12 +45,15 @@ test('three reports hide a post from everyone but its author and admins', () => 
   assert.equal(c.view(f, bob).length, 1);
 });
 
-test('delete: your own, replies on your post, or anything as admin', () => {
+test('delete: your own post or comment; a comment only by its writer; any post as admin', () => {
   const f = c.emptyFeed();
   const { post } = c.addPost(f, ann, { text: 'hello' });
   const { reply } = c.addReply(f, bob, { id: post.id, text: 'hi' });
   assert.equal(c.remove(f, cat, { id: post.id }).status, 403);
-  assert.equal(c.remove(f, ann, { id: post.id, replyId: reply.id }).deleted, true);
+  // Not the post's author, not an admin: only Bob deletes Bob's comment.
+  assert.equal(c.remove(f, ann, { id: post.id, replyId: reply.id }).status, 403);
+  assert.equal(c.remove(f, cat, { id: post.id, replyId: reply.id }, true).status, 403);
+  assert.equal(c.remove(f, bob, { id: post.id, replyId: reply.id }).deleted, true);
   assert.equal(c.remove(f, cat, { id: post.id }, true).deleted, true);
   assert.equal(f.posts.length, 0);
 });

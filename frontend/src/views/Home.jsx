@@ -3,7 +3,7 @@ import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
 import { todayChoiceSheet, underWaySheet } from '../workout-controls.jsx'
-import { HaydenCards } from '../components/HaydenCards.jsx'
+import { HaydenCards, HaydenAsk } from '../components/HaydenCards.jsx'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW } from '../lib/history.js'
@@ -263,6 +263,8 @@ export default function Home() {
             : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
         </div>
       </div>
+      {/* Hayden's one small question, only after 3+ days away (components/HaydenCards.jsx). */}
+      <HaydenAsk S={S} signedIn={!guest} />
 
       <div className="calm-mid">
         {/* A member sees how ready they are, the days to go and what to do next (components/ReadyRing.jsx);
@@ -300,7 +302,7 @@ export default function Home() {
           {S.active && <button className="calm-swap" onClick={() => underWaySheet({ resume: onStart })} aria-label="Cancel or change the workout under way"><Icon name="swap" /></button>}</p>
         {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
         {/* Hayden: back after missed days, and one question a week in (components/HaydenCards.jsx). */}
-        <HaydenCards S={S} signedIn={!guest} left={left} testName={(P.testName || 'PCT').trim()} onStart={onStart} />
+        <HaydenCards S={S} left={left} testName={(P.testName || 'PCT').trim()} onStart={onStart} />
         {guest && !(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>

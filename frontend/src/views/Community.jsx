@@ -88,7 +88,8 @@ function useHold(onHold) {
 
 /** One comment, the way Instagram shows it: name and words on one line, then time · Reply · Edit. */
 function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest, onLike }) {
-  const canDelete = r.mine || p.mine || admin
+  // Only the person who wrote a comment can delete it (not the post's author, not an admin).
+  const canDelete = r.mine
   const hold = useHold(() => menuSheet({ title: r.name, sections: [{ items: [
     { icon: 'chat', label: 'Reply', onClick: () => onReply(r) },
     ...(r.mine ? [{ icon: 'pencil', label: 'Edit', onClick: () => onEdit(r) }] : []),
@@ -162,8 +163,8 @@ function Post({ p, onChange, admin, openPerson, me }) {
       ...(p.who ? [{ icon: 'xmark', danger: true, label: `Block ${p.name}`, onClick: () => hideBot({ id: p.who, name: p.name }) }] : []),
     ] : []),
   ] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })
-  // Instagram's way: the last two comments under the post, "View all" for the rest.
-  const shown = open ? p.replies : p.replies.slice(-2)
+  // Comments stay folded until you open them (just for you, on this phone).
+  const shown = open ? p.replies : []
   const one = r => <Comment key={r.id} r={r} p={p} admin={admin} openPerson={openPerson} onReply={onReply} onEdit={onEdit} onDelete={del} onBest={best} onLike={like} />
   return <article className={'card cm-post' + (p.hidden ? ' cm-hidden' : '')}>
     <header className="cm-h">
@@ -185,7 +186,8 @@ function Post({ p, onChange, admin, openPerson, me }) {
       <ReactSummary reacts={p.reacts} total={p.cheers} />
     </div>
     {picking && <ReactBar mine={p.myReact} onPick={reactWith} />}
-    {p.replies.length > 2 && !open && <button type="button" className="cm-viewall" onClick={() => setOpen(true)}>View all {p.replies.length} comments</button>}
+    {p.replies.length > 0 && !open && <button type="button" className="cm-viewall" onClick={() => setOpen(true)}>View {p.replies.length === 1 ? '1 comment' : `all ${p.replies.length} comments`}</button>}
+    {open && p.replies.length > 0 && <button type="button" className="cm-viewall" onClick={() => setOpen(false)}>Hide comments</button>}
     {shown.length > 0 && <div className="cm-replies">{shown.map(one)}</div>}
     {open && <div className="cm-add">
       {editing && <div className="cm-editing">Editing your comment <button type="button" onClick={() => { setEditing(null); setReply('') }} aria-label="Stop editing"><Icon name="xmark" /></button></div>}
@@ -202,6 +204,8 @@ function PersonSheet({ id, close }) {
   const [d, setD] = useState(null)
   const [shown, setShown] = useState(1)
   const [note, setNote] = useState('')
+  const [pops, setPops] = useState([])
+  const [jump, setJump] = useState(0)
   const load = () => api('/api/community/person?id=' + encodeURIComponent(id)).then(setD).catch(() => setD({ error: true }))
   useEffect(() => { load() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <p className="pf-sub">Loading</p>
@@ -212,14 +216,23 @@ function PersonSheet({ id, close }) {
   const setPost = next => setD(x => ({ ...x, posts: x.posts.map(p => (p.id === next.id ? next : p)) }))
   const follow = async () => { const on = await toggleFollow(b); setD(x => ({ ...x, person: { ...x.person, followed: on, followers: x.person.followers + (on === b.followed ? 0 : on ? 1 : -1) } })) }
   // The answer shows here under the buttons, never as a toast over their name.
-  const cheerThem = async (kind = 'love') => {
+  // Each tap pops the reaction up out of its button and makes their Hayden jump: sent.
+  const pop = (kind, i) => {
+    const key = Date.now() + Math.random()
+    setPops(list => [...list.slice(-6), { key, kind, i }])
+    setJump(n => n + 1)
+    setTimeout(() => setPops(list => list.filter(x => x.key !== key)), 1100)
+    try { navigator.vibrate?.(8) } catch { /* none */ }
+  }
+  const cheerThem = async (kind = 'love', i = 0) => {
+    pop(kind, i)
     const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
     try { await post('/api/nearby/cheer', { id: b.id, kind }); setNote(`Sent ${label} to ${b.name}`) }
-    catch (e) { setNote(e?.status === 429 ? 'One cheer at a time. Try again in a minute' : `Could not reach ${b.name} right now`) }
+    catch (e) { if (e?.status !== 429) setNote(`Could not reach ${b.name} right now`) }
   }
   return <div className="cm-page">
     <button type="button" className="cm-x cm-page-x" aria-label="More" onClick={() => menuSheet({ title: b.name, sections: [{ items: [{ icon: 'xmark', danger: true, label: `Block ${b.name}`, onClick: () => { close(); hideBot(b) } }] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })}><Icon name="more" /></button>
-    <span className="nb-card-bot" dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, gear: b.gear || [], eyes: 'happy', pose: 'wave', act: b.training ? 'run' : null }) }} />
+    <span key={'j' + jump} className={'nb-card-bot' + (jump ? ' cm-jump' : '')} dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, gear: b.gear || [], eyes: 'happy', pose: jump ? 'cheer' : 'wave', act: b.training ? 'run' : null }) }} />
     <h3>{b.name}</h3>
     <p className="pf-sub">{[b.training ? 'Training now' : stageLabel(b.stage), `following ${b.following}`, `${b.followers} ${b.followers === 1 ? 'follower' : 'followers'}`].filter(Boolean).join(' · ')}</p>
     {/* Two buttons: Follow first (Cheer waits); once followed, a tick (tap to unfollow) and Cheer. */}
@@ -228,7 +241,8 @@ function PersonSheet({ id, close }) {
         ? <button type="button" className="cm-tick" aria-label={`Following ${b.name}. Tap to unfollow`} onClick={() => confirmSheet({ title: `Unfollow ${b.name}?`, confirmText: 'Unfollow', danger: true, onConfirm: follow })}><Icon name="check" /></button>
         : <button type="button" className="cm-fbtn gold" onClick={follow}>{b.followsYou ? 'Follow back' : 'Follow'}</button>}
       {b.followed && <div className="cm-fc-rx" role="group" aria-label={`React to ${b.name}`}>
-        {REACTIONS.map(x => <button key={x.id} type="button" aria-label={x.label} onClick={() => cheerThem(x.id)}><ReactIcon id={x.id} size={38} /></button>)}
+        {REACTIONS.map((x, i) => <button key={x.id} type="button" aria-label={x.label} onClick={() => cheerThem(x.id, i)}><ReactIcon id={x.id} size={38} /></button>)}
+        {pops.map(p2 => <span key={p2.key} className="cm-pop" style={{ left: `calc(${(p2.i + 0.5) * 20}% - 19px)` }} aria-hidden="true"><ReactIcon id={p2.kind} size={38} /></span>)}
       </div>}
     </div>
     <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? 'Tap one to send it' : 'Follow first, then cheer them on')}</p>
@@ -374,7 +388,7 @@ function Compose({ close, onPosted }) {
 async function sendReact(b, kind = 'love') {
   const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
   try { await post('/api/nearby/cheer', { id: b.id, kind }); toast(`${label} sent to ${b.name}`) }
-  catch (e) { toast(e?.status === 429 ? 'One at a time. Try again in a few seconds' : `Could not reach ${b.name} right now`) }
+  catch (e) { if (e?.status !== 429) toast(`Could not reach ${b.name} right now`) }
 }
 
 /** Someone you follow, at the top. Training now: tap sends Love, hold picks one of the five.

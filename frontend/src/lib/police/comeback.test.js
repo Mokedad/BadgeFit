@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { freshState } from '../../store/useStore.js'
 import { installPlanIn } from './install-plan.js'
-import { missedInARow, showComeback, showCheckin } from './comeback.js'
+import { missedInARow, showComeback, showCheckin, visitPatch } from './comeback.js'
 
 const plan = () => { const s = freshState(); s.police = { level: 'beginner' }; installPlanIn(s, { level: 'beginner', today: '2026-11-09' }); return s }
 
@@ -25,14 +25,20 @@ describe("Hayden's comeback and check-in", () => {
     const s = plan()
     expect(missedInARow(s, '2026-11-09')).toBe(0)
   })
-  it('asks the one question a week in, once, when signed in and training', () => {
+  it('asks the question only after 3+ days away, and at most once a week', () => {
+    expect(visitPatch({}, '2026-11-10')).toEqual({ seenOn: '2026-11-10' })
+    expect(visitPatch({ seenOn: '2026-11-10' }, '2026-11-10')).toBe(null)
+    expect(visitPatch({ seenOn: '2026-11-10' }, '2026-11-12')).toEqual({ seenOn: '2026-11-12' })
+    expect(visitPatch({ seenOn: '2026-11-12' }, '2026-11-15')).toEqual({ seenOn: '2026-11-15', askOn: '2026-11-15' })
     const s = plan()
-    expect(showCheckin(s, '2026-11-19', true)).toBe(false)   // nothing trained yet
     s.workouts = [{ id: 'w', d: '2026-11-10', entries: [] }]
-    expect(showCheckin(s, '2026-11-12', true)).toBe(false)   // under a week
-    expect(showCheckin(s, '2026-11-19', true)).toBe(true)
-    expect(showCheckin(s, '2026-11-19', false)).toBe(false)
-    s.police.checkin = '2026-11-19'
-    expect(showCheckin(s, '2026-11-19', true)).toBe(false)
+    s.police.askOn = '2026-11-15'
+    expect(showCheckin(s, '2026-11-15', true)).toBe(true)
+    expect(showCheckin(s, '2026-11-16', true)).toBe(false)   // only on the day they came back
+    expect(showCheckin(s, '2026-11-15', false)).toBe(false)
+    s.police.askedOn = '2026-11-10'
+    expect(showCheckin(s, '2026-11-15', true)).toBe(false)   // asked under a week ago
+    s.police.askedOn = '2026-11-08'
+    expect(showCheckin(s, '2026-11-15', true)).toBe(true)
   })
 })

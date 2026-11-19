@@ -13,7 +13,9 @@ import crypto from 'node:crypto';
 export const RADIUS_M = 300;
 export const TTL_MS = 3 * 60 * 1000;
 export const MAX_NEAR = 5;
-export const CHEER_GAP_MS = 5000;
+// Reactions can be sent again and again, like hearts on a live video: the gap only stops a stuck
+// finger from flooding someone (owner, 19 November 2026; it was 5 s).
+export const CHEER_GAP_MS = 700;
 export const STAGES = ['applicant', 'passed', 'academy', 'graduate'];
 const GEAR = new Set(['headband', 'whistle', 'bolt', 'badge', 'stripes', 'cap', 'medal']);
 
