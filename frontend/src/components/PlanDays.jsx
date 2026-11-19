@@ -15,7 +15,6 @@ import { EXIDX } from '../lib/exercises.js'
 import { exerciseNameFor, exerciseNameClass } from '../lib/i18n-core.js'
 import { todayNow } from '../lib/police/today-now.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
-import { fitSession } from '../lib/police/session-length.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
 import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet, startFlow } from '../sheets.jsx'
 import { effectiveRoutineIds } from '../lib/history.js'
@@ -197,8 +196,6 @@ export default function PlanDays({ first = null }) {
   const card = iso => {
     const d = dayInfo(S, iso)
     const past = iso < today
-    // What fits the day's time (45 minutes unless more was chosen): the rest shows faint.
-    const fits = new Set(d.gym.length ? fitSession(buildCombinedEntries(S, d.gym.map(r => r.id)).entries, S.police?.sessionCap ?? 45).map(e => `${e.rid}:${e.id}`) : [])
     return <div key={iso} data-noswipe className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={view === 'days' ? down : undefined} onPointerUp={view === 'days' ? up : undefined}>
       <div className="pd-h">
         <span className="pd-m"><b>{view === 'week' && <span className="pd-dow">{dayWord(iso, today)} · </span>}{d.name}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
@@ -210,7 +207,7 @@ export default function PlanDays({ first = null }) {
       {/* Today, still to do: start it right here (a run is counted in by Hayden, components/CountIn.jsx). */}
       {iso === today && !d.trained && d.kind !== 'rest' && <button type="button" className="pf-go pd-go" onClick={() => (S.active ? (window.location.hash = '#/workout') : (d.gym.length ? countIn({ title: d.name, act: actForRoutine(d.gym[0]), onGo: () => startFlow(effectiveRoutineIds(S, today), { auto: true }) }) : startFlow(effectiveRoutineIds(S, today), { auto: true })))}>{S.active ? 'Resume' : 'Start'}</button>}
       {d.gym.map(r => <div key={r.id} className="pf-pics">
-        {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} idx={i} ex={ex} faint={!fits.has(`${r.id}:${e.id}`)} onHold={() => !past && hold(r, i, ex)} onMove={past ? null : (from, to) => reorder(r, from, to)} /> : null })}
+        {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} idx={i} ex={ex} onHold={() => !past && hold(r, i, ex)} onMove={past ? null : (from, to) => reorder(r, from, to)} /> : null })}
         {!past && <button className="pd-add" onClick={() => add(r)} aria-label={'Add an exercise to ' + r.name}><Icon name="plus" /></button>}
       </div>)}
       {!d.gym.length && (d.kind === 'rest' || !EXIDX[RUN_PIC]

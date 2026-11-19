@@ -3604,8 +3604,9 @@ export function startFlow(routineIds, { auto = false } = {}) {
   const full = P?.level ? buildCombinedEntries(S(), routineIds).entries : []
   if (full.some(e => !(e.sets || []).some(x => x?.mode === 'cardio'))) {
     const cap = P.sessionCap ?? 45
-    // Told to Hayden ("start", "let's go"): straight in, fitted to the usual time.
-    if (auto) { begin(entries => fitSession(entries, cap)); return }
+    // Start on the day card, or told to Hayden ("start", "let's go"): straight in, with every
+    // exercise the day shows. Nothing is cut behind the user's back.
+    if (auto) { begin(entries => entries); return }
     ui().openSheet(close => <SessionPreview entries={full} cap={cap} close={close}
       start={(list, c) => { update(s => { if (s.police) s.police.sessionCap = c }); const keep = list; begin(() => keep) }} />)
     return

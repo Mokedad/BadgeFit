@@ -764,7 +764,6 @@ body:has(.calm-nav) #app{padding-bottom:calc(118px + var(--sab))}
 button.pf-tile{width:100%;text-align:start;color:inherit}
 .pd-focus .pf-pics{grid-template-columns:repeat(3,1fr);align-items:start}
 .pd-focus .pf-pics figcaption{min-height:2.5em}
-.pd-focus .pf-pics figure.faint{opacity:.35}
 .pd-add{width:100%}
 .pf-choice button.locked{opacity:.5}
 .pd-run{display:flex;justify-content:center;margin-top:12px}
