@@ -25,6 +25,7 @@ import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
 import { ReactIcon, ReactBar, ReactSummary, REACTIONS, useTapHold } from '../components/Reactions.jsx'
+import { buildBell } from '../lib/police/bell.js'
 import SwipeAway from '../components/SwipeAway.jsx'
 import '../police.css'
 
@@ -250,7 +251,7 @@ function PersonSheet({ id, close }) {
         {pops.map(p2 => <span key={p2.key} className="cm-pop" style={{ left: `calc(${(p2.i + 0.5) * 20}% - 19px)` }} aria-hidden="true"><ReactIcon id={p2.kind} size={38} /></span>)}
       </div>}
     </div>
-    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? '' : 'Follow first, then cheer them on')}</p>
+    <p className="cm-fc-note" aria-live="polite">{note}</p>
     {b.today && <SessionCard s={b.today} />}
     {/* Their last post on one line; more on a tap. */}
     {posts.slice(0, shown).map((p, i) => <div key={p.id} className="cm-last"><Icon name="chat" /><span><b>{p.text || p.session?.title || (p.week ? p.week.label : 'Shared their week')}</b><small>{i === 0 ? 'Last post · ' : ''}{ago(p.at)}</small></span></div>)}
@@ -307,20 +308,6 @@ function NumbersSheet() {
   </div>
 }
 
-// Kinds that are reactions (a cheer on a post reads as a love).
-const RX_KIND = { love: 'love', like: 'love', cheer: 'love', fire: 'fire', strong: 'strong', win: 'win', wow: 'wow' }
-/** The bell's rows: reactions from the same person in a row (newest first) become one row. */
-export function groupBell(list) {
-  const out = []
-  for (const c of list) {
-    const k = RX_KIND[c.kind]
-    const prev = out.at(-1)
-    if (k && prev?.kinds && prev.who && prev.who === c.who) { prev.kinds.push(k); prev.n++; continue }
-    out.push(k ? { ...c, kinds: [k], n: 1 } : c)
-  }
-  return out
-}
-
 /** The bell: every cheer, reply and follow lately, newest first, each with Follow back. */
 function BellSheet({ close }) {
   const [list, setList] = useState(null)
@@ -330,23 +317,42 @@ function BellSheet({ close }) {
   const [blocked, setBlocked] = useState(null)
   const showBlocked = () => api('/api/nearby/hidden').then(r => setBlocked(r?.people || [])).catch(() => setBlocked([]))
   const unblock = async b => { if (await call('/api/nearby/unhide', { id: b.id })) { setBlocked(l => l.filter(x => x.id !== b.id)); toast(`${b.name} unblocked. Follow them again from their page.`) } }
-  // Reactions from one person in a row read as one line, their reactions stacked, with a heart back.
-  const rows = groupBell(list || [])
-  const [sentTo, setSentTo] = useState({})
-  const loveBack = c => { setSentTo(m => ({ ...m, [c.who]: true })); sendReact({ id: c.who, name: c.from }, 'love') }
+  // Instagram's way (lib/police/bell.js): Featured, then Today, This week, Earlier.
+  const bell = buildBell(list || [])
+  const go = who => { if (who) { close(); openPerson(who) } }
+  const what = c => (c.what || '').replace(/^your (post|comment|win|question): .*/, 'your $1')
+  const row = c => {
+    if (c.kind === 'follows') return <div key={c.id} className="cm-bell-row">
+      <button type="button" className="cm-bell-m" onClick={() => go(c.people[0].who)}>
+        <span className="cm-bell-av">{c.people.slice(0, 2).map(x => <Bot key={x.id} b={x} size={30} />)}</span>
+        <span><b>{c.people.slice(0, 2).map(x => x.from).join(', ')}</b>{c.people.length > 2 ? ` and ${c.people.length - 2} others` : ''} followed you <small>· {ago(c.at)}</small></span>
+      </button>
+    </div>
+    return <div key={c.id} className="cm-bell-row">
+      <button type="button" className="cm-bell-m" onClick={() => go(c.who)}>
+        <Bot b={c} size={40} eyes="happy" />
+        {c.kinds
+          ? <span><b>{c.from}</b><span className="cm-bell-rx">{c.kinds.slice(0, 4).map(k => <ReactIcon key={k} id={k} size={20} />)}</span>{c.n > 1 ? <> ×{c.n}</> : what(c) ? <> {what(c)}</> : null} <small>· {ago(c.at)}</small></span>
+          : c.kind === 'reply' ? <span><b>{c.from}</b> replied{c.what ? `: ${c.what.replace(/^your (post|comment|win|question):\s*/, '')}` : ''} <small>· {ago(c.at)}</small></span>
+            : <span>{cheerLine(c)} <small>· {ago(c.at)}</small></span>}
+      </button>
+      {c.who && !c.followed && c.kind === 'follow' && <button type="button" className="cm-follow" onClick={() => back(c)}>Follow back</button>}
+    </div>
+  }
+  const f = bell.featured
   return <div className="cm-bell">
-    <h3>Your bell</h3>
-    {list == null ? <p className="pf-sub">Loading</p> : !list.length ? <p className="pf-sub">Cheers, replies and new followers show up here.</p>
-      : rows.map(c => <div key={c.id} className="cm-bell-row">
-        <button type="button" className="cm-bell-m" onClick={() => { if (c.who) { close(); openPerson(c.who) } }}>
-          <Bot b={c} size={38} eyes="happy" />
-          {c.kinds
-            ? <span><b>{c.from}<span className="cm-bell-rx">{[...new Set(c.kinds)].slice(0, 4).map(k => <ReactIcon key={k} id={k} size={20} />)}</span></b><small>{c.n > 1 ? `sent ${c.n} · ` : c.what ? c.what + ' · ' : ''}{ago(c.at)}</small></span>
-            : <span><b>{cheerSym(c.kind)} {cheerLine(c)}</b><small>{ago(c.at)}</small></span>}
-        </button>
-        {c.who && !c.followed ? <button type="button" className="cm-follow" onClick={() => back(c)}>Follow back</button>
-          : c.who && c.kinds && <button type="button" className={'cm-back' + (sentTo[c.who] ? ' sent' : '')} aria-label={`Send love back to ${c.from}`} onClick={() => loveBack(c)}>{sentTo[c.who] ? <ReactIcon id="love" size={30} /> : <Icon name="heart" />}</button>}
-      </div>)}
+    <h3>Bell</h3>
+    {list == null ? <p className="pf-sub">Loading</p> : !list.length ? <p className="pf-sub">Nothing yet.</p> : <>
+      {f && <><div className="cm-bell-sec">Featured</div>
+        <div className="cm-bell-row cm-bell-f">
+          <button type="button" className="cm-bell-m" onClick={() => { close(); window.location.hash = '#/community' }}>
+            <span className="cm-bell-av">{f.people.slice(0, 2).map(x => <Bot key={x.who} b={x} size={30} />)}</span>
+            <span><b>{f.people.slice(0, 2).map(x => x.from).join(', ')}</b>{f.people.length > 2 ? ` and ${f.people.length - 2} others` : ''} reacted to {what(f)}<span className="cm-bell-rx">{f.kinds.slice(0, 4).map(k => <ReactIcon key={k} id={k} size={20} />)}</span>
+              <small className="cm-bell-q">{f.what.replace(/^your (post|comment|win|question):\s*/, '')}</small></span>
+          </button>
+        </div></>}
+      {bell.sections.map(sec => <div key={sec.title}><div className="cm-bell-sec">{sec.title}</div>{sec.rows.map(row)}</div>)}
+    </>}
     {blocked == null ? <button type="button" className="pf-link cm-blocked-l" onClick={showBlocked}>People you blocked</button>
       : <div className="cm-blocked"><div className="menu-sec">People you blocked</div>
         {!blocked.length ? <p className="pf-sub">Nobody.</p> : blocked.map(b => <div key={b.id} className="cm-bell-row">
