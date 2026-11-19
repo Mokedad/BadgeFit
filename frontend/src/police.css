@@ -1170,7 +1170,7 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .lean-vals{display:flex;align-items:center;justify-content:center;gap:6px;font-size:28px;font-weight:800;min-height:44px}
 .lean-vals em{font-style:normal;color:var(--label-2);font-size:20px}
 .lean-vals.done{color:var(--green);font-size:20px}
-.lean-num{border:0;background:none;color:inherit;font:inherit;padding:2px 6px;border-radius:10px;border-bottom:2px dotted var(--label-3)}
+.lean-num{touch-action:none;user-select:none;-webkit-user-select:none;border:0;background:none;color:inherit;font:inherit;padding:2px 6px;border-radius:10px;border-bottom:2px dotted var(--label-3)}
 .lean-num small{font-size:15px;color:var(--label-2);font-weight:700}
 .lean-num.on{display:inline-flex;align-items:center;gap:4px;border:0;background:var(--surface-2);padding:2px}
 .lean-num-v{border:0;background:none;color:inherit;font:inherit;padding:0 4px}

@@ -80,6 +80,14 @@ export function stepValue(v, field, dir, unit = 'kg') {
   return Math.max(0, next)
 }
 
+/** Dragging a number up or down: how many steps the finger has moved so far (up is more). One
+ * step every `px` pixels, so a short slow drag changes it by one. */
+export const DRAG_PX = 18
+export function dragSteps(dy, px = DRAG_PX) {
+  const n = Math.trunc(-(Number(dy) || 0) / px)
+  return n === 0 ? 0 : n
+}
+
 /** The one button's words for the set that is next. */
 export function buttonLabel({ mode, warm, setNo, sec, last, side }) {
   if (last) return 'Finish workout'

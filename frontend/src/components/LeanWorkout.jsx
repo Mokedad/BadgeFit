@@ -13,19 +13,54 @@ import { fmtNum } from '../lib/format.js'
 import { lastEntryFor, modeOf, isBw } from '../lib/history.js'
 import { lastRowFor } from '../lib/typo-check.js'
 import { isWarmupRow, isSideSet } from '../lib/workout-model.js'
-import { nextSetIdx, lastDoneIdx, dotStates, stripStates, putOff, isLastSet, stepValue, buttonLabel, clock, laterKey } from '../lib/police/lean-workout.js'
+import { nextSetIdx, lastDoneIdx, dotStates, stripStates, putOff, isLastSet, stepValue, dragSteps, buttonLabel, clock, laterKey } from '../lib/police/lean-workout.js'
 import { Thumb } from './Media.jsx'
 
 const sideOf = row => (isSideSet(row) ? (row.sides?.L?.done ? 'R' : 'L') : null)
 const valOf = (row, side, f) => (side ? row?.sides?.[side]?.[f] : row?.[f])
 
+// Drag a number up for more, down for less (one step every 18 px). A tap still opens − and +.
+// The drag never reaches the card, so it can't swipe the exercise away to "later".
+function useDragStep(onStep) {
+  const g = useRef(null)
+  const stop = ev => ev.stopPropagation()
+  return {
+    moved: () => g.current?.moved,
+    handlers: {
+      onPointerDown: ev => {
+        stop(ev)
+        g.current = { y: ev.clientY, n: 0, moved: false }
+      },
+      onPointerMove: ev => {
+        const d = g.current
+        if (!d) return
+        stop(ev)
+        const n = dragSteps(ev.clientY - d.y)
+        if (n !== d.n) {
+          const dir = n > d.n ? 1 : -1
+          d.n += dir
+          // Hold on to the finger only once it really drags, so a plain tap on − or + still lands.
+          if (!d.moved) try { ev.currentTarget.setPointerCapture?.(ev.pointerId) } catch { /* not supported */ }
+          d.moved = true
+          onStep(dir)
+          try { navigator.vibrate?.(5) } catch { /* no buzz */ }
+        }
+      },
+      onPointerUp: ev => { stop(ev); setTimeout(() => { g.current = null }, 0) },
+      onPointerCancel: ev => { stop(ev); g.current = null },
+    },
+  }
+}
+
 function Num({ value, suffix, onStep, label }) {
   const [open, setOpen] = useState(false)
-  if (!open) return <button type="button" className="lean-num" aria-label={'Change ' + label} onClick={() => setOpen(true)}>{value}{suffix && <small>{suffix}</small>}</button>
-  return <span className="lean-num on" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false) }}>
-    <button type="button" className="lean-step" aria-label={'Less ' + label} onClick={() => onStep(-1)}>−</button>
-    <button type="button" className="lean-num-v" aria-label={'Done changing ' + label} onClick={() => setOpen(false)} autoFocus>{value}{suffix && <small>{suffix}</small>}</button>
-    <button type="button" className="lean-step" aria-label={'More ' + label} onClick={() => onStep(1)}>+</button>
+  const drag = useDragStep(onStep)
+  const tap = fn => () => { if (!drag.moved()) fn() }
+  if (!open) return <button type="button" className="lean-num" aria-label={'Change ' + label} {...drag.handlers} onClick={tap(() => setOpen(true))}>{value}{suffix && <small>{suffix}</small>}</button>
+  return <span className="lean-num on" {...drag.handlers} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false) }}>
+    <button type="button" className="lean-step" aria-label={'Less ' + label} onClick={tap(() => onStep(-1))}>−</button>
+    <button type="button" className="lean-num-v" aria-label={'Done changing ' + label} onClick={tap(() => setOpen(false))} autoFocus>{value}{suffix && <small>{suffix}</small>}</button>
+    <button type="button" className="lean-step" aria-label={'More ' + label} onClick={tap(() => onStep(1))}>+</button>
   </span>
 }
 
