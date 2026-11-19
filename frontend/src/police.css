@@ -145,6 +145,8 @@
 .cm-acts .cm-rep{background:none;color:var(--label-2);margin-left:auto}
 .cm-replies{border-top:1px solid var(--sep);margin-top:10px;padding-top:6px}
 .cm-reply{padding:6px 0;position:relative}
+.cm-sub{padding-left:28px}
+.cm-sub .cm-reply{padding-top:2px}
 .cm-reply p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cm-reply .cm-x{position:absolute;right:0;top:2px}
 .cm-hidden{opacity:.6}

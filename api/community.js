@@ -77,7 +77,7 @@ export function view(feed, viewer, { admin = false, before = null, handle = null
     ...reactSummary(p, viewer),
     mine: p.uid === viewer?.id, hidden: !!p.hidden, ...who(p.uid),
     ...(admin && { reports: (p.reports || []).length }),
-    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), ...replyReacts(r, viewer), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
+    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, ...(r.to && { to: r.to }), mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), ...replyReacts(r, viewer), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
   }));
 }
 
@@ -148,16 +148,22 @@ export function addPost(feed, user, { text, topic, crew, area, stage, session, p
 
 const find = (feed, id) => (feed.posts || []).find(p => p.id === id) || null;
 
-export function addReply(feed, user, { id, text }, now = Date.now()) {
+/**
+ * A comment on a post, or an answer to one (`to`, Instagram style: it sits under that comment).
+ * An answer to an answer goes under the same top comment, so threads stay one level deep.
+ */
+export function addReply(feed, user, { id, text, to }, now = Date.now()) {
   const post = find(feed, id);
   if (!post || post.hidden) return { error: 'post not found' };
   const t = clean(text, MAX_REPLY);
   if (!t) return { error: 'write something first' };
   if ((post.replies || []).length >= MAX_REPLIES) return { error: 'this post has all the replies it can take' };
-  const reply = { id: newId(), uid: user.id, name: nameOf(user), text: t, at: now };
+  const parent = to ? (post.replies || []).find(x => x.id === String(to)) : null;
+  const top = parent ? (parent.to && (post.replies || []).some(x => x.id === parent.to) ? parent.to : parent.id) : null;
+  const reply = { id: newId(), uid: user.id, name: nameOf(user), text: t, at: now, ...(top && { to: top }) };
   post.replies = [...(post.replies || []), reply];
-  // owner: who to tell (server.js, cheers.js); never sent to the client.
-  return { reply, owner: post.uid, post };
+  // owner: who to tell (server.js, cheers.js); never sent to the client. answered: the comment's writer.
+  return { reply, owner: post.uid, post, ...(parent && { answered: parent.uid }) };
 }
 
 /** Changes the words of your own reply (Instagram's Edit). */

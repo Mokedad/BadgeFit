@@ -3390,8 +3390,14 @@ const routes = {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
     const body = await readBody(req);
     const feed = loadCommunity();
-    const r = community.addReply(feed, user, { id: String(body.id || ''), text: body.text });
-    if (!r.error) { saveCommunity(feed); sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'reply', what: cheers.postLabel(r.post), ref: r.post.id }); }
+    const r = community.addReply(feed, user, { id: String(body.id || ''), text: body.text, to: body.to ? String(body.to) : undefined });
+    if (!r.error) {
+      saveCommunity(feed);
+      const note = { from: user.name, colour: cardColour(user.id), kind: 'reply', what: cheers.postLabel(r.post), ref: r.post.id };
+      sendCheer(r.owner, user.id, note);
+      // The person whose comment was answered hears too (once, if they also wrote the post).
+      if (r.answered && r.answered !== r.owner) sendCheer(r.answered, user.id, note);
+    }
     communityAnswer(res, r.error ? r : { reply: { ...r.reply, uid: undefined, mine: true } }, 201);
   },
   // Your own comment, new words (Instagram's Edit).

@@ -169,3 +169,18 @@ test('a comment takes any of the five; a tap is a heart', () => {
   assert.deepEqual([seen.likes, seen.myReact, seen.reacts], [2, 'fire', { fire: 1, love: 1 }]);
   assert.equal(c.likeReply(f, ann, { id: post.id, replyId: reply.id, kind: 'party' }).error, 'unknown reaction');
 });
+
+test('an answer sits under the comment it answers, one level deep, and its writer is told', () => {
+  const f = c.emptyFeed();
+  const { post } = c.addPost(f, ann, { text: 'PCT on the 6th' });
+  const { reply: top } = c.addReply(f, bob, { id: post.id, text: 'Get it!' });
+  const a = c.addReply(f, ann, { id: post.id, text: '@Bob thanks', to: top.id });
+  assert.equal(a.reply.to, top.id);
+  assert.equal(a.answered, 'u2');
+  const b = c.addReply(f, cat, { id: post.id, text: '@Ann same', to: a.reply.id });
+  assert.equal(b.reply.to, top.id, 'an answer to an answer goes under the same top comment');
+  assert.equal(c.addReply(f, cat, { id: post.id, text: 'plain', to: 'nope' }).reply.to, undefined);
+  const v = c.view(f, dan)[0].replies;
+  assert.deepEqual(v.map(r => r.to || null), [null, top.id, top.id, null]);
+  assert.ok(v.every(r => !('uid' in r)));
+});

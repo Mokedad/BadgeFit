@@ -126,6 +126,7 @@ function CommentHeart({ r, onLike }) {
 function Post({ p, onChange, admin, openPerson, me }) {
   const [reply, setReply] = useState('')
   const [editing, setEditing] = useState(null)
+  const [answering, setAnswering] = useState(null)
   const [open, setOpen] = useState(false)
   const input = useRef(null)
   const [picking, setPicking] = useState(false)
@@ -146,12 +147,12 @@ function Post({ p, onChange, admin, openPerson, me }) {
       if (r) { onChange({ ...p, replies: p.replies.map(x => (x.id === editing ? { ...x, text: r.reply.text, edited: true } : x)) }); setReply(''); setEditing(null) }
       return
     }
-    const r = await call('/api/community/reply', { id: p.id, text: reply })
-    if (r) { onChange({ ...p, replies: [...p.replies, r.reply] }); setReply('') }
+    const r = await call('/api/community/reply', { id: p.id, text: reply, ...(answering && reply.startsWith('@' + answering.name) && { to: answering.id }) })
+    if (r) { onChange({ ...p, replies: [...p.replies, r.reply] }); setReply(''); setAnswering(null) }
   }
   const focus = () => setTimeout(() => input.current?.focus?.(), 50)
-  const onReply = r => { setOpen(true); setEditing(null); setReply(`@${r.name} `); focus() }
-  const onEdit = r => { setOpen(true); setEditing(r.id); setReply(r.text); focus() }
+  const onReply = r => { setOpen(true); setEditing(null); setAnswering(r); setReply(`@${r.name} `); focus() }
+  const onEdit = r => { setOpen(true); setEditing(r.id); setAnswering(null); setReply(r.text); focus() }
   const best = async replyId => { const r = await call('/api/community/best', { id: p.id, replyId }); if (r) onChange({ ...p, replies: p.replies.map(x => ({ ...x, best: x.id === r.best })) }) }
   const del = replyId => confirmSheet({ title: replyId ? 'Delete this comment?' : 'Delete this post?', confirmText: 'Delete', danger: true, onConfirm: async () => {
     const r = await call('/api/community/delete', { id: p.id, replyId })
@@ -167,6 +168,10 @@ function Post({ p, onChange, admin, openPerson, me }) {
   // Comments stay folded until you open them (just for you, on this phone).
   const shown = open ? p.replies : []
   const one = r => <Comment key={r.id} r={r} p={p} admin={admin} openPerson={openPerson} onReply={onReply} onEdit={onEdit} onDelete={del} onBest={best} onLike={like} />
+  // Instagram style: each answer sits under the comment it answers, a step in.
+  const ids = new Set(shown.map(r => r.id))
+  const tops = shown.filter(r => !r.to || !ids.has(r.to))
+  const thread = r => [one(r), ...shown.filter(x => x.to === r.id).map(x => <div key={x.id} className="cm-sub">{one(x)}</div>)]
   return <article className={'card cm-post' + (p.hidden ? ' cm-hidden' : '')}>
     <header className="cm-h">
       <button type="button" className="cm-person" disabled={!p.who} onClick={() => openPerson(p.who)} aria-label={p.who ? `${p.name}: their page` : p.name}>
@@ -189,7 +194,7 @@ function Post({ p, onChange, admin, openPerson, me }) {
     {picking && <ReactBar mine={p.myReact} onPick={reactWith} />}
     {p.replies.length > 0 && !open && <button type="button" className="cm-viewall" onClick={() => setOpen(true)}>View {p.replies.length === 1 ? '1 comment' : `all ${p.replies.length} comments`}</button>}
     {open && p.replies.length > 0 && <button type="button" className="cm-viewall" onClick={() => setOpen(false)}>Hide comments</button>}
-    {shown.length > 0 && <div className="cm-replies">{shown.map(one)}</div>}
+    {shown.length > 0 && <div className="cm-replies">{tops.flatMap(thread)}</div>}
     {open && <div className="cm-add">
       {editing && <div className="cm-editing">Editing your comment <button type="button" onClick={() => { setEditing(null); setReply('') }} aria-label="Stop editing"><Icon name="xmark" /></button></div>}
       <div className="mb-row">

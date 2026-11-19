@@ -3754,7 +3754,7 @@ paths:
       tags: [community]
       operationId: postCommunityReply
       summary: Reply to a post
-      description: Up to 500 characters of plain text.
+      description: Up to 500 characters of plain text. `to` answers one comment, and the answer shows under it.
       requestBody:
         required: true
         content:
@@ -3765,6 +3765,7 @@ paths:
               properties:
                 id: { type: string }
                 text: { type: string, maxLength: 500 }
+                to: { type: string, description: The comment this answers }
       responses:
         '201': { description: The new reply }
         '400': { description: Empty text or no such post }
