@@ -1,6 +1,6 @@
 // Hayden's two small cards on Home (BadgeFit): the comeback after two or more missed days, and the
 // one check-in question a week in (lib/police/comeback.js). Kind words, one button each, gone with
-// a tap. Never both at once: the comeback comes first.
+// a sideways swipe (or the small ✕). Never both at once: the comeback comes first.
 import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -9,6 +9,7 @@ import { todayISO } from '../lib/format.js'
 import { showComeback, showCheckin, missedInARow, CHECKIN_Q } from '../lib/police/comeback.js'
 import { botSvg } from './HaydenBot.jsx'
 import { TextArea } from './ui.jsx'
+import SwipeAway from './SwipeAway.jsx'
 
 const Face = () => <span className="hc-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ eyes: 'happy', head: true }) }} />
 const setP = patch => useStore.getState().update(s => { s.police = { ...(s.police || {}), ...patch } })
@@ -19,17 +20,16 @@ export function HaydenCards({ S, signedIn, left, testName, onStart }) {
   const [busy, setBusy] = useState(false)
   if (showComeback(S, today)) {
     const n = missedInARow(S, today)
-    return <div className="card hc">
+    return <SwipeAway className="card hc" label="Not today" onAway={() => setP({ comebackOff: today })}>
       <Face />
       <div className="hc-m">
         <b>Missed {n} days. That happens.</b>
         <p>{left != null && left > 0 ? `${left} days to your ${testName}. ` : ''}Even 20 minutes today gets you back on track.</p>
         <div className="hc-a">
           <button type="button" className="hc-go" onClick={onStart}>Start today</button>
-          <button type="button" className="hc-x" onClick={() => setP({ comebackOff: today })}>Not today</button>
         </div>
       </div>
-    </div>
+    </SwipeAway>
   }
   if (!showCheckin(S, today, signedIn)) return null
   const send = async () => {
@@ -39,7 +39,7 @@ export function HaydenCards({ S, signedIn, left, testName, onStart }) {
     catch { useUI.getState().toast('Could not send it right now. Try again later.') }
     setBusy(false)
   }
-  return <div className="card hc">
+  return <SwipeAway className="card hc" label="Skip" onAway={() => setP({ checkin: 'skipped' })}>
     <Face />
     <div className="hc-m">
       <b>One question from Hayden</b>
@@ -47,8 +47,7 @@ export function HaydenCards({ S, signedIn, left, testName, onStart }) {
       <TextArea value={text} maxLength={500} rows={2} placeholder="Be honest. It helps." onChange={e => setText(e.target.value)} />
       <div className="hc-a">
         <button type="button" className="hc-go" disabled={busy || !text.trim()} onClick={send}>Send</button>
-        <button type="button" className="hc-x" onClick={() => setP({ checkin: 'skipped' })}>Skip</button>
       </div>
     </div>
-  </div>
+  </SwipeAway>
 }

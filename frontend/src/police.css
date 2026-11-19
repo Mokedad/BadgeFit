@@ -1482,3 +1482,10 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .cm-nums-a{background:var(--surface-2,#f3f4f8);border-radius:14px;padding:10px 12px;margin-bottom:6px}
 .cm-nums-a p{margin:0 0 3px;font-size:14.5px}
 .cm-nums-a small{color:var(--label-2);font-size:11.5px}
+
+/* Swipe a card away (components/SwipeAway.jsx): a quiet ✕ in the corner for those who tap. */
+.swipe-away{position:relative;touch-action:pan-y;will-change:transform}
+.swipe-x{position:absolute;top:8px;right:8px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--label-3,var(--label-2));display:grid;place-items:center;opacity:.6}
+.swipe-x svg{width:14px;height:14px}
+/* The PCT summary card leaves room on the right for the floating Hayden, so he never covers words. */
+.card.pf-ready{padding-right:72px;flex-wrap:wrap;row-gap:2px}

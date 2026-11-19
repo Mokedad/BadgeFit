@@ -10,6 +10,7 @@ import { beatFor, paceSettings, paceLine, ADJ_STEP, ADJ_MAX, clampAdj, clampVol 
 import { createPacer, playTick } from '../lib/police/pacer.js'
 import { vibrateSupported, vibrate } from '../lib/sound.js'
 import Icon from './Icon.jsx'
+import { useFlick } from './SwipeAway.jsx'
 import HaydenBot from './HaydenBot.jsx'
 
 const TIP_KEY = 'bf_pace_tip'
@@ -97,8 +98,10 @@ function PaceSheet({ pace, close }) {
   const buzzOk = vibrateSupported()
   const shown = pace.spm || beatFor({ kind: 'work', effort: 'z2' }, pace.adj)
   const pick = patch => { pace.save(patch); preview(pace, patch) }
+  // Closed with a flick down or a tap outside: no Done button to find.
+  const flick = useFlick(close)
   return <div className="rp-choice pace-dim" role="dialog" aria-label="Pace sound options" onClick={close}>
-    <div className="pace-sheet" onClick={e => e.stopPropagation()}>
+    <div className="pace-sheet" onClick={e => e.stopPropagation()} {...flick}>
       <div className="pace-grab" aria-hidden="true" />
       <h3><Icon name="footprints" /> Pace sound</h3>
       <p className="pace-sub">Step on every tick to hold the right pace.</p>
@@ -116,23 +119,22 @@ function PaceSheet({ pace, close }) {
         <input type="range" className="pace-vol" min="5" max="100" step="5" value={Math.round(pace.vol * 100)} aria-label="Volume"
           onChange={e => pace.save({ vol: clampVol(e.target.value / 100) })} onPointerUp={() => preview(pace)} onKeyUp={() => preview(pace)} /></div>}
       <p className="pace-note">Plays with your music and never pauses it.{buzzOk ? ' On silent, the phone mutes the tick: pick Buzz.' : ''}</p>
-      <button type="button" className="pace-done" onClick={close}>Done</button>
     </div>
   </div>
 }
 
 function PaceGate({ started, close, onSignUp }) {
+  const flick = useFlick(close)
   return <div className="rp-choice pace-dim" role="dialog" aria-label="Pace sound" onClick={close}>
-    <div className="pace-sheet pace-gate" onClick={e => e.stopPropagation()}>
+    <div className="pace-sheet pace-gate" onClick={e => e.stopPropagation()} {...flick}>
       <div className="pace-grab" aria-hidden="true" />
       <HaydenBot size={64} eyes="happy" pose="wave" />
       <h3><Icon name="footprints" /> Pace sound</h3>
       <p className="pace-sub">A soft tick on every step, under your music. It speeds up on the hard parts. It comes with an account, and signing up is free.</p>
       <div className="pace-beats" aria-hidden="true"><span>Warm-up 160</span><span className="hot">Go 176</span><span>Recover 158</span></div>
       {started
-        ? <><p className="pace-note">Sign up after this run, from Home.</p><button type="button" className="pace-done" onClick={close}>OK</button></>
-        : <div className="pace-acts"><button type="button" className="pace-quiet" onClick={close}>Not now</button>
-          <button type="button" className="pace-done" onClick={() => { close(); onSignUp?.() }}>Sign up free</button></div>}
+        ? <p className="pace-note">Sign up after this run, from Home.</p>
+        : <button type="button" className="pace-done" onClick={() => { close(); onSignUp?.() }}>Sign up free</button>}
     </div>
   </div>
 }

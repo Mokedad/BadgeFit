@@ -25,6 +25,7 @@ import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
 import { ReactIcon, ReactBar, ReactSummary, REACTIONS, useTapHold } from '../components/Reactions.jsx'
+import SwipeAway from '../components/SwipeAway.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
@@ -456,7 +457,7 @@ export default function Community() {
               <span className="cm-ring cm-ring-f"><Icon name="chart" /></span><small>Numbers</small></button>}
             {people.map(b => <PersonBubble key={b.id} b={b} live={b.training || training(b.id)} onPick={setPickFor} />)}
           </div>
-          {pickFor && <div className="cm-bub-pick"><b>{pickFor.name}{pickFor.live ? ' is training. Send them' : ''}</b><ReactBar onPick={k => { const x = pickFor; setPickFor(null); sendReact(x, k) }} /><button type="button" className="pf-link" onClick={() => setPickFor(null)}>Not now</button></div>}
+          {pickFor && <SwipeAway key={pickFor.id} className="cm-bub-pick" label="Close" onAway={() => setPickFor(null)}><b>{pickFor.name}{pickFor.live ? ' is training. Send them' : ''}</b><ReactBar onPick={k => { const x = pickFor; setPickFor(null); sendReact(x, k) }} /></SwipeAway>}
           <div className="cm-tabs" role="tablist">
             <button role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>Everyone</button>
             <button role="tab" aria-selected={tab === 'following'} className={tab === 'following' ? 'on' : ''} onClick={() => setTab('following')}>Following</button>

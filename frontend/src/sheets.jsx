@@ -196,7 +196,14 @@ export function askAddDeviceData(extras) {
 const menuGroups = list => (list || [])
   .map(g => g.more ? g : { title: g.title, fold: g.fold, items: (g.items || []).filter(Boolean) })
   .filter(g => g.more || g.items.length)
-function MenuSheet({ title, titleClass = '', subtitle, items, sections, close }) {
+// BadgeFit: a menu's "Cancel", "Keep it" or "Not now" row does nothing a swipe down (or a tap
+// outside) does not, so it is left out there; the menu is shorter and has no dead words.
+const DISMISS_ROWS = new Set(['Cancel', 'Keep it', 'Not now', 'Keep going'])
+const dropDismiss = list => (list || []).map(g => (g && g.items ? { ...g, items: g.items.filter(it => !(it && it.icon === 'xmark' && !it.danger && (DISMISS_ROWS.has(it.label) || it.label === t('Cancel')))) } : g))
+function MenuSheet({ title, titleClass = '', subtitle, items: items0, sections: sections0, close }) {
+  const bf = useStore(s => !!s.S.police?.level)
+  const sections = bf && sections0 ? dropDismiss(sections0) : sections0
+  const items = bf && items0 ? dropDismiss([{ items: items0 }])[0].items : items0
   const [open, setOpen] = useState(false)
   const [folded, setFolded] = useState(-1)
   const firstMore = useRef(null)

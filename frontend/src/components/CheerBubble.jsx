@@ -13,6 +13,7 @@ import { haydenSays, toggleFollow } from './NearbyBots.jsx'
 import { botSvg } from './HaydenBot.jsx'
 import { useRun } from '../store/useRun.js'
 import { ReactIcon, REACTIONS } from './Reactions.jsx'
+import { useFlick } from './SwipeAway.jsx'
 
 const EVERY_MS = 60000
 // While you train, reactions arrive sooner and float up the side instead of a bubble on top.
@@ -54,7 +55,10 @@ export default function CheerBubble() {
   const on = useStore(s => !!s.user && !!s.S.police?.level)
   const queue = useCheers(s => s.queue)
   const [shown, setShown] = useState(null)
-  const training = useStore(s => !!s.S.active) || !!useRun(s => s.run)
+  // Both asked every time (a hook skipped by || would change the hook order mid-workout).
+  const activeNow = useStore(s => !!s.S.active)
+  const running = useRun(s => !!s.run)
+  const training = activeNow || running
 
   // Pick up what is waiting: now, on coming back to the app, and every minute while it is open.
   useEffect(() => {
@@ -85,10 +89,12 @@ export default function CheerBubble() {
     return () => clearTimeout(t)
   }, [shown])
 
+  // A flick up (or sideways) puts the bubble away before its five seconds are up.
+  const flick = useFlick(() => setShown(null), 'up')
   if (!shown) return <Floats />
   // Follow back, right on the bubble, closes the loop (not for someone you already follow).
   const canFollow = shown.who && !shown.followed && shown.kind !== 'training' && !shown.line
-  return <div className="cheer-pop" aria-live="polite">
+  return <div className="cheer-pop" aria-live="polite" {...flick}>
     <button type="button" className="cheer-pop-m" onClick={() => { setShown(null); window.location.hash = '#/community' }}>
       <span className="cheer-pop-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: shown.colour, eyes: 'happy', head: true }) }} />
       <span className="cheer-pop-t">{isReact(shown.kind) ? <ReactIcon id={shown.kind} size={22} /> : <span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>}{shown.line || cheerLine(shown)}</span>

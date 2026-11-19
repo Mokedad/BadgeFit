@@ -54,6 +54,7 @@ import { CAT_ICON } from '../lib/police/start-picks.js'
 import { RUNS, CATEGORIES, runById, runForDay, runMinutes, runsThisWeek } from '../lib/police/runs.js'
 import PlanDays from '../components/PlanDays.jsx'
 import { isBadgeFit, toSignIn } from '../lib/police/guest.js'
+import SwipeAway from '../components/SwipeAway.jsx'
 import '../police.css'
 
 // The lean hub: the workout of the day, the plan to the test, the test itself. The rest is kept
@@ -680,14 +681,13 @@ function Plan({ S, P }) {
   const openPlans = () => { setOpenOnce(true); setP(p => seenPatch(p, 'moreplans') || {}) }
   return <>
     {/* The habit is there: the other plans are offered once, then live under Change my plan. */}
-    {P.start && level === 'beginner' && !P.seen?.moreplans && (S.workouts || []).length >= ease.need && <div className="card pf-ease">
+    {P.start && level === 'beginner' && !P.seen?.moreplans && (S.workouts || []).length >= ease.need && <SwipeAway className="card pf-ease" label="Not now" onAway={() => setP(p => seenPatch(p, 'moreplans') || {})}>
       <b>Five sessions done. You have the habit.</b>
       <p className="pf-sub">More running, or a plan built around you.</p>
       <div className="row" style={{ gap: 8 }}>
         <Button size="sm" variant="primary" onClick={openPlans}>See the plans</Button>
-        <Button size="sm" variant="ghost" onClick={() => setP(p => seenPatch(p, 'moreplans') || {})}>Not now</Button>
       </div>
-    </div>}
+    </SwipeAway>}
     {/* A day at a time, read from the schedule as it is, so it matches Home (components/PlanDays.jsx). */}
     <PlanDays />
     {/* The settings sit under the week, folded: the plan comes first, changing it second. */}
