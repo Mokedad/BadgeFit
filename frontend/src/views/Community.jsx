@@ -226,8 +226,8 @@ function PersonSheet({ id, close }) {
   }
   const cheerThem = async (kind = 'love', i = 0) => {
     pop(kind, i)
-    const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
-    try { await post('/api/nearby/cheer', { id: b.id, kind }); setNote(`Sent ${label} to ${b.name}`) }
+    // The pop says it was sent; no words for it.
+    try { await post('/api/nearby/cheer', { id: b.id, kind }); setNote('') }
     catch (e) { if (e?.status !== 429) setNote(`Could not reach ${b.name} right now`) }
   }
   return <div className="cm-page">
@@ -245,7 +245,7 @@ function PersonSheet({ id, close }) {
         {pops.map(p2 => <span key={p2.key} className="cm-pop" style={{ left: `calc(${(p2.i + 0.5) * 20}% - 19px)` }} aria-hidden="true"><ReactIcon id={p2.kind} size={38} /></span>)}
       </div>}
     </div>
-    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? 'Tap one to send it' : 'Follow first, then cheer them on')}</p>
+    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? '' : 'Follow first, then cheer them on')}</p>
     {b.today && <SessionCard s={b.today} />}
     {b.stats && <div className="nb-tiles">{tile(b.stats.week, 'this week')}{tile(b.stats.ready + '%', 'PCT ready')}{tile(b.stats.streak, b.stats.streak === 1 ? 'week in a row' : 'weeks in a row')}</div>}
     {plans.length > 0 && <><div className="menu-sec">Shared plans</div>{plans.map(p => <PlanCard key={p.id} p={p} onChange={setPost} />)}</>}
@@ -386,8 +386,7 @@ function Compose({ close, onPosted }) {
 
 /** Send a reaction through someone's Hayden: it floats up their screen if they are training. */
 async function sendReact(b, kind = 'love') {
-  const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
-  try { await post('/api/nearby/cheer', { id: b.id, kind }); toast(`${label} sent to ${b.name}`) }
+  try { await post('/api/nearby/cheer', { id: b.id, kind }) }
   catch (e) { if (e?.status !== 429) toast(`Could not reach ${b.name} right now`) }
 }
 
