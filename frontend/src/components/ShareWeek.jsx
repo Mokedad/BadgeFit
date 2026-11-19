@@ -11,6 +11,7 @@ import { planFromRoutines, stageOf } from '../lib/police/community.js'
 import { mondayOf, weekDays, shareKind } from '../lib/police/week-edit.js'
 import { dayInfo } from './PlanDays.jsx'
 import { TextArea } from './ui.jsx'
+import Icon from './Icon.jsx'
 
 /** This week's seven days for sharing: { label, days: [{ k, name }] }, and its gym sessions. */
 export function weekToShare(S, today = todayISO()) {
@@ -36,6 +37,7 @@ function ShareWeek({ close }) {
   const [text, setText] = useState('')
   const [tryIt, setTryIt] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [writing, setWriting] = useState(false)
   const { week, routines } = weekToShare(S)
   const P = S.police || {}
   const send = async () => {
@@ -48,13 +50,16 @@ function ShareWeek({ close }) {
     } catch (e) { useUI.getState().toast(e?.message || 'Could not share right now') }
     setBusy(false)
   }
+  // Short on purpose: the week, one folded line to write in, one switch, one round button.
+  // Swiping the sheet down simply closes it; nothing is asked.
   return <div className="wk-share">
     <h3>Share my week</h3>
     <WeekStrip week={week} />
-    <TextArea value={text} maxLength={1000} rows={2} placeholder="A few words (optional)" onChange={e => setText(e.target.value)} />
-    {routines.length > 0 && <label className="wk-try"><input type="checkbox" checked={tryIt} onChange={e => setTryIt(e.target.checked)} /> Let others try this plan</label>}
-    <p className="pf-sub">Others see the days and the exercises, never your weights or results.</p>
-    <button type="button" className="pf-go" disabled={busy} onClick={send}>Post to Community</button>
+    {writing
+      ? <TextArea autoFocus value={text} maxLength={1000} rows={2} placeholder="Write something" onChange={e => setText(e.target.value)} />
+      : <button type="button" className="wk-write" onClick={() => setWriting(true)}><Icon name="pencil" /> {text || 'Write something'}</button>}
+    {routines.length > 0 && <label className="wk-try"><span>Others can try it</span><input type="checkbox" role="switch" checked={tryIt} onChange={e => setTryIt(e.target.checked)} /></label>}
+    <div className="wk-go"><button type="button" disabled={busy} onClick={send} aria-label="Share to Community"><Icon name="person" /></button></div>
   </div>
 }
 

@@ -11,11 +11,36 @@ import { cheerLine, cheerSummary, cheerSym } from '../lib/police/cheer-text.js'
 import { beep, beepVolume } from '../lib/police/bot-voice.js'
 import { haydenSays, toggleFollow } from './NearbyBots.jsx'
 import { botSvg } from './HaydenBot.jsx'
+import { useRun } from '../store/useRun.js'
+import { ReactIcon, REACTIONS } from './Reactions.jsx'
 
 const EVERY_MS = 60000
+// While you train, reactions arrive sooner and float up the side instead of a bubble on top.
+const TRAINING_MS = 15000
+const FLOAT_MS = 3200
+const REACT_KINDS = new Set(REACTIONS.map(r => r.id))
+const isReact = k => REACT_KINDS.has(k)
 const SHOW_MS = 5000
 
-export const useCheers = create(() => ({ queue: [] }))
+export const useCheers = create(() => ({ queue: [], floats: [] }))
+
+/** A reaction floating up the side while someone trains: a few at most, never over the timer. */
+export function floatReaction(c) {
+  const f = { ...c, fid: Math.random().toString(36).slice(2) }
+  useCheers.setState(s => ({ floats: [...s.floats, f].slice(-4) }))
+  setTimeout(() => useCheers.setState(s => ({ floats: s.floats.filter(x => x.fid !== f.fid) })), FLOAT_MS)
+}
+
+/** The floating reactions and who sent the newest, on the right of the workout or run screen. */
+function Floats() {
+  const floats = useCheers(s => s.floats)
+  if (!floats.length) return null
+  const last = floats.at(-1)
+  return <div className="rx-floats" aria-live="polite">
+    {floats.map((f, i) => <span key={f.fid} className="rx-float" style={{ '--x': `${(i % 3) * 14}px` }}><ReactIcon id={f.kind} size={34} /></span>)}
+    <span className="rx-chip"><span className="rx-chip-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: last.colour, eyes: 'happy', head: true }) }} />{cheerLine(last)}</span>
+  </div>
+}
 
 /** Queue cheers for the bubble (also called with the inbox that rides along on the nearby ping). */
 export function showCheers(list) {
@@ -29,6 +54,7 @@ export default function CheerBubble() {
   const on = useStore(s => !!s.user && !!s.S.police?.level)
   const queue = useCheers(s => s.queue)
   const [shown, setShown] = useState(null)
+  const training = useStore(s => !!s.S.active) || !!useRun(s => s.run)
 
   // Pick up what is waiting: now, on coming back to the app, and every minute while it is open.
   useEffect(() => {
@@ -36,35 +62,38 @@ export default function CheerBubble() {
     let stop = false
     const pull = () => { if (!stop && !document.hidden) api('/api/cheers').then(r => showCheers(r?.cheers)).catch(() => {}) }
     pull()
-    const t = setInterval(pull, EVERY_MS)
+    const t = setInterval(pull, training ? TRAINING_MS : EVERY_MS)
     const back = () => { if (!document.hidden) pull() }
     document.addEventListener('visibilitychange', back)
     return () => { stop = true; clearInterval(t); document.removeEventListener('visibilitychange', back) }
-  }, [on])
+  }, [on, training])
 
   // One at a time.
   useEffect(() => {
     if (shown || !queue.length) return
     const [next, ...rest] = queue
     useCheers.setState({ queue: rest })
+    // Training: a reaction floats up the side, with a soft beep; nothing covers the screen.
+    if (training && isReact(next.kind)) { floatReaction(next); try { beep('love', beepVolume(useStore.getState().S.police)) } catch { /* no sound */ } return }
     setShown(next)
     haydenSays(cheerSym(next.kind), 'love', 2400)
     try { beep('love', beepVolume(useStore.getState().S.police)) } catch { /* no sound */ }
-  }, [queue, shown])
+  }, [queue, shown, training])
   useEffect(() => {
     if (!shown) return
     const t = setTimeout(() => setShown(null), SHOW_MS)
     return () => clearTimeout(t)
   }, [shown])
 
-  if (!shown) return null
+  if (!shown) return <Floats />
   // Follow back, right on the bubble, closes the loop (not for someone you already follow).
   const canFollow = shown.who && !shown.followed && shown.kind !== 'training' && !shown.line
   return <div className="cheer-pop" aria-live="polite">
     <button type="button" className="cheer-pop-m" onClick={() => { setShown(null); window.location.hash = '#/community' }}>
       <span className="cheer-pop-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: shown.colour, eyes: 'happy', head: true }) }} />
-      <span className="cheer-pop-t"><span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>{shown.line || cheerLine(shown)}</span>
+      <span className="cheer-pop-t">{isReact(shown.kind) ? <ReactIcon id={shown.kind} size={22} /> : <span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>}{shown.line || cheerLine(shown)}</span>
     </button>
     {canFollow && <button type="button" className="cheer-pop-f" onClick={() => { const c = shown; setShown(null); toggleFollow({ id: c.who, name: c.from, followed: false }) }}>Follow back</button>}
+    <Floats />
   </div>
 }

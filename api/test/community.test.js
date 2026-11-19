@@ -155,3 +155,14 @@ test('a heart on a comment, and off again', () => {
   assert.deepEqual([c.view(f, ann)[0].replies[0].likes, c.view(f, ann)[0].replies[0].liked, c.view(f, bob)[0].replies[0].liked], [2, true, false]);
   assert.equal(c.likeReply(f, ann, { id: post.id, replyId: reply.id }).liked, false);
 });
+
+test('a comment takes any of the five; a tap is a heart', () => {
+  const f = c.emptyFeed();
+  const { post } = c.addPost(f, ann, { text: 'hi' }, 1);
+  const { reply } = c.addReply(f, bob, { id: post.id, text: 'nice' }, 2);
+  assert.equal(c.likeReply(f, ann, { id: post.id, replyId: reply.id, kind: 'fire' }).myReact, 'fire');
+  c.likeReply(f, cat, { id: post.id, replyId: reply.id });
+  const seen = c.view(f, ann)[0].replies[0];
+  assert.deepEqual([seen.likes, seen.myReact, seen.reacts], [2, 'fire', { fire: 1, love: 1 }]);
+  assert.equal(c.likeReply(f, ann, { id: post.id, replyId: reply.id, kind: 'party' }).error, 'unknown reaction');
+});

@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 
 export const MAX = 30;              // per person: the oldest beyond this are dropped
 export const KEEP_MS = 14 * 86400000; // a cheer nobody picked up in two weeks is let go
-export const KINDS = ['love', 'like', 'cheer', 'reply', 'best', 'plan', 'follow', 'post'];
+export const KINDS = ['love', 'like', 'cheer', 'reply', 'best', 'plan', 'follow', 'post', 'fire', 'strong', 'win', 'wow'];
 export const HISTORY = 40;        // what the bell keeps, per person
 
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -75,6 +75,10 @@ export function cheerPush(item) {
   const say = {
     love: `${item.from} sent you a love`,
     like: `${item.from} sent you a like`,
+    fire: `${item.from} sent you fire${item.what ? ' on ' + item.what : ''}`,
+    strong: `${item.from} says you're strong${item.what ? ': ' + item.what : ''}`,
+    win: `${item.from} called it a win${item.what ? ': ' + item.what : ''}`,
+    wow: `${item.from} sent you a wow${item.what ? ' on ' + item.what : ''}`,
     cheer: `${item.from} cheered ${item.what || 'you'}`,
     reply: `${item.from} replied to ${item.what || 'your post'}`,
     best: `${item.from} picked your answer as the best`,

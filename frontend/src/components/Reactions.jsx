@@ -1,5 +1,6 @@
 // Reactions on a Community post (api/community.js REACTS): five, drawn in BadgeFit's own icons, each
 // in its colour, the way people react on Instagram or Facebook. One each; tap another to change it.
+import { useRef } from 'react'
 import Icon from './Icon.jsx'
 
 export const REACTIONS = [
@@ -32,4 +33,21 @@ export function ReactSummary({ reacts, total }) {
   return <span className="rx-sum" aria-label={`${total} ${total === 1 ? 'reaction' : 'reactions'}`}>
     <span className="rx-stack">{top.map(k => <ReactIcon key={k} id={k} size={20} />)}</span><b>{total}</b>
   </span>
+}
+
+/**
+ * Tap and hold on one thing: a tap does `onTap` (a heart), a half-second hold does `onHold` (the five).
+ * Spread the result on the button. A finger that moves is a scroll and does neither.
+ */
+export function useTapHold(onTap, onHold) {
+  const t = useRef(null), at = useRef(null), held = useRef(false)
+  const clear = () => { clearTimeout(t.current); t.current = null }
+  return {
+    onPointerDown: e => { at.current = { x: e.clientX, y: e.clientY }; held.current = false; clear(); t.current = setTimeout(() => { held.current = true; t.current = null; try { navigator.vibrate?.(12) } catch { /* none */ } onHold() }, 450) },
+    onPointerMove: e => { if (at.current && Math.hypot(e.clientX - at.current.x, e.clientY - at.current.y) > 10) { clear(); at.current = null } },
+    onPointerUp: () => { const was = !!t.current; clear(); if (was && at.current && !held.current) onTap(); at.current = null },
+    onPointerCancel: () => { clear(); at.current = null },
+    onContextMenu: e => { e.preventDefault(); clear(); held.current = true; onHold() },
+    onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap() } },
+  }
 }

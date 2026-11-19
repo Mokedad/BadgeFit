@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>126 endpoints</span>
+    <span>128 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3409,6 +3409,43 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-postFeedback">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/feedback</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A tester's answer to Hayden's check-in question</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 500 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">q</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The question it answers</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">201</span>
+    <span class="p-desc">Kept for the owner</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Nothing written</span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-postCommunityReact">
   <summary>
     <span class="m post">POST</span>
@@ -3447,7 +3484,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="m post">POST</span>
     <span class="ep-path"><code>/api/community/reply-like</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">A heart on a comment, or off again</span>
+    <span class="ep-sum">A reaction on a comment (a heart by default), or off again</span>
   </summary>
   <div class="ep-body">
 
@@ -3462,6 +3499,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">replyId<em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">kind</span>
+    <span class="p-type">&quot;love&quot; | &quot;fire&quot; | &quot;strong&quot; | &quot;win&quot; | &quot;wow&quot;</span>
     <span class="p-desc"></span>
   </div>
 </div>
@@ -4649,6 +4691,32 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">409</span>
     <span class="p-desc">Another profile already signs in with this name, or holds it with a reset code that has not been used or expired yet.<span class="r-sig"><code>{&quot;error&quot;:&quot;another profile already signs in with this name&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-getAdminStats">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/admin/stats</code><span class="ep-chip admin">admin</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The owner's numbers</span>
+  </summary>
+  <div class="ep-body">
+<p>Testers, new this week, trained this week and twice, back in week 2, community use this week, and the latest check-in answers. Admins only.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Admin only: a signed-in session whose user is an admin (<code>ADMIN_UIDS</code> or <code>admin:true</code>), as the session cookie or a Bearer token.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The numbers</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Not an admin</span>
   </div>
     </div>
   </div>

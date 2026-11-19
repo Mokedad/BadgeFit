@@ -42,6 +42,7 @@ import * as community from './community.js';
 import * as cheers from './cheers.js';
 import * as nearby from './nearby.js';
 import * as social from './social-login.js';
+import { computeStats, cleanAnswer } from './stats.js';
 import { cleanMealReminders, dueMeals, mealPush } from './meal-reminders.js';
 import { cleanPushPlan, duePlanned, plannedKey, plannedPush } from './badgefit-plan-push.js';
 import { ipv6Groups, guardedLookup, pushEndpointError, MAX_PUSH_ENDPOINT } from './net-guard.js';
@@ -2232,6 +2233,10 @@ const appleNativeRoutes = {
   },
 };
 
+/* ---------- check-in answers (POST /api/feedback): DATA_DIR/feedback.json, the newest 500 ---------- */
+const feedbackFile = () => path.join(DATA, 'feedback.json');
+function loadFeedback() { try { const a = JSON.parse(fs.readFileSync(feedbackFile(), 'utf8')); return Array.isArray(a) ? a : []; } catch { return []; } }
+
 /* ---------- community (community.js) ----------
    One shared feed per server, in DATA_DIR/community.json. Loaded on each request (it is small,
    capped at community.MAX_POSTS) so there is no cache to drift from the file. */
@@ -3024,6 +3029,14 @@ const routes = {
 
   /* ---------- admin dashboard ---------- */
   // One row per user, cheap enough for a personal instance (reads each state file once).
+  // The owner's numbers (stats.js): testers, who trained this week, who came back, check-in answers.
+  'GET /api/admin/stats': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    if (!isAdmin(user)) return json(res, 403, { error: 'admins only' });
+    const stateOf = uid => { try { return JSON.parse(fs.readFileSync(stateFile(uid), 'utf8')); } catch { return null; } };
+    json(res, 200, computeStats({ users: db.users, stateOf, feed: loadCommunity(), feedback: loadFeedback() }), { 'Cache-Control': 'no-store' });
+  },
   'GET /api/admin/users': async (req, res) => {
     if (!requireAdmin(req, res)) return;
     const users = db.users.map(u => {
@@ -3411,6 +3424,17 @@ const routes = {
     saveBots();
     json(res, 200, { auto: loadBots().ownerAuto });
   },
+  // A tester's answer to Hayden's one question ("What nearly made you stop?"), for the owner.
+  'POST /api/feedback': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_POSTS); if (!user) return;
+    const body = await readBody(req);
+    const text = cleanAnswer(body.text);
+    if (!text) return json(res, 400, { error: 'write something first' });
+    const all = loadFeedback();
+    all.push({ name: String(user.name || '').slice(0, 40), at: new Date().toISOString(), text, ...(body.q ? { q: cleanAnswer(body.q).slice(0, 80) } : {}) });
+    durableWrite(feedbackFile(), JSON.stringify(all.slice(-500)), 0o600);
+    json(res, 201, { ok: true });
+  },
   // A reaction on a post (love, fire, strong, win, wow), one each; the same again takes it off.
   'POST /api/community/react': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
@@ -3427,11 +3451,11 @@ const routes = {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
     const body = await readBody(req);
     const feed = loadCommunity();
-    const r = community.likeReply(feed, user, { id: String(body.id || ''), replyId: String(body.replyId || '') });
+    const r = community.likeReply(feed, user, { id: String(body.id || ''), replyId: String(body.replyId || ''), kind: body.kind ? String(body.kind) : 'love' });
     if (r.error) return communityAnswer(res, r);
     saveCommunity(feed);
-    if (r.liked) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'love', what: 'your comment: ' + String(r.reply.text || '').slice(0, 50), ref: r.post.id + ':' + r.reply.id });
-    communityAnswer(res, { likes: r.likes, liked: r.liked });
+    if (r.added) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: r.myReact, what: 'your comment: ' + String(r.reply.text || '').slice(0, 50), ref: r.post.id + ':' + r.reply.id });
+    communityAnswer(res, { likes: r.likes, liked: r.liked, myReact: r.myReact });
   },
   'POST /api/community/cheer': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;

@@ -10,6 +10,10 @@ export function cheerLine(c) {
   switch (c?.kind) {
     case 'love': return `${who} sent love`
     case 'like': return `${who} sent a like`
+    case 'fire': return `${who} sent fire${c.what ? ' on ' + c.what : ''}`
+    case 'strong': return `${who} sent strong${c.what ? ' on ' + c.what : ''}`
+    case 'win': return `${who} called it a win${c.what ? ': ' + c.what : ''}`
+    case 'wow': return `${who} sent wow${c.what ? ' on ' + c.what : ''}`
     case 'training': return `${who} is training now`
     case 'best': return `${who} picked your answer as the best`
     case 'plan': return `${who} follows your plan${c.what ? ': ' + c.what : ''}`

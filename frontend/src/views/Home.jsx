@@ -3,6 +3,7 @@ import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
 import { todayChoiceSheet, underWaySheet } from '../workout-controls.jsx'
+import { HaydenCards } from '../components/HaydenCards.jsx'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW } from '../lib/history.js'
@@ -298,6 +299,8 @@ export default function Home() {
         <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}
           {S.active && <button className="calm-swap" onClick={() => underWaySheet({ resume: onStart })} aria-label="Cancel or change the workout under way"><Icon name="swap" /></button>}</p>
         {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
+        {/* Hayden: back after missed days, and one question a week in (components/HaydenCards.jsx). */}
+        <HaydenCards S={S} signedIn={!guest} left={left} testName={(P.testName || 'PCT').trim()} onStart={onStart} />
         {guest && !(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>

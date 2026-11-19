@@ -98,7 +98,8 @@ export const leave = (state, user) => { state.here.delete(user.id); state.live.d
 
 /** A like or a love, to someone nearby or followed. At most one per pair every few seconds. */
 export function cheer(state, social, user, { id, kind } = {}, now = Date.now()) {
-  if (kind !== 'like' && kind !== 'love') return { error: 'like or love', status: 400 };
+  // A like, or one of the five reactions (api/community.js REACTS), sent through their Hayden.
+  if (!['like', 'love', 'fire', 'strong', 'win', 'wow'].includes(kind)) return { error: 'like or a reaction', status: 400 };
   const to = uidOf(state, social, String(id || ''));
   if (!to || to === user.id || hiddenEither(social, user.id, to)) return { error: 'not here', status: 404 };
   const key = user.id + '>' + to;

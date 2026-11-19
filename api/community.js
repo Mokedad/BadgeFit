@@ -77,7 +77,7 @@ export function view(feed, viewer, { admin = false, before = null, handle = null
     ...reactSummary(p, viewer),
     mine: p.uid === viewer?.id, hidden: !!p.hidden, ...who(p.uid),
     ...(admin && { reports: (p.reports || []).length }),
-    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), likes: (r.likes || []).length, liked: (r.likes || []).includes(viewer?.id), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
+    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), ...replyReacts(r, viewer), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
   }));
 }
 
@@ -207,17 +207,30 @@ export function toggleCheer(feed, user, id) {
   return r.error ? r : { cheers: r.cheers, cheered: r.cheered, owner: r.owner, post: r.post };
 }
 
-/** A heart on a comment, or off again (Instagram's like). */
-export function likeReply(feed, user, { id, replyId }) {
+/**
+ * A reaction on a comment: a tap is a heart (love), a hold picks one of the five. One each; the same
+ * kind again takes it off. `likes` stays the number of people who reacted (Instagram's count).
+ */
+export function likeReply(feed, user, { id, replyId, kind = 'love' }) {
   const post = find(feed, id);
   if (!post) return { error: 'post not found' };
   const r = (post.replies || []).find(x => x.id === replyId);
   if (!r) return { error: 'reply not found' };
-  const set = new Set(r.likes || []);
-  set.has(user.id) ? set.delete(user.id) : set.add(user.id);
-  r.likes = [...set];
-  return { likes: set.size, liked: set.has(user.id), owner: r.uid, reply: r, post };
+  if (!REACTS.includes(kind)) return { error: 'unknown reaction' };
+  const all = { ...Object.fromEntries((r.likes || []).map(u => [u, 'love'])), ...(r.reacts || {}) };
+  if (all[user.id] === kind) delete all[user.id]; else all[user.id] = kind;
+  r.reacts = all;
+  r.likes = Object.keys(all);
+  const mine = all[user.id] || null;
+  return { likes: r.likes.length, liked: !!mine, myReact: mine, owner: r.uid, reply: r, post, added: mine === kind };
 }
+/** A comment's reactions as a viewer sees them. */
+const replyReacts = (r, viewer) => {
+  const all = { ...Object.fromEntries((r.likes || []).map(u => [u, 'love'])), ...(r.reacts || {}) };
+  const counts = {};
+  for (const k of Object.values(all)) counts[k] = (counts[k] || 0) + 1;
+  return { likes: Object.keys(all).length, liked: !!all[viewer?.id], myReact: all[viewer?.id] || null, reacts: counts };
+};
 
 export function report(feed, user, id) {
   const post = find(feed, id);

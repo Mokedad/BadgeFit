@@ -155,3 +155,12 @@ test('the owner follows every new member back once, unless switched off', () => 
   assert.equal(n.ownerFollowsBack(s, 'u3', 'u1'), false);
   assert.deepEqual(s.follows.u1, []);
 });
+
+test('the five reactions go through someone\'s Hayden too; anything else is refused', () => {
+  const st = n.emptyState(), so = n.emptySocial();
+  n.ping(st, so, ann, { ...GYM, card: { name: 'Ann', colour: '#3fb6ff' } });
+  const bobHere = n.ping(st, so, bob, { ...NEXT_DOOR, card: { name: 'Bob', colour: '#ff5fa2' } });
+  const annId = bobHere.near[0].id;
+  assert.equal(n.cheer(st, so, bob, { id: annId, kind: 'fire' }).kind, 'fire');
+  assert.equal(n.cheer(st, so, bob, { id: annId, kind: 'party' }, Date.now() + 10000).status, 400);
+});

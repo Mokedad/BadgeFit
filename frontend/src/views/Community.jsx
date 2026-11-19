@@ -24,7 +24,7 @@ import { botSvg } from '../components/HaydenBot.jsx'
 import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
-import { ReactIcon, ReactBar, ReactSummary } from '../components/Reactions.jsx'
+import { ReactIcon, ReactBar, ReactSummary, REACTIONS, useTapHold } from '../components/Reactions.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
@@ -103,9 +103,20 @@ function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest, o
       {r.mine && <button type="button" onClick={() => onEdit(r)}>Edit</button>}
     </div>
     </div>
-    <button type="button" className={'cm-like' + (r.liked ? ' on' : '')} aria-pressed={!!r.liked} aria-label={r.liked ? 'Unlike' : 'Like'} onClick={() => onLike(r)}>
-      <Icon name="heart" />{r.likes ? <small>{r.likes}</small> : null}
+    <CommentHeart r={r} onLike={onLike} />
+  </div>
+}
+
+/** A comment's heart: a tap is Love, a hold opens the five. Your reaction shows in its place. */
+function CommentHeart({ r, onLike }) {
+  const [pick, setPick] = useState(false)
+  const press = useTapHold(() => onLike(r, 'love'), () => setPick(true))
+  // The heart has its own tap and hold: they stop here, not at the comment's hold menu.
+  return <div className="cm-like-w" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onContextMenu={e => e.stopPropagation()}>
+    <button type="button" className={'cm-like' + (r.liked ? ' on' : '')} aria-pressed={!!r.liked} aria-label={r.liked ? 'Your reaction. Tap to take it off, hold for more' : 'Love. Hold for more'} {...press}>
+      {r.myReact && r.myReact !== 'love' ? <ReactIcon id={r.myReact} size={20} /> : <Icon name="heart" />}{r.likes ? <small>{r.likes}</small> : null}
     </button>
+    {pick && <div className="cm-like-pick" onClick={e => e.stopPropagation()}><ReactBar mine={r.myReact} onPick={k => { setPick(false); onLike(r, k) }} /><button type="button" className="cm-like-x" aria-label="Close" onClick={() => setPick(false)} /></div>}
   </div>
 }
 
@@ -117,11 +128,13 @@ function Post({ p, onChange, admin, openPerson, me }) {
   const [picking, setPicking] = useState(false)
   const reactWith = async kind => { setPicking(false); const r = await call('/api/community/react', { id: p.id, kind }); if (r) onChange({ ...p, reacts: r.reacts, cheers: r.cheers, myReact: r.myReact, cheered: r.cheered }) }
   // A heart on a comment shows at once; the server's count follows.
-  const like = async c => {
-    const flip = x => ({ ...x, liked: !c.liked, likes: Math.max(0, (c.likes || 0) + (c.liked ? -1 : 1)) })
+  const like = async (c, kind = 'love') => {
+    // Shown at once: the same kind again takes it off, another kind replaces it.
+    const off = c.myReact === kind || (kind === 'love' && c.liked && !c.myReact)
+    const flip = x => ({ ...x, liked: !off, myReact: off ? null : kind, likes: Math.max(0, (c.likes || 0) + (off ? -1 : c.liked ? 0 : 1)) })
     onChange({ ...p, replies: p.replies.map(x => (x.id === c.id ? flip(x) : x)) })
-    const r = await call('/api/community/reply-like', { id: p.id, replyId: c.id })
-    if (r) onChange({ ...p, replies: p.replies.map(x => (x.id === c.id ? { ...x, likes: r.likes, liked: r.liked } : x)) })
+    const r = await call('/api/community/reply-like', { id: p.id, replyId: c.id, kind })
+    if (r) onChange({ ...p, replies: p.replies.map(x => (x.id === c.id ? { ...x, likes: r.likes, liked: r.liked, myReact: r.myReact } : x)) })
   }
   const send = async () => {
     if (!reply.trim()) return
@@ -198,8 +211,9 @@ function PersonSheet({ id, close }) {
   const setPost = next => setD(x => ({ ...x, posts: x.posts.map(p => (p.id === next.id ? next : p)) }))
   const follow = async () => { const on = await toggleFollow(b); setD(x => ({ ...x, person: { ...x.person, followed: on, followers: x.person.followers + (on === b.followed ? 0 : on ? 1 : -1) } })) }
   // The answer shows here under the buttons, never as a toast over their name.
-  const cheerThem = async () => {
-    try { await post('/api/nearby/cheer', { id: b.id, kind: 'love' }); setNote(`Cheer sent to ${b.name}`) }
+  const cheerThem = async (kind = 'love') => {
+    const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
+    try { await post('/api/nearby/cheer', { id: b.id, kind }); setNote(`Sent ${label} to ${b.name}`) }
     catch (e) { setNote(e?.status === 429 ? 'One cheer at a time. Try again in a minute' : `Could not reach ${b.name} right now`) }
   }
   return <div className="cm-page">
@@ -212,9 +226,11 @@ function PersonSheet({ id, close }) {
       {b.followed
         ? <button type="button" className="cm-tick" aria-label={`Following ${b.name}. Tap to unfollow`} onClick={() => confirmSheet({ title: `Unfollow ${b.name}?`, confirmText: 'Unfollow', danger: true, onConfirm: follow })}><Icon name="check" /></button>
         : <button type="button" className="cm-fbtn gold" onClick={follow}>{b.followsYou ? 'Follow back' : 'Follow'}</button>}
-      <button type="button" className={'cm-fbtn' + (b.followed ? ' gold' : ' off')} disabled={!b.followed} onClick={cheerThem}><Icon name="sparkles" /> Cheer</button>
+      {b.followed && <div className="cm-fc-rx" role="group" aria-label={`React to ${b.name}`}>
+        {REACTIONS.map(x => <button key={x.id} type="button" aria-label={x.label} onClick={() => cheerThem(x.id)}><ReactIcon id={x.id} size={38} /></button>)}
+      </div>}
     </div>
-    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? '' : 'Follow first, then cheer them on')}</p>
+    <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? 'Tap one to send it' : 'Follow first, then cheer them on')}</p>
     {b.today && <SessionCard s={b.today} />}
     {b.stats && <div className="nb-tiles">{tile(b.stats.week, 'this week')}{tile(b.stats.ready + '%', 'PCT ready')}{tile(b.stats.streak, b.stats.streak === 1 ? 'week in a row' : 'weeks in a row')}</div>}
     {plans.length > 0 && <><div className="menu-sec">Shared plans</div>{plans.map(p => <PlanCard key={p.id} p={p} onChange={setPost} />)}</>}
@@ -245,6 +261,29 @@ function FollowersSheet({ close }) {
       {f.followed ? <span className="cm-on"><Icon name="check" /> Following</span> : <button type="button" className="cm-follow" onClick={() => back(f)}>Follow back</button>}
     </div>)}
     <p className="pf-sub">Only admins see this.</p>
+  </div>
+}
+
+/** The owner's numbers (admins): are testers coming back? Plain tiles, then what they said. */
+function NumbersSheet() {
+  const [d, setD] = useState(null)
+  useEffect(() => { api('/api/admin/stats').then(setD).catch(() => setD({ error: true })) }, [])
+  if (!d) return <p className="pf-sub">Loading</p>
+  if (d.error) return <p className="pf-sub">Could not load the numbers right now.</p>
+  const tile = (n, label, good) => <div className={good ? 'good' : ''}><b>{n}</b><small>{label}</small></div>
+  const back = d.weekTwo.joined ? `${d.weekTwo.cameBack} of ${d.weekTwo.joined}` : '–'
+  return <div className="cm-nums">
+    <h3>Your numbers</h3>
+    <p className="pf-sub">The one that matters: testers training twice a week.</p>
+    <div className="cm-nums-g">
+      {tile(d.testers, 'testers')}{tile('+' + d.newThisWeek, 'new this week', d.newThisWeek > 0)}{tile(d.trainedThisWeek, 'trained this week')}
+      {tile(d.trainedTwice, 'trained 2+ times', d.trainedTwice > 0)}{tile(back, 'back in week 2')}{tile(d.sessionsThisWeek, 'sessions')}
+    </div>
+    <div className="menu-sec">Community this week</div>
+    <div className="cm-nums-r"><span><Icon name="chat" /> {d.community.posts} posts</span><span>{d.community.comments} comments</span><span><Icon name="heart" /> {d.community.reacted}</span><span><Icon name="calendar" /> {d.community.sharedWeeks} weeks shared</span></div>
+    <div className="menu-sec">What nearly made them stop</div>
+    {!d.answers.length ? <p className="pf-sub">No answers yet. Hayden asks each tester a week after they start.</p>
+      : d.answers.map((a, i) => <div key={i} className="cm-nums-a"><p>{a.text}</p><small>{a.name} · {ago(Date.parse(a.at))}</small></div>)}
   </div>
 }
 
@@ -330,6 +369,23 @@ function Compose({ close, onPosted }) {
   </div>
 }
 
+/** Send a reaction through someone's Hayden: it floats up their screen if they are training. */
+async function sendReact(b, kind = 'love') {
+  const label = REACTIONS.find(x => x.id === kind)?.label || 'Love'
+  try { await post('/api/nearby/cheer', { id: b.id, kind }); toast(`${label} sent to ${b.name}`) }
+  catch (e) { toast(e?.status === 429 ? 'One at a time. Try again in a few seconds' : `Could not reach ${b.name} right now`) }
+}
+
+/** Someone you follow, at the top. Training now: tap sends Love, hold picks one of the five.
+ *  Not training: tap opens their page, hold still picks one. */
+function PersonBubble({ b, live, onPick }) {
+  const [burst, setBurst] = useState(0)
+  const press = useTapHold(() => { if (live) { sendReact(b, 'love'); setBurst(n => n + 1) } else openPerson(b.id) }, () => onPick({ ...b, live }))
+  return <button type="button" className={'cm-bub' + (live ? ' live' : '')} aria-label={`${b.name}${live ? ', training now. Tap to send love, hold for more' : '. Hold to react'}`} {...press}>
+    <span className="cm-ring"><Bot b={b} eyes={live ? 'determined' : 'open'} />{burst > 0 && <span key={burst} className="cm-burst" aria-hidden="true"><ReactIcon id="love" size={26} /></span>}</span>
+    <small>{b.name}</small>{live && <em>Training</em>}</button>
+}
+
 /** A guest: how busy the community was this week (numbers only), and the way in. */
 function GuestTeaser() {
   const nav = useNavigate()
@@ -357,6 +413,7 @@ export default function Community() {
   const [area, setArea] = useState(null)
   const [searching, setSearching] = useState(false)
   const [q, setQ] = useState('')
+  const [pickFor, setPickFor] = useState(null)
 
   const load = async before => {
     try {
@@ -395,9 +452,11 @@ export default function Community() {
               <span className="cm-ring"><Bot b={me} eyes="happy" /><i className="cm-plus" aria-hidden="true">+</i></span><small>You</small></button>
             {user.admin && <button type="button" className="cm-bub" onClick={() => sheet(close => <FollowersSheet close={close} />)} aria-label="Your followers">
               <span className="cm-ring cm-ring-f"><Icon name="person" /></span><small>Followers</small></button>}
-            {people.map(b => { const on = b.training || training(b.id); return <button key={b.id} type="button" className={'cm-bub' + (on ? ' live' : '')} onClick={() => openPerson(b.id)} aria-label={`${b.name}${on ? ', training now' : ''}`}>
-              <span className="cm-ring"><Bot b={b} eyes={on ? 'determined' : 'open'} /></span><small>{b.name}</small>{on && <em>Training</em>}</button> })}
+            {user.admin && <button type="button" className="cm-bub" onClick={() => sheet(() => <NumbersSheet />)} aria-label="Your numbers">
+              <span className="cm-ring cm-ring-f"><Icon name="chart" /></span><small>Numbers</small></button>}
+            {people.map(b => <PersonBubble key={b.id} b={b} live={b.training || training(b.id)} onPick={setPickFor} />)}
           </div>
+          {pickFor && <div className="cm-bub-pick"><b>{pickFor.name}{pickFor.live ? ' is training. Send them' : ''}</b><ReactBar onPick={k => { const x = pickFor; setPickFor(null); sendReact(x, k) }} /><button type="button" className="pf-link" onClick={() => setPickFor(null)}>Not now</button></div>}
           <div className="cm-tabs" role="tablist">
             <button role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>Everyone</button>
             <button role="tab" aria-selected={tab === 'following'} className={tab === 'following' ? 'on' : ''} onClick={() => setTab('following')}>Following</button>
