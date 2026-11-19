@@ -182,3 +182,12 @@ body.lp{margin:0;min-height:100vh;min-height:100dvh;background:radial-gradient(9
 .lp-soc a:active{background:#ffc629;color:#0b1a36}
 .lp-soc svg{width:22px;height:22px;fill:currentColor}
 .lp-fine{margin:0;font-size:11px;color:rgba(255,255,255,.38)}
+
+/* What's inside: six short lines, icon first (19 Nov 2026). */
+#inside .sub{max-width:34em;margin:0 auto 20px;color:var(--sub);font-size:17px;text-align:center}
+.inside{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;margin:0 auto}
+.inside article{display:flex;gap:12px;align-items:flex-start;background:var(--card);border-radius:20px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.04);text-align:left}
+.inside article>svg{flex:none;width:36px;height:36px;padding:7px;border-radius:12px;background:#fff4d1;color:#8a6400;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;box-sizing:border-box}
+.inside h3{margin:2px 0 3px;font-size:16px}
+.inside p{margin:0;font-size:14px;color:var(--sub);line-height:1.4}
+@media (max-width:760px){.inside{grid-template-columns:1fr}}

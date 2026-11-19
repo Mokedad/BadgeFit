@@ -54,6 +54,16 @@ feats = ''.join(
   f'<section class="feat{" rev" if i % 2 else ""}"><div class="sym">{ic(k, "sym-i")}</div><div class="ft"><h2>{t}</h2><p>{d}</p></div></section>'
   for i, (k, t, d) in enumerate(feat))
 
+_inside = [
+ ('calendar', 'Your whole week', 'See every day ahead. Hold any exercise to change it.'),
+ ('footprints', 'Pace sound', 'Step on the tick, under your music. Hayden sets the beat.'),
+ ('sparkles', 'Cheer live', 'Send Love, Fire, Strong, Win or Wow while someone trains.'),
+ ('bell', 'Hayden keeps you going', 'Miss a couple of days and he gets you back on track.'),
+ ('person', 'Share your week', 'Post it to the community. Others can try your plan.'),
+ ('dumbbell', 'No gym? No problem', 'A 3-day Academy plan from a real coach, no gym needed.'),
+]
+inside = ''.join(f'<article>{ic(i)}<div><h3>{t}</h3><p>{d}</p></div></article>' for i, t, d in _inside)
+
 pct = ''.join(f'<li>{ic(i,"wi")}<b>{d}</b><span>{t}</span></li>' for d,i,t in [('Mon','dumbbell','Chest, shoulders and abs'),('Tue','figureRun','Intervals for the beep test'),('Wed','dumbbell','Squats and push power'),('Thu','figureRun','Easy run'),('Fri','dumbbell','Arms, back and grip'),('Sat','figureRun','Steady run or beep focus'),('Sun','moon','Rest and recover')])
 acad = ''.join(f'<li>{ic(i,"wi")}<b>{d}</b><span>{t}</span></li>' for d,i,t in [('Mon','dumbbell','Strength A: squat and pull-ups'),('Tue','figureRun','Steady run at formation pace'),('Wed','timer','Academy circuit'),('Thu','figureRun','Intervals'),('Fri','dumbbell','Strength B: deadlift and press'),('Sat','figureRun','Long easy run'),('Sun','moon','Rest, mobility')])
 std = [('arm','Handgrip','30 kg','each hand'),('timer','Prone bridge','90 s',''),('arrowUp','Vertical jump','30 cm',''),('figureStrength','Push-ups','25','reps'),('shuffle','Illinois agility','20 s','or under'),('speaker','Beep test','7.1','level')]
@@ -109,6 +119,11 @@ index = f'''<!doctype html>
   <table class="cmp"><thead><tr><th></th><th>PCT prep<small>12 weeks to your test</small></th><th>Academy prep<small>After you pass</small></th></tr></thead><tbody><tr><th>Mon</th><td><i class="dot g" aria-hidden="true"></i>Chest, shoulders</td><td><i class="dot g" aria-hidden="true"></i>Squat, pull‑ups</td></tr><tr><th>Tue</th><td><i class="dot r" aria-hidden="true"></i>Beep intervals</td><td><i class="dot r" aria-hidden="true"></i>Steady run</td></tr><tr><th>Wed</th><td><i class="dot g" aria-hidden="true"></i>Legs and power</td><td><i class="dot g" aria-hidden="true"></i>Circuit</td></tr><tr><th>Thu</th><td><i class="dot r" aria-hidden="true"></i>Easy run</td><td><i class="dot r" aria-hidden="true"></i>Intervals</td></tr><tr><th>Fri</th><td><i class="dot g" aria-hidden="true"></i>Back, arms</td><td><i class="dot g" aria-hidden="true"></i>Deadlift, press</td></tr><tr><th>Sat</th><td><i class="dot r" aria-hidden="true"></i>Steady run</td><td><i class="dot r" aria-hidden="true"></i>Long run</td></tr><tr><th>Sun</th><td><i class="dot x" aria-hidden="true"></i>Rest</td><td><i class="dot x" aria-hidden="true"></i>Rest, mobility</td></tr></tbody></table>
   <p class="legend"><span><i class="dot g"></i>Gym</span><span><i class="dot r"></i>Run</span><span><i class="dot x"></i>Rest</span></p>
   <p class="note light">For beginners and intermediates. Weights go up as you get stronger; runs build slowly.</p>
+</section>
+<section class="band" id="inside">
+  <h2>What's inside</h2>
+  <p class="sub">Built for the PCT and Academy life. Works for any fitness goal too.</p>
+  <div class="inside">{inside}</div>
 </section>
 <section class="band" id="pricing">
   <h2>Guest, Free or Prep Pass</h2>
