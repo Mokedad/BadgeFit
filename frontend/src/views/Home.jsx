@@ -2,7 +2,7 @@ import { countsForPlan } from '../lib/police/reopen.js'
 import { HaydenToggle } from '../components/HaydenBuddy.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import BadgeLogo from '../components/BadgeLogo.jsx'
-import { todayChoiceSheet } from '../workout-controls.jsx'
+import { todayChoiceSheet, underWaySheet } from '../workout-controls.jsx'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, lastBW } from '../lib/history.js'
@@ -295,7 +295,8 @@ export default function Home() {
           }}><Icon name={c.icon} /><span>{c.label}</span><small>{c.sub}</small></button>)}</div>
         </div>}
         {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
-        <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}</p>
+        <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}
+          {S.active && <button className="calm-swap" onClick={() => underWaySheet({ resume: onStart })} aria-label="Cancel or change the workout under way"><Icon name="swap" /></button>}</p>
         {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
         {guest && !(P.results || []).length && !S.active && <button className="calm-link calm-first" onClick={() => nav('/police?tab=tests&test=1')}><Icon name="target" /> Find your starting point · 10 min</button>}
         {doneToday && !S.active

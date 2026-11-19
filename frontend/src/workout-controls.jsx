@@ -7,6 +7,7 @@ import { useUI } from './store/useUI.js'
 import { menuSheet, confirmSheet, finishWorkoutSheet, dayOverrideSheet } from './sheets.jsx'
 import { todayISO } from './lib/format.js'
 import { REST } from './lib/rotation.js'
+import { markDiscarded } from './lib/watch-sync.js'
 
 const S = () => useStore.getState().S
 const toast = m => useUI.getState().toast(m)
@@ -15,7 +16,43 @@ export const isPaused = A => !!A?.pausedAt
 
 export function pauseWorkout() {
   useStore.getState().update(s => { if (s.active && !s.active.pausedAt) s.active.pausedAt = Date.now() })
+  // Paused means stopped: the rest countdown no longer runs on over Home while you are away.
+  useUI.getState().stopRest()
   toast('Workout paused. The clock has stopped.')
+}
+
+/** Ends the session under way without saving it, from outside the workout screen (Home). */
+export function cancelActiveWorkout() {
+  markDiscarded(S().active?.id)
+  useStore.getState().update(s => { s.active = null })
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
+}
+
+/**
+ * Home's change symbol while a session is under way (BadgeFit): back to it, cancel it, or cancel it
+ * and take today off the plan. Before, Home showed only Resume, and nothing there removed it.
+ */
+export function underWaySheet({ resume }) {
+  const A = S().active
+  if (!A) return
+  const ask = (title, message, confirmText, then) => confirmSheet({ title, message, confirmText, danger: true, onConfirm: then })
+  menuSheet({
+    title: A.name || 'Workout',
+    subtitle: isPaused(A) ? 'Paused. Nothing is saved until you finish it.' : 'Under way. Nothing is saved until you finish it.',
+    sections: [
+      { items: [{ icon: 'play', accent: true, label: 'Resume', onClick: resume }] },
+      { items: [
+        { icon: 'xmark', danger: true, label: 'Cancel this workout', onClick: () => ask('Cancel this workout?', 'Nothing from this session is saved.', 'Cancel workout', () => { cancelActiveWorkout(); toast('Workout cancelled') }) },
+        { icon: 'trash', danger: true, label: "Cancel it and remove today's workout", onClick: () => ask("Remove today's workout?", 'The session under way is cancelled and today becomes a rest day.', 'Remove', () => {
+          cancelActiveWorkout()
+          useStore.getState().update(s => { s.dayPlan = { ...(s.dayPlan || {}), [todayISO()]: REST } })
+          toast('Removed. Today is a rest day.')
+        }) },
+      ] },
+      { items: [{ icon: 'xmark', label: 'Keep it', onClick: () => {} }] },
+    ],
+  })
 }
 
 export function resumeWorkout() {

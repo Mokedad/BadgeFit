@@ -1,3 +1,4 @@
+import { markDiscarded } from './lib/watch-sync.js'
 import { iconFor } from './lib/police/emoji-icon.js'
 import SessionPreview from './components/SessionPreview.jsx'
 import { fitSession } from './lib/police/session-length.js'
@@ -2988,6 +2989,21 @@ function BfDayOverride({ iso, st, hasOvr, changed, weeklyNames, effIds, missed, 
   const guest = isBadgeFitGuest(st, useStore.getState().config, useStore.getState().user)
   // Picked: the day is set, and it is back to Home (never left on another page).
   const done = id => { set(id); if (iso === todayISO()) location.hash = '#/home' }
+  // Rest on today while a session is under way: that session goes too (asked first), or the day
+  // said rest while Home kept showing the workout, with no way to remove it.
+  const rest = () => {
+    if (iso !== todayISO() || !st.active) return done('rest')
+    confirmSheet({
+      title: "Remove today's workout?", message: `${st.active.name || 'The workout'} under way is cancelled and today becomes a rest day.`,
+      confirmText: 'Remove', danger: true,
+      onConfirm: () => {
+        markDiscarded(useStore.getState().S.active?.id)
+        update(s => { s.active = null })
+        ui().stopRest(); ui().stopWork()
+        done('rest')
+      },
+    })
+  }
   const pick = it => {
     let id = it.routine?.id
     if (it.kind === 'run') update(s => { id = ensureRunRoutine(s, it.run.id) })
@@ -3010,7 +3026,7 @@ function BfDayOverride({ iso, st, hasOvr, changed, weeklyNames, effIds, missed, 
       <TrainList types={[...gymTypesFor(st, iso), ...RUN_TYPES]} isOn={isOn} onPick={pick} />
     </>}
     <div className="sp-foot">
-      {foot('moon', 'Rest', () => done('rest'), effIds.length === 0)}
+      {foot('moon', 'Rest', rest, effIds.length === 0)}
       {hasOvr && foot('reset', 'Back to the plan', () => done(''))}
     </div>
   </div>
