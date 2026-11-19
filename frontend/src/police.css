@@ -1381,5 +1381,40 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pf-tile-ok{color:#2fd39a}
 .wk-share h3{margin:0 0 4px}
 /* Community's disclaimer: small, pushed to the bottom of the screen, clear of the posts. */
-.cm{display:flex;flex-direction:column;min-height:calc(100dvh - 128px - env(safe-area-inset-bottom, 0px))}
+.cm{display:flex;flex-direction:column;min-height:calc(100dvh - 128px - var(--sab, 0px))}
 .cm-foot{margin:auto 0 0;padding:28px 12px 4px;text-align:center;font-size:11px;line-height:1.4;color:var(--label-3,var(--label-2));opacity:.75}
+
+/* Community, cleaned up (19 Nov): a round gold +, icons for actions, five reactions, comment hearts. */
+.cm-head .cm-tools .cm-newpost{width:40px;height:40px;padding:0;border-radius:50%;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.cm-head .cm-tools .cm-newpost svg{width:20px;height:20px;stroke-width:2.6}
+.cm-post{padding:14px 14px 10px}
+.cm-post .cm-text{margin:10px 0 8px;font-size:16px;line-height:1.4}
+.cm-post .cm-acts{display:flex;align-items:center;gap:6px;margin:4px 0 2px;flex-wrap:nowrap}
+.cm-post .cm-acts button{display:inline-flex;align-items:center;gap:5px;height:38px;min-width:38px;padding:0 10px;border:0;border-radius:19px;background:var(--surface-2,#eef0f5);color:var(--label);font:inherit;font-size:14px;font-weight:700}
+.cm-post .cm-acts button svg{width:21px;height:21px}
+.cm-post .cm-react{justify-content:center;padding:0 9px}
+.cm-post .cm-react.on{background:transparent}
+.cm-post .cm-cmt small{font-size:14px;font-weight:700}
+.rx-sum{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--label-2)}
+.rx-sum b{font-weight:700}
+.rx-stack{display:inline-flex}
+.rx-stack .rx{margin-left:-6px;box-shadow:0 0 0 2px var(--surface,#fff)}
+.rx-stack .rx:first-child{margin-left:0}
+.rx{display:inline-grid;place-items:center;border-radius:50%;background:#f4f4f6;background:color-mix(in srgb,var(--c) 16%,#fff);color:var(--c);flex:none}
+.rx svg{width:62%;height:62%;stroke-width:2.2}
+.rx-fill svg{fill:currentColor;stroke:currentColor;stroke-width:1}
+.rx-bar{display:flex;justify-content:space-between;gap:4px;margin:8px 0 4px;padding:8px 10px;background:var(--surface,#fff);border-radius:22px;box-shadow:0 6px 20px rgba(0,0,0,.14)}
+.rx-bar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;padding:2px 0;font:inherit;color:var(--label-2);transition:transform .12s}
+.rx-bar button:active{transform:scale(1.15)}
+.rx-bar button.on{color:var(--label)}
+.rx-bar button.on .rx{box-shadow:0 0 0 2px var(--c)}
+.rx-bar small{font-size:10.5px;font-weight:700}
+.cm-post .cm-replies{border-top:1px solid var(--sep,rgba(0,0,0,.08));margin-top:8px;padding-top:4px}
+.cm-post .cm-reply{display:flex;align-items:flex-start;gap:8px}
+.cm-reply-m{flex:1;min-width:0}
+.cm-like{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:none;padding:4px 2px 0;color:var(--label-2);font:inherit}
+.cm-like svg{width:16px;height:16px;stroke-width:2}
+.cm-like small{font-size:10.5px;font-weight:700}
+.cm-like.on{color:#ff3b5c}
+.cm-like.on svg{fill:currentColor}
+.cm-like:active svg{transform:scale(1.25)}

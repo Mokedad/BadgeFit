@@ -3761,6 +3761,41 @@ paths:
         '400': { description: Empty text or no such post }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/community/react:
+    post:
+      tags: [community]
+      operationId: postCommunityReact
+      summary: React to a post (love, fire, strong, win, wow)
+      description: One reaction each; a different kind replaces it, the same kind takes it off.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, kind]
+              properties:
+                id: { type: string }
+                kind: { type: string, enum: [love, fire, strong, win, wow] }
+      responses:
+        '200': { description: The post's reactions by kind, the total and your own }
+  /api/community/reply-like:
+    post:
+      tags: [community]
+      operationId: postCommunityReplyLike
+      summary: A heart on a comment, or off again
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, replyId]
+              properties:
+                id: { type: string }
+                replyId: { type: string }
+      responses:
+        '200': { description: The comment's hearts and whether you gave one }
   /api/community/cheer:
     post:
       tags: [community]

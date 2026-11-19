@@ -3411,6 +3411,28 @@ const routes = {
     saveBots();
     json(res, 200, { auto: loadBots().ownerAuto });
   },
+  // A reaction on a post (love, fire, strong, win, wow), one each; the same again takes it off.
+  'POST /api/community/react': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.react(feed, user, String(body.id || ''), String(body.kind || 'love'));
+    if (r.error) return communityAnswer(res, r);
+    saveCommunity(feed);
+    if (r.added) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'cheer', what: cheers.postLabel(r.post), ref: r.post.id });
+    communityAnswer(res, { reacts: r.reacts, cheers: r.cheers, myReact: r.myReact, cheered: r.cheered });
+  },
+  // A heart on a comment (Instagram's like); its writer hears about it.
+  'POST /api/community/reply-like': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const feed = loadCommunity();
+    const r = community.likeReply(feed, user, { id: String(body.id || ''), replyId: String(body.replyId || '') });
+    if (r.error) return communityAnswer(res, r);
+    saveCommunity(feed);
+    if (r.liked) sendCheer(r.owner, user.id, { from: user.name, colour: cardColour(user.id), kind: 'love', what: 'your comment: ' + String(r.reply.text || '').slice(0, 50), ref: r.post.id + ':' + r.reply.id });
+    communityAnswer(res, { likes: r.likes, liked: r.liked });
+  },
   'POST /api/community/cheer': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
     const body = await readBody(req);

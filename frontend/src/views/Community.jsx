@@ -24,6 +24,7 @@ import { botSvg } from '../components/HaydenBot.jsx'
 import { myColour, earnedGear } from '../lib/police/bot-look.js'
 import { confirmSheet, menuSheet } from '../sheets.jsx'
 import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
+import { ReactIcon, ReactBar, ReactSummary } from '../components/Reactions.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
@@ -85,7 +86,7 @@ function useHold(onHold) {
 }
 
 /** One comment, the way Instagram shows it: name and words on one line, then time · Reply · Edit. */
-function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest }) {
+function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest, onLike }) {
   const canDelete = r.mine || p.mine || admin
   const hold = useHold(() => menuSheet({ title: r.name, sections: [{ items: [
     { icon: 'chat', label: 'Reply', onClick: () => onReply(r) },
@@ -94,12 +95,17 @@ function Comment({ r, p, admin, openPerson, onReply, onEdit, onDelete, onBest })
     ...(canDelete ? [{ icon: 'trash', danger: true, label: 'Delete', onClick: () => onDelete(r.id) }] : []),
   ] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] }))
   return <div className={'cm-reply' + (r.best ? ' best' : '')} {...hold}>
+    <div className="cm-reply-m">
     <p>{r.who ? <button type="button" className="cm-rname" onClick={() => openPerson(r.who)}>{r.name}</button> : <b>{r.name}</b>} {r.text}</p>
     <div className="cm-reply-a">
       <span>{ago(r.at)}{r.edited ? ' · edited' : ''}{r.best ? ' · Helped' : ''}</span>
       <button type="button" onClick={() => onReply(r)}>Reply</button>
       {r.mine && <button type="button" onClick={() => onEdit(r)}>Edit</button>}
     </div>
+    </div>
+    <button type="button" className={'cm-like' + (r.liked ? ' on' : '')} aria-pressed={!!r.liked} aria-label={r.liked ? 'Unlike' : 'Like'} onClick={() => onLike(r)}>
+      <Icon name="heart" />{r.likes ? <small>{r.likes}</small> : null}
+    </button>
   </div>
 }
 
@@ -108,7 +114,15 @@ function Post({ p, onChange, admin, openPerson, me }) {
   const [editing, setEditing] = useState(null)
   const [open, setOpen] = useState(false)
   const input = useRef(null)
-  const cheer = async () => { const r = await call('/api/community/cheer', { id: p.id }); if (r) onChange({ ...p, cheers: r.cheers, cheered: r.cheered }) }
+  const [picking, setPicking] = useState(false)
+  const reactWith = async kind => { setPicking(false); const r = await call('/api/community/react', { id: p.id, kind }); if (r) onChange({ ...p, reacts: r.reacts, cheers: r.cheers, myReact: r.myReact, cheered: r.cheered }) }
+  // A heart on a comment shows at once; the server's count follows.
+  const like = async c => {
+    const flip = x => ({ ...x, liked: !c.liked, likes: Math.max(0, (c.likes || 0) + (c.liked ? -1 : 1)) })
+    onChange({ ...p, replies: p.replies.map(x => (x.id === c.id ? flip(x) : x)) })
+    const r = await call('/api/community/reply-like', { id: p.id, replyId: c.id })
+    if (r) onChange({ ...p, replies: p.replies.map(x => (x.id === c.id ? { ...x, likes: r.likes, liked: r.liked } : x)) })
+  }
   const send = async () => {
     if (!reply.trim()) return
     if (editing) {
@@ -136,7 +150,7 @@ function Post({ p, onChange, admin, openPerson, me }) {
   ] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })
   // Instagram's way: the last two comments under the post, "View all" for the rest.
   const shown = open ? p.replies : p.replies.slice(-2)
-  const one = r => <Comment key={r.id} r={r} p={p} admin={admin} openPerson={openPerson} onReply={onReply} onEdit={onEdit} onDelete={del} onBest={best} />
+  const one = r => <Comment key={r.id} r={r} p={p} admin={admin} openPerson={openPerson} onReply={onReply} onEdit={onEdit} onDelete={del} onBest={best} onLike={like} />
   return <article className={'card cm-post' + (p.hidden ? ' cm-hidden' : '')}>
     <header className="cm-h">
       <button type="button" className="cm-person" disabled={!p.who} onClick={() => openPerson(p.who)} aria-label={p.who ? `${p.name}: their page` : p.name}>
@@ -151,9 +165,12 @@ function Post({ p, onChange, admin, openPerson, me }) {
     {p.week && <WeekStrip week={p.week} />}
     {p.plan && <PlanCard p={p} onChange={onChange} />}
     <div className="cm-acts">
-      <button className={'cm-cheer' + (p.cheered ? ' on' : '')} onClick={cheer} aria-pressed={p.cheered} disabled={p.mine} aria-label={p.mine ? `${p.cheers || 0} cheers` : p.cheered ? 'Cheered' : 'Cheer'}><Icon name="sparkles" /> {p.cheers || (p.mine ? 0 : 'Cheer')}</button>
-      <button onClick={() => { setOpen(true); focus() }} aria-label="Comment"><Icon name="chat" /> {p.replies.length || 'Comment'}</button>
+      {!p.mine && <button type="button" className={'cm-react' + (p.myReact ? ' on' : '')} aria-expanded={picking} aria-label={p.myReact ? 'Your reaction. Tap to change' : 'React'} onClick={() => setPicking(v => !v)}>
+        {p.myReact ? <ReactIcon id={p.myReact} size={24} /> : <Icon name="heart" />}</button>}
+      <button type="button" className="cm-cmt" onClick={() => { setOpen(true); focus() }} aria-label="Comment"><Icon name="chat" />{p.replies.length ? <small>{p.replies.length}</small> : null}</button>
+      <ReactSummary reacts={p.reacts} total={p.cheers} />
     </div>
+    {picking && <ReactBar mine={p.myReact} onPick={reactWith} />}
     {p.replies.length > 2 && !open && <button type="button" className="cm-viewall" onClick={() => setOpen(true)}>View all {p.replies.length} comments</button>}
     {shown.length > 0 && <div className="cm-replies">{shown.map(one)}</div>}
     {open && <div className="cm-add">
@@ -363,7 +380,7 @@ export default function Community() {
     <div className="calm-head cm-head">
       <h1>Community</h1>
       {user && <div className="cm-tools">
-        <button type="button" className="cm-newpost" onClick={compose}><Icon name="plus" /> Post</button>
+        <button type="button" className="cm-newpost" onClick={compose} aria-label="New post"><Icon name="plus" /></button>
         <button type="button" className={searching ? 'on' : ''} onClick={() => { setSearching(!searching); setQ('') }} aria-label="Search"><Icon name="magnifier" /></button>
         <button type="button" className={area ? 'on' : ''} onClick={pickArea} aria-label="Topics"><Icon name="slider" /></button>
         <button type="button" onClick={() => sheet(close => <BellSheet close={close} />)} aria-label="Your bell"><Icon name="bell" /></button>

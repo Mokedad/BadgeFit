@@ -74,10 +74,10 @@ export function view(feed, viewer, { admin = false, before = null, handle = null
     id: p.id, name: p.name, topic: p.topic, text: p.text, at: p.at,
     ...(p.area && { area: p.area }), ...(p.stage && { stage: p.stage }), ...(p.session && { session: p.session }), ...(p.week && { week: p.week }),
     ...(p.plan && { plan: p.plan, planFollowers: (p.planFollowers || []).length, planFollowed: (p.planFollowers || []).includes(viewer?.id), ...(fresh && fresh(p.uid) && { planNew: true }) }),
-    cheers: (p.cheers || []).length, cheered: (p.cheers || []).includes(viewer?.id),
+    ...reactSummary(p, viewer),
     mine: p.uid === viewer?.id, hidden: !!p.hidden, ...who(p.uid),
     ...(admin && { reports: (p.reports || []).length }),
-    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
+    replies: (p.replies || []).filter(r => !blocked || !blocked(r.uid)).map(r => ({ id: r.id, name: r.name, text: r.text, at: r.at, mine: r.uid === viewer?.id, ...(r.edited && { edited: true }), likes: (r.likes || []).length, liked: (r.likes || []).includes(viewer?.id), ...(p.best === r.id && { best: true }), ...who(r.uid) })),
   }));
 }
 
@@ -174,14 +174,49 @@ export function editReply(feed, user, { id, replyId, text }) {
   return { reply: { id: r.id, text: r.text, edited: true } };
 }
 
-/** Cheer on, or off again. */
-export function toggleCheer(feed, user, id) {
+/**
+ * Reactions on a post (Instagram/Facebook style), one per person: love, fire, strong, win, wow.
+ * Kept as { uid: kind }; `cheers` stays the list of everyone who reacted, so counts elsewhere hold.
+ * An older post's cheers read as love.
+ */
+export const REACTS = ['love', 'fire', 'strong', 'win', 'wow'];
+const reactsOf = p => ({ ...Object.fromEntries((p.cheers || []).map(u => [u, 'love'])), ...(p.reacts || {}) });
+
+/** Your reaction on a post: a new kind replaces the old one, the same kind again takes it off. */
+export function react(feed, user, id, kind = 'love') {
   const post = find(feed, id);
   if (!post) return { error: 'post not found' };
-  const set = new Set(post.cheers || []);
+  if (!REACTS.includes(kind)) return { error: 'unknown reaction' };
+  const all = reactsOf(post);
+  if (all[user.id] === kind) delete all[user.id]; else all[user.id] = kind;
+  post.reacts = all;
+  post.cheers = Object.keys(all);
+  return { ...reactSummary(post, user), owner: post.uid, post, added: all[user.id] === kind };
+}
+/** A post's reactions as a viewer sees them: counts by kind, the total, and their own. */
+export function reactSummary(post, viewer) {
+  const all = reactsOf(post);
+  const reacts = {};
+  for (const k of Object.values(all)) reacts[k] = (reacts[k] || 0) + 1;
+  return { reacts, cheers: Object.keys(all).length, myReact: all[viewer?.id] || null, cheered: !!all[viewer?.id] };
+}
+
+/** Cheer on, or off again (a love). */
+export function toggleCheer(feed, user, id) {
+  const r = react(feed, user, id, 'love');
+  return r.error ? r : { cheers: r.cheers, cheered: r.cheered, owner: r.owner, post: r.post };
+}
+
+/** A heart on a comment, or off again (Instagram's like). */
+export function likeReply(feed, user, { id, replyId }) {
+  const post = find(feed, id);
+  if (!post) return { error: 'post not found' };
+  const r = (post.replies || []).find(x => x.id === replyId);
+  if (!r) return { error: 'reply not found' };
+  const set = new Set(r.likes || []);
   set.has(user.id) ? set.delete(user.id) : set.add(user.id);
-  post.cheers = [...set];
-  return { cheers: post.cheers.length, cheered: set.has(user.id), owner: post.uid, post };
+  r.likes = [...set];
+  return { likes: set.size, liked: set.has(user.id), owner: r.uid, reply: r, post };
 }
 
 export function report(feed, user, id) {

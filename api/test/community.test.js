@@ -130,3 +130,28 @@ test('a shared week: seven days of gym, run or rest, shown with the post; a bad 
   // The author's colour, when known, rides along for their Hayden.
   assert.equal(c.view(f, bob, { colour: uid => (uid === 'u1' ? '#3fb6ff' : null) })[0].colour, '#3fb6ff');
 });
+
+test('reactions: one each, a new kind replaces it, the same kind takes it off; old cheers read as love', () => {
+  const f = c.emptyFeed();
+  const { post } = c.addPost(f, ann, { text: 'Beep 7.5!' }, 1);
+  post.cheers = ['u3'];   // a cheer from before reactions
+  assert.equal(c.react(f, bob, post.id, 'nope').error, 'unknown reaction');
+  let r = c.react(f, bob, post.id, 'fire');
+  assert.deepEqual([r.reacts, r.cheers, r.myReact, r.added], [{ love: 1, fire: 1 }, 2, 'fire', true]);
+  r = c.react(f, bob, post.id, 'strong');
+  assert.deepEqual(r.reacts, { love: 1, strong: 1 });
+  r = c.react(f, bob, post.id, 'strong');
+  assert.deepEqual([r.reacts, r.myReact, r.added], [{ love: 1 }, null, false]);
+  assert.deepEqual(c.toggleCheer(f, bob, post.id).cheered, true);
+  const seen = c.view(f, bob)[0];
+  assert.deepEqual([seen.reacts, seen.myReact, seen.cheers], [{ love: 2 }, 'love', 2]);
+});
+
+test('a heart on a comment, and off again', () => {
+  const f = c.emptyFeed();
+  const { post } = c.addPost(f, ann, { text: 'hi' }, 1);
+  const { reply } = c.addReply(f, bob, { id: post.id, text: 'nice' }, 2);
+  assert.deepEqual([c.likeReply(f, ann, { id: post.id, replyId: reply.id }).likes, c.likeReply(f, cat, { id: post.id, replyId: reply.id }).liked], [1, true]);
+  assert.deepEqual([c.view(f, ann)[0].replies[0].likes, c.view(f, ann)[0].replies[0].liked, c.view(f, bob)[0].replies[0].liked], [2, true, false]);
+  assert.equal(c.likeReply(f, ann, { id: post.id, replyId: reply.id }).liked, false);
+});
