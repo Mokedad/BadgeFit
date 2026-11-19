@@ -212,7 +212,6 @@ function PersonSheet({ id, close }) {
   if (d.error) return <p className="pf-sub">Could not open their page right now.</p>
   const b = d.person
   const plans = d.posts.filter(p => p.plan), posts = d.posts.filter(p => !p.plan)
-  const tile = (n, label) => <div className="nb-tile"><b>{n}</b><span>{label}</span></div>
   const setPost = next => setD(x => ({ ...x, posts: x.posts.map(p => (p.id === next.id ? next : p)) }))
   const follow = async () => { const on = await toggleFollow(b); setD(x => ({ ...x, person: { ...x.person, followed: on, followers: x.person.followers + (on === b.followed ? 0 : on ? 1 : -1) } })) }
   // The answer shows here under the buttons, never as a toast over their name.
@@ -234,7 +233,13 @@ function PersonSheet({ id, close }) {
     <button type="button" className="cm-x cm-page-x" aria-label="More" onClick={() => menuSheet({ title: b.name, sections: [{ items: [{ icon: 'xmark', danger: true, label: `Block ${b.name}`, onClick: () => { close(); hideBot(b) } }] }, { items: [{ icon: 'xmark', label: 'Cancel', onClick: () => {} }] }] })}><Icon name="more" /></button>
     <span key={'j' + jump} className={'nb-card-bot' + (jump ? ' cm-jump' : '')} dangerouslySetInnerHTML={{ __html: botSvg({ line: b.colour, gear: b.gear || [], eyes: 'happy', pose: jump ? 'cheer' : 'wave', act: b.training ? 'run' : null }) }} />
     <h3>{b.name}</h3>
-    <p className="pf-sub">{[b.training ? 'Training now' : stageLabel(b.stage), `following ${b.following}`, `${b.followers} ${b.followers === 1 ? 'follower' : 'followers'}`].filter(Boolean).join(' · ')}</p>
+    {/* Only chips that say something: no zero tiles. */}
+    <div className="cm-chips">
+      {b.training && <span className="live"><Icon name="figureRun" /> Training now</span>}
+      {stageLabel(b.stage) && <span>{stageLabel(b.stage)}</span>}
+      {b.stats?.streak > 0 && <span><Icon name="flame" /> {b.stats.streak} wk streak</span>}
+      {b.stats?.week > 0 && <span>{b.stats.week} this week</span>}
+    </div>
     {/* Two buttons: Follow first (Cheer waits); once followed, a tick (tap to unfollow) and Cheer. */}
     <div className="cm-fc">
       {b.followed
@@ -247,11 +252,11 @@ function PersonSheet({ id, close }) {
     </div>
     <p className="cm-fc-note" aria-live="polite">{note || (b.followed ? '' : 'Follow first, then cheer them on')}</p>
     {b.today && <SessionCard s={b.today} />}
-    {b.stats && <div className="nb-tiles">{tile(b.stats.week, 'this week')}{tile(b.stats.ready + '%', 'PCT ready')}{tile(b.stats.streak, b.stats.streak === 1 ? 'week in a row' : 'weeks in a row')}</div>}
+    {/* Their last post on one line; more on a tap. */}
+    {posts.slice(0, shown).map((p, i) => <div key={p.id} className="cm-last"><Icon name="chat" /><span><b>{p.text || p.session?.title || (p.week ? p.week.label : 'Shared their week')}</b><small>{i === 0 ? 'Last post · ' : ''}{ago(p.at)}</small></span></div>)}
+    {posts.length > shown && <button type="button" className="pf-link" onClick={() => setShown(n => n + 5)}>More posts</button>}
     {plans.length > 0 && <><div className="menu-sec">Shared plans</div>{plans.map(p => <PlanCard key={p.id} p={p} onChange={setPost} />)}</>}
-    {posts.length > 0 && <><div className="menu-sec">Posts</div>
-      {posts.slice(0, shown).map(p => <div key={p.id} className="cm-mini">{p.text && <p>{p.text}</p>}{p.session && <SessionCard s={p.session} />}<small>{p.cheers} cheers · {p.replies.length} replies · {ago(p.at)}</small></div>)}
-      {posts.length > shown && <button type="button" className="pf-link" onClick={() => setShown(n => n + 5)}>Show more posts</button>}</>}
+    <p className="cm-fcount">{b.following} following · {b.followers} {b.followers === 1 ? 'follower' : 'followers'}</p>
   </div>
 }
 export const openPerson = id => id && sheet(close => <PersonSheet id={id} close={close} />)
@@ -302,6 +307,20 @@ function NumbersSheet() {
   </div>
 }
 
+// Kinds that are reactions (a cheer on a post reads as a love).
+const RX_KIND = { love: 'love', like: 'love', cheer: 'love', fire: 'fire', strong: 'strong', win: 'win', wow: 'wow' }
+/** The bell's rows: reactions from the same person in a row (newest first) become one row. */
+export function groupBell(list) {
+  const out = []
+  for (const c of list) {
+    const k = RX_KIND[c.kind]
+    const prev = out.at(-1)
+    if (k && prev?.kinds && prev.who && prev.who === c.who) { prev.kinds.push(k); prev.n++; continue }
+    out.push(k ? { ...c, kinds: [k], n: 1 } : c)
+  }
+  return out
+}
+
 /** The bell: every cheer, reply and follow lately, newest first, each with Follow back. */
 function BellSheet({ close }) {
   const [list, setList] = useState(null)
@@ -311,15 +330,22 @@ function BellSheet({ close }) {
   const [blocked, setBlocked] = useState(null)
   const showBlocked = () => api('/api/nearby/hidden').then(r => setBlocked(r?.people || [])).catch(() => setBlocked([]))
   const unblock = async b => { if (await call('/api/nearby/unhide', { id: b.id })) { setBlocked(l => l.filter(x => x.id !== b.id)); toast(`${b.name} unblocked. Follow them again from their page.`) } }
+  // Reactions from one person in a row read as one line, their reactions stacked, with a heart back.
+  const rows = groupBell(list || [])
+  const [sentTo, setSentTo] = useState({})
+  const loveBack = c => { setSentTo(m => ({ ...m, [c.who]: true })); sendReact({ id: c.who, name: c.from }, 'love') }
   return <div className="cm-bell">
     <h3>Your bell</h3>
     {list == null ? <p className="pf-sub">Loading</p> : !list.length ? <p className="pf-sub">Cheers, replies and new followers show up here.</p>
-      : list.map(c => <div key={c.id} className="cm-bell-row">
+      : rows.map(c => <div key={c.id} className="cm-bell-row">
         <button type="button" className="cm-bell-m" onClick={() => { if (c.who) { close(); openPerson(c.who) } }}>
           <Bot b={c} size={38} eyes="happy" />
-          <span><b>{cheerSym(c.kind)} {cheerLine(c)}</b><small>{ago(c.at)}</small></span>
+          {c.kinds
+            ? <span><b>{c.from}<span className="cm-bell-rx">{[...new Set(c.kinds)].slice(0, 4).map(k => <ReactIcon key={k} id={k} size={20} />)}</span></b><small>{c.n > 1 ? `sent ${c.n} · ` : c.what ? c.what + ' · ' : ''}{ago(c.at)}</small></span>
+            : <span><b>{cheerSym(c.kind)} {cheerLine(c)}</b><small>{ago(c.at)}</small></span>}
         </button>
-        {c.who && !c.followed && <button type="button" className="cm-follow" onClick={() => back(c)}>Follow back</button>}
+        {c.who && !c.followed ? <button type="button" className="cm-follow" onClick={() => back(c)}>Follow back</button>
+          : c.who && c.kinds && <button type="button" className={'cm-back' + (sentTo[c.who] ? ' sent' : '')} aria-label={`Send love back to ${c.from}`} onClick={() => loveBack(c)}>{sentTo[c.who] ? <ReactIcon id="love" size={30} /> : <Icon name="heart" />}</button>}
       </div>)}
     {blocked == null ? <button type="button" className="pf-link cm-blocked-l" onClick={showBlocked}>People you blocked</button>
       : <div className="cm-blocked"><div className="menu-sec">People you blocked</div>

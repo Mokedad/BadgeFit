@@ -12,7 +12,7 @@ import { beep, beepVolume } from '../lib/police/bot-voice.js'
 import { haydenSays, toggleFollow } from './NearbyBots.jsx'
 import { botSvg } from './HaydenBot.jsx'
 import { useRun } from '../store/useRun.js'
-import { ReactIcon, REACTIONS } from './Reactions.jsx'
+import { ReactIcon, ReactBar, REACTIONS, useTapHold } from './Reactions.jsx'
 import { useFlick } from './SwipeAway.jsx'
 
 const EVERY_MS = 60000
@@ -37,9 +37,12 @@ function Floats() {
   const floats = useCheers(s => s.floats)
   if (!floats.length) return null
   const last = floats.at(-1)
+  // A burst from one person reads as ×3 beside their name, not three lines.
+  const burst = floats.filter(f => f.from === last.from).length
   return <div className="rx-floats" aria-live="polite">
     {floats.map((f, i) => <span key={f.fid} className="rx-float" style={{ '--x': `${(i % 3) * 14}px` }}><ReactIcon id={f.kind} size={34} /></span>)}
-    <span className="rx-chip"><span className="rx-chip-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: last.colour, eyes: 'happy', head: true }) }} />{cheerLine(last)}</span>
+    {burst > 1 && <span key={'x' + burst} className="rx-times">×{burst}</span>}
+    <span className="rx-chip" aria-label={cheerLine(last)}><span className="rx-chip-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: last.colour, eyes: 'happy', head: true }) }} />{last.from || 'Someone'}</span>
   </div>
 }
 
@@ -49,6 +52,25 @@ export function showCheers(list) {
   if (!items.length) return
   const pack = items.length > 3 ? [{ ...items.at(-1), line: cheerSummary(items) }] : items
   useCheers.setState(s => ({ queue: [...s.queue, ...pack] }))
+}
+
+/** Love back in one tap (hold for the five): the loop that brings both people back. */
+function LoveBack({ c, onDone }) {
+  const [pick, setPick] = useState(false)
+  const [sent, setSent] = useState(null)
+  const send = kind => {
+    setPick(false); setSent(kind)
+    api('/api/nearby/cheer', { method: 'POST', body: JSON.stringify({ id: c.who, kind }) }).catch(() => {})
+    setTimeout(onDone, 700)
+  }
+  const press = useTapHold(() => send('love'), () => setPick(true))
+  return <>
+    <button type="button" className={'cheer-back' + (sent ? ' sent' : '')} aria-label={`Send love back to ${c.from}. Hold for more`} {...press}
+      onPointerDownCapture={e => e.stopPropagation()}>
+      {sent ? <ReactIcon id={sent} size={34} /> : <span className="cheer-back-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20c-.4 0-.8-.1-1-.4l-6.2-6a4.6 4.6 0 0 1 0-6.6 4.4 4.4 0 0 1 6.2 0l1 1 1-1a4.4 4.4 0 0 1 6.2 0 4.6 4.6 0 0 1 0 6.6l-6.2 6c-.2.3-.6.4-1 .4Z" /></svg></span>}
+    </button>
+    {pick && <div className="cheer-back-pick"><ReactBar onPick={send} /></div>}
+  </>
 }
 
 export default function CheerBubble() {
@@ -95,6 +117,7 @@ export default function CheerBubble() {
   // Follow back, right on the bubble, closes the loop (not for someone you already follow).
   const canFollow = shown.who && !shown.followed && shown.kind !== 'training' && !shown.line
   return <div className="cheer-pop" aria-live="polite" {...flick}>
+    {shown.who && !shown.line && <LoveBack c={shown} onDone={() => setShown(null)} />}
     <button type="button" className="cheer-pop-m" onClick={() => { setShown(null); window.location.hash = '#/community' }}>
       <span className="cheer-pop-bot" aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: shown.colour, eyes: 'happy', head: true }) }} />
       <span className="cheer-pop-t">{isReact(shown.kind) ? <ReactIcon id={shown.kind} size={22} /> : <span className="cheer-pop-s" aria-hidden="true">{cheerSym(shown.kind)}</span>}{shown.line || cheerLine(shown)}</span>
