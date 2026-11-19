@@ -1358,37 +1358,6 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pd-seg button.on{background:var(--surface,#fff);color:var(--label);box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .pd-share{flex:none;display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:9px 13px;background:#0b1a36;color:#ffc629;font:inherit;font-size:13px;font-weight:800}
 .pd-share svg{width:16px;height:16px}
-.pd-changed{box-shadow:0 0 0 3px rgba(255,198,41,.55);transition:box-shadow .6s}
-.pd-chg{align-self:flex-start;width:max-content;display:inline-flex;align-items:center;gap:3px;margin-left:8px;background:#fff4d1;color:#8a6400;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:800;vertical-align:2px}
-.pd-chg svg{width:12px;height:12px;stroke-width:3}
-.wk-day{background:var(--surface,#fff);border-radius:16px;margin-bottom:6px;overflow:hidden}
-.wk-day.open{box-shadow:0 0 0 2px #ffc629}
-.wk-day.past{opacity:.55}
-.wk-row{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:12px 14px;font:inherit;color:inherit;text-align:left}
-.wk-row small{width:40px;flex:none;font-size:12px;font-weight:800;color:var(--label-2)}
-.wk-row b{flex:1;font-size:15px}
-.wk-row>span:last-child{color:var(--label-2);font-size:13px}
-.wk-dot{flex:none;width:10px;height:10px;border-radius:50%;background:#c9ccd6}
-.wkk-gym .wk-dot{background:#ffc629}.wkk-run .wk-dot{background:#3fb6ff}
-.wk-ok{color:#2fd39a}.wk-ok svg{width:16px;height:16px;stroke-width:3}
-.wk-body{padding:0 12px 12px}
-.wk-exs{display:grid;gap:5px;margin-bottom:10px}
-.wk-exs div{display:flex;justify-content:space-between;gap:8px;background:var(--surface-2,#f3f4f8);border-radius:10px;padding:8px 10px;font-size:14px}
-.wk-exs em{font-style:normal;color:var(--label-2);flex:none}
-.wk-exs .wk-more{justify-content:center;color:var(--label-2)}
-.wk-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px;margin-bottom:8px}
-.wk-acts button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;border-radius:12px;padding:9px 4px;background:var(--surface-2,#eef0f5);font:inherit;font-size:12.5px;font-weight:800;color:var(--label)}
-.wk-acts svg{width:18px;height:18px}
-.wk-hay{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:14px;padding:9px 12px;background:#0b1a36;color:#fff;font:inherit;font-size:13.5px;text-align:left;margin-top:8px}
-.wk-hay b{color:#ffc629}
-.wk-hay-i{flex:none;width:28px;height:28px;border-radius:50%;background:rgba(255,198,41,.15);color:#ffc629;display:grid;place-items:center}
-.wk-hay-i svg{width:16px;height:16px}
-.wk-move h3,.wk-share h3{margin:0 0 4px}
-.wk-pick{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:10px 0}
-.wk-pick button{border:0;border-radius:12px;padding:9px 0;background:var(--surface-2,#eef0f5);font:inherit;font-size:12px;font-weight:800;color:var(--label)}
-.wk-pick button small{display:block;font-size:10px;font-weight:600;color:var(--label-2)}
-.wk-pick button.on{background:#ffc629;color:#0b1a36}.wk-pick button.on small{color:#0b1a36}
-.wk-pick button:disabled{opacity:.35}
 .wk-card{background:#0b1a36;color:#fff;border-radius:16px;padding:12px 14px;margin:8px 0}
 .wk-card b{font-size:15px}
 .wk-card small{color:#aab6cc;font-size:12px}
@@ -1404,3 +1373,10 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .cm-head .cm-tools{gap:6px;flex:none}
 .cm-head .cm-tools button:not(.cm-newpost){width:36px;height:36px}
 .cm-head h1{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* Plan Week: the same tiles and card as 3 days (components/PlanDays.jsx). */
+.pd-week .pf-tile.past{opacity:.5}
+.pf-tile.is-today{box-shadow:0 0 0 2px #ffc629}
+.pd-dow{color:var(--label-2);font-weight:700}
+.pf-tile-ok{color:#2fd39a}
+.wk-share h3{margin:0 0 4px}
