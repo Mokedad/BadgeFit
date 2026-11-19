@@ -392,6 +392,7 @@ export default function Community() {
           {posts?.map(p => <Post key={p.id} p={p} me={me} admin={!!user?.admin} openPerson={openPerson} onChange={next => update(p.id, next)} />)}
           {posts?.length > 0 && more && <Button onClick={() => load(posts.at(-1).at)}>Older posts</Button>}
         </>}
-    <p className="pf-sub pf-pad">Posts are seen by everyone on {BRAND.name}. Not affiliated with any police service. Report anything abusive from a post's menu.</p>
+    {/* Small, at the foot of the screen above the tab bar, away from the posts. */}
+    <p className="cm-foot">Seen by everyone on {BRAND.name} · Not affiliated with any police service · Report from a post's ⋯</p>
   </div>
 }

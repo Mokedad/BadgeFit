@@ -1380,3 +1380,6 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pd-dow{color:var(--label-2);font-weight:700}
 .pf-tile-ok{color:#2fd39a}
 .wk-share h3{margin:0 0 4px}
+/* Community's disclaimer: small, pushed to the bottom of the screen, clear of the posts. */
+.cm{display:flex;flex-direction:column;min-height:calc(100dvh - 128px - env(safe-area-inset-bottom, 0px))}
+.cm-foot{margin:auto 0 0;padding:28px 12px 4px;text-align:center;font-size:11px;line-height:1.4;color:var(--label-3,var(--label-2));opacity:.75}
