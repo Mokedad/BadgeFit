@@ -49,6 +49,25 @@ export function crewDate(iso) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
 }
 
+/** "6 December", for the crew sheet's title. */
+export function crewDateLong(iso) {
+  if (!iso) return ''
+  return new Date(iso + 'T12:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })
+}
+
+/** When a crewmate last trained, said the short way: "Yesterday", "2 days ago", "Last 21 Nov". */
+export function crewAgo(last, today) {
+  if (!last || !today) return 'Not started yet'
+  const n = Math.round((Date.parse(today + 'T12:00:00Z') - Date.parse(last + 'T12:00:00Z')) / 86400000)
+  if (n <= 0) return 'Today'
+  if (n === 1) return 'Yesterday'
+  if (n < 7) return `${n} days ago`
+  return `Last ${crewDate(last)}`
+}
+
+/** The letter in a crewmate's circle. */
+export const initialOf = name => (String(name || '').trim()[0] || '?').toUpperCase()
+
 /** Whether a finished session on `today` was already told to the crew (once a day, kept locally). */
 export const DONE_KEY = 'bf_crew_done'
 export function doneToldToday(today = isoOf(new Date())) {

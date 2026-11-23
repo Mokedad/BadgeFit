@@ -221,10 +221,10 @@
 .pf-ds{margin-right:6px}
 .pf-macros div i{font-style:normal;font-size:16px;line-height:1.2}
 
-/* light theme: soft grey cards on white, like the reference, gold buttons with dark text */
-:root[data-theme="light"] .pf .card:not(.pf-jarvis),:root[data-theme="light"] .cm .card{background:#f6f6f7;box-shadow:none;border:1px solid #ececee}
+/* light theme: white cards with a soft shadow on the light grey page (the crew mock-up's look), gold buttons with dark text */
+:root[data-theme="light"] .pf .card:not(.pf-jarvis),:root[data-theme="light"] .cm .card{background:#fff;box-shadow:0 2px 14px rgba(11,26,54,.06);border:0}
 :root[data-theme="light"] .pf-tabbar{background:#f1f1f3}
-:root[data-theme="light"] .pf-day{background:#fff;border-top:1px solid #ececee;border-right:1px solid #ececee;border-bottom:1px solid #ececee}
+:root[data-theme="light"] .pf-day{background:#fff;border-top:0;border-right:0;border-bottom:0;box-shadow:0 2px 14px rgba(11,26,54,.06)}
 /* Jarvis stays navy in every theme: stronger than the light theme's card rules */
 :root .pf .card.pf-jarvis,:root[data-theme="light"] .pf .card.pf-jarvis{background:linear-gradient(160deg,var(--pf-navy-2),var(--pf-navy) 75%);color:#fff;border:0}
 :root[data-theme="light"] .pf .card.pf-jarvis .pf-sub{color:rgba(255,255,255,.72)}
@@ -279,7 +279,7 @@
 .pf-strip>*{background:var(--surface);border:0;border-radius:14px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;color:inherit;min-width:0}
 .pf-strip b{font-size:20px;font-variant-numeric:tabular-nums}
 .pf-strip span{font-size:11px;color:var(--label-2);text-align:center;line-height:1.2}
-:root[data-theme="light"] .pf-strip>*{background:#f6f6f7;border:1px solid #ececee}
+:root[data-theme="light"] .pf-strip>*{background:#fff;border:0;box-shadow:0 2px 14px rgba(11,26,54,.06)}
 /* run tab */
 .pf-todayrun h3{margin-top:2px}
 .pf-runs{padding-top:4px;padding-bottom:4px}
@@ -397,7 +397,7 @@
 .lib-run b{font-size:14px;line-height:1.25}
 .lib-run small{color:var(--label-2)}
 .lib-run.c-vo2{border-left-color:var(--red)}.lib-run.c-intervals{border-left-color:var(--orange)}.lib-run.c-base{border-left-color:var(--green)}.lib-run.c-recovery{border-left-color:var(--blue)}
-:root[data-theme="light"] .lib-run{background:#f6f6f7}
+:root[data-theme="light"] .lib-run{background:#fff;box-shadow:0 2px 14px rgba(11,26,54,.06)}
 /* plan weeks grouped by phase, labelled */
 .pf-weekgrid{display:flex;flex-direction:column;gap:10px;margin:12px 0}
 .pf-phase-l{display:flex;align-items:baseline;gap:8px;margin:0 2px 4px}
@@ -1241,19 +1241,19 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 /* Home's ready ring (components/ReadyRing.jsx). */
 .rr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px}
 .rr-days{font-size:14px;color:var(--label-2);font-weight:600}
-.rr-ring{position:relative;width:min(168px,44vw);aspect-ratio:1;border:0;background:none;padding:0;color:inherit;font:inherit}
+.rr-ring{position:relative;width:min(180px,46vw);aspect-ratio:1;border:0;background:none;padding:0;color:inherit;font:inherit}
 .rr-ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
-.rr-track{fill:none;stroke:var(--surface-3);stroke-width:13}
-.rr-fill{fill:none;stroke:#ffc629;stroke-width:13;transition:stroke-dasharray .8s ease}
-.rr-fill.pass{stroke:var(--green)}
+.rr-track{fill:none;stroke:var(--surface-3,#e5e5ea);stroke-width:17}
+.rr-fill{fill:none;stroke:#2fd27a;stroke-width:17;transition:stroke-dasharray .8s ease}
+
 .rr-ring.empty .rr-track{stroke:var(--label-3);stroke-width:4;stroke-dasharray:7 9}
 .rr-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.rr-mid b{font-size:44px;font-weight:900;line-height:1;letter-spacing:-.02em}
-.rr-mid b i{font-style:normal;font-size:24px;color:var(--label-2);font-weight:800}
+.rr-mid b{font-size:46px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.rr-mid b i{font-style:normal;font-size:30px;font-weight:900}
 .rr-mid b.q{color:var(--label-3)}
 .rr-mid small{font-size:13px;color:var(--label-2);margin-top:4px;line-height:1.25}
 .rr-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:360px}
-.rr-chip{display:inline-flex;align-items:center;gap:5px;border:0;background:var(--surface);color:var(--label);border-radius:999px;padding:6px 11px;font:inherit;font-size:13px;font-weight:700}
+.rr-chip{display:inline-flex;align-items:center;gap:5px;border:0;background:var(--surface);color:var(--label);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(11,26,54,.06)}
 .rr-chip.ok{color:var(--green)}
 .rr-chip .icn{width:15px;height:15px}
 .rr-flame{color:var(--orange)}
@@ -1585,42 +1585,47 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pick-look .small{display:flex;align-items:center;gap:6px}
 .pick-filters{margin:0 0 10px;display:inline-flex;align-items:center;gap:6px}
 .share-ic.on:disabled{opacity:1}
-/* Your crew (components/Crew.jsx): the strip on Home, the faces with their rings, the sheet, the ping. */
-.crew-strip{display:flex;align-items:center;gap:10px;width:100%;margin:10px 0 2px;padding:10px 12px;border:0;border-radius:18px;background:var(--surface);color:inherit;text-align:left;box-shadow:0 2px 10px rgba(11,26,54,.06)}
+/* Your crew (components/Crew.jsx), the crew mock-up's look: letters in ringed circles, white
+   rounded rows with a soft shadow, a cheer on the right, Hayden's navy "H" on the ping. */
+.crew-strip{display:flex;align-items:center;gap:12px;width:100%;max-width:420px;margin:14px auto 2px;padding:14px 14px 14px 16px;border:0;border-radius:22px;background:var(--surface);color:inherit;text-align:left;box-shadow:0 2px 14px rgba(11,26,54,.07)}
 .crew-faces{display:flex;align-items:center;flex:none}
-.crew-face{position:relative;display:inline-grid;place-items:center;border-radius:50%;margin-left:-8px;background:conic-gradient(#cfd3db var(--p,0%),#e9ebf0 0);padding:3px;box-sizing:border-box}
-.crew-face.on{background:conic-gradient(#2fd27a var(--p,0%),#d8f3e4 0)}
+.crew-face{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;margin-left:-9px;padding:3px;box-sizing:border-box;background:conic-gradient(#cfd3db var(--p,0%),#e7e9ee 0)}
+.crew-face.on{background:conic-gradient(#2fd27a var(--p,0%),#e7e9ee 0)}
 .crew-faces .crew-face:first-child,.crew-row .crew-face{margin-left:0}
-.crew-face-i{display:block;width:100%;height:100%;border-radius:50%;background:var(--surface);overflow:hidden;border:2px solid var(--surface)}
-.crew-face-i svg{width:100%;height:100%;display:block}
-.crew-more{margin-left:-6px;width:30px;height:30px;border-radius:50%;background:var(--surface-2,#eef0f4);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--label-2)}
-.crew-t{flex:1;min-width:0;font-size:13px;color:var(--label-2);display:flex;flex-direction:column}
-.crew-t b{color:var(--label);font-size:15px}
+.crew-face-i{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;box-sizing:border-box;background:#e4e8f0;color:#0b1a36;font-weight:800;line-height:1;border:2px solid var(--surface)}
+.crew-face-i.you{letter-spacing:-.01em}
+.crew-more{margin-left:-9px;width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;box-sizing:border-box;background:#e4e8f0;color:#0b1a36;font-size:12px;font-weight:800;box-shadow:0 0 0 2px var(--surface),0 0 0 5px #cfd3db}
+.crew-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:15px;line-height:1.3;color:var(--label-2)}
+.crew-t b{color:var(--label);font-size:17px;font-weight:800}
 .crew-chev{color:var(--label-3);flex:none}
-.crew-sheet h3{display:flex;align-items:center;gap:8px;margin:0 0 2px;font-size:22px}
-.crew-row{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:16px;padding:10px 12px;margin:8px 0;-webkit-user-select:none;user-select:none}
-.crew-row.me{outline:2px solid var(--acc)}
-.crew-n{flex:1;min-width:0;display:flex;flex-direction:column}.crew-n b{font-size:15px}.crew-n span{font-size:13px;color:var(--label-2)}
-.crew-pct{color:#1c9a66;font-size:18px}
-.crew-fire{width:40px;height:40px;border-radius:50%;border:0;background:var(--surface-2,#eef0f4);display:grid;place-items:center;transition:transform .2s}
-.crew-fire.on{background:#ffe9b0;transform:scale(1.12)}
-.crew-hint{text-align:center;margin-top:12px}
-.crew-leave{display:block;margin:6px auto 0}
-.crew-pop-w{padding:8px 10px 8px 8px}
-.crew-pop{display:flex;align-items:center;gap:10px;min-width:0}
-.crew-pop-bot{width:40px;height:40px;flex:none}.crew-pop-bot svg{width:100%;height:100%}
-.crew-pop-t{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px;line-height:1.25}
-.crew-pop-t b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crew-pop-t span{color:var(--label-2);font-size:12px}
-.crew-pop-b{width:38px;height:38px;border-radius:50%;border:0;background:var(--surface-2,#eef0f4);display:grid;place-items:center;color:var(--label);flex:none}
+.crew-sheet h3{display:flex;align-items:center;gap:8px;margin:2px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em}
+.crew-sub{margin:0 0 14px;color:var(--label-2);font-size:16px}
+.crew-row{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:18px;padding:12px 14px;margin:0 0 10px;box-shadow:0 2px 12px rgba(11,26,54,.06);-webkit-user-select:none;user-select:none}
+.crew-row.me{box-shadow:0 0 0 2.5px #ffc629,0 2px 12px rgba(11,26,54,.06)}
+.crew-n{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.crew-n b{font-size:17px;font-weight:800}.crew-n span{font-size:15px;color:var(--label-2)}
+.crew-pct{color:#1fbf6a;font-size:21px;font-weight:900}
+.crew-rx{width:44px;height:44px;border-radius:50%;border:0;background:none;display:grid;place-items:center;flex:none;transition:transform .2s cubic-bezier(.2,1.6,.4,1)}
+.crew-rx:active{transform:scale(.9)}
+.crew-rx.on{transform:scale(1.18)}
+.crew-hint{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 2px 0;color:var(--label-2);font-size:15px}
+.crew-leave{display:block;margin:10px auto 0}
+.crew-pop-w{padding:10px 12px 10px 10px;border-radius:22px}
+.crew-pop{display:flex;align-items:center;gap:12px;min-width:0}
+.crew-pop-h{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;background:#0b1a36;color:#ffc629;font-weight:900;font-size:19px}
+.crew-pop-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:15px;line-height:1.25}
+.crew-pop-t b{font-weight:800;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.crew-pop-t span{color:var(--label);font-size:14px;line-height:1.3}
+.crew-pop-b{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface-2,#f0f1f4);display:grid;place-items:center;color:var(--label);flex:none}
 .crew-pop-b.on{background:#ffe9b0}
-.crew-pop-b.go{background:var(--acc);color:var(--on-acc,#0b1a36)}
+.crew-pop-b.go{background:var(--surface-2,#f0f1f4);color:#0b1a36;font-size:18px}
+:root:not([data-theme="light"]) .crew-face-i,:root:not([data-theme="light"]) .crew-more{background:var(--surface-2);color:var(--label)}
+:root:not([data-theme="light"]) .crew-pop-b.go{color:var(--label)}
 /* PCT: the test date row at the top (PoliceFit.jsx TestDateRow). */
 .pf-date{padding:0;overflow:hidden}
 .pf-date-h{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:14px 16px;font:inherit;font-size:15px;color:inherit;text-align:left}
 .pf-date-h>span:nth-child(2){flex:1;min-width:0;color:var(--label-2)}
 .pf-date-h b{color:var(--label);font-size:17px}
 .pf-date .pf-fold-b{padding:0 16px 14px}
-.crew-set{display:block;margin:8px auto 0;text-decoration:none;color:var(--label-2)}
+.crew-set{margin:14px auto 0;color:var(--label-2)}
 .mh-col.on{box-shadow:0 0 0 3px var(--acc)}
 .rp-music .icn{width:18px;height:18px}
 /* A busy page with no clear spot: Hayden peeks in from the right edge (HaydenBuddy.jsx). */
@@ -1628,3 +1633,16 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .hb-buddy.peek:active{transform:none}
 .pf-date-2{display:flex;flex-direction:column}
 .pf-date-2 small{font-size:13px;color:var(--label-2)}
+/* Home, the mock-up's header: "Welcome", then the week and the days to go in one grey line. */
+.calm-mid .calm-hi{font-size:40px;margin:6px 0 0;line-height:1.1}
+.calm-sub{margin:4px 0 14px;color:var(--label-2);font-size:16px}
+.calm-pills{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.calm-share-sheet{text-align:center}
+.calm-share-sheet h3{margin:4px 0 14px}
+.crew-n span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Inside a white card a white field would vanish: it takes the page's grey (both themes). */
+.card:not(.pf-jarvis) .field,.card:not(.pf-jarvis) .input{background:var(--bg)}
+/* Every page title in the same serif as Home's "Welcome" and the hub's pages. */
+:root .hdr h1,:root .mh-top h1{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;letter-spacing:-.01em}
+.mh-top h1{font-size:30px}

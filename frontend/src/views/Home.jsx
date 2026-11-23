@@ -18,7 +18,7 @@ import StartPicker from '../components/StartPicker.jsx'
 import { needsAfterTest, afterPatch, AFTER_CHOICES } from '../lib/police/after-test.js'
 import { countIn, countInRun, actForRoutine } from '../components/CountIn.jsx'
 import { runMinutes } from '../lib/police/runs.js'
-import { shareWin } from '../components/ShareWin.jsx'
+import { shareWin, ShareIcons } from '../components/ShareWin.jsx'
 import { CrewStrip } from '../components/Crew.jsx'
 import { winText } from '../lib/police/cheer-text.js'
 import CardHead from '../components/CardHead.jsx'
@@ -243,7 +243,7 @@ export default function Home() {
     const nowName = now.name
     const mins = S.active || doneToday || !routine ? null : now.minutes
     const line = S.active ? `${S.active.name} is under way.`
-      : doneToday ? 'Done. Good work.'
+      : doneToday ? ''
       : routine ? `${nowName}${mins ? ` · ${mins} min` : ''}`
       : next ? `Rest day · next ${t(DAYN[next.weekday])}` : 'Rest day'
     const shareToday = () => {
@@ -276,8 +276,18 @@ export default function Home() {
           {left != null && left >= 0 && <div className="calm-count" aria-label={`${left} days to your ${(P.testName || 'PCT').trim()}`}>
             <b>{left}</b><span>{left === 1 ? 'day' : 'days'} to your {(P.testName || 'PCT').trim()}</span>
           </div>}
-        </> : <ReadyRing results={P.results} beepTarget={P.beepTarget} left={left} testName={P.testName} streak={weeksInARow(S)}
-          onFind={() => nav('/police?tab=tests&test=1')} onOpen={() => nav('/police?tab=tests')} />}
+        </> : <>
+          {/* Welcome, and where you are in one grey line: the week of the plan and the days to go. */}
+          <h1 className="calm-hi">Welcome</h1>
+          {(() => {
+            const name = (P.testName || 'PCT').trim()
+            const days = left == null || left < 0 ? null : left === 0 ? `${name} today` : `${left} ${left === 1 ? 'day' : 'days'} to go`
+            const sub = [facts[0], days].filter(Boolean).join(' · ')
+            return sub ? <p className="calm-sub">{sub}</p> : null
+          })()}
+          <ReadyRing results={P.results} beepTarget={P.beepTarget} testName={P.testName} streak={weeksInARow(S)}
+            onFind={() => nav('/police?tab=tests&test=1')} onOpen={() => nav('/police?tab=tests')} />
+        </>}
         {/* The test date has gone by: Hayden asks how it went, once, and the plan follows the answer
             (lib/police/after-test.js): the Academy, a re-test, or your own training. */}
         {needsAfterTest(P, todayISO()) && <div className="card calm-after">
@@ -298,9 +308,9 @@ export default function Home() {
             if (c.id === 'retest') nav('/police?tab=tests')
           }}><Icon name={c.icon} /><span>{c.label}</span><small>{c.sub}</small></button>)}</div>
         </div>}
-        {!!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
-        <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}
-          {S.active && <button className="calm-swap" onClick={() => underWaySheet({ resume: onStart })} aria-label="Cancel or change the workout under way"><Icon name="swap" /></button>}</p>
+        {guest && !!facts.length && <div className="calm-facts">{facts.join(' · ')}</div>}
+        {(line || swipeable || S.active) && <p className="calm-line">{line}{swipeable && <button className="calm-swap" onClick={holdToday} aria-label="Change today's workout"><Icon name="swap" /></button>}
+          {S.active && <button className="calm-swap" onClick={() => underWaySheet({ resume: onStart })} aria-label="Cancel or change the workout under way"><Icon name="swap" /></button>}</p>}
         {/* Nothing tested yet: ten minutes at home to find where you stand, so progress has a start. */}
         {/* Hayden: back after missed days, and one question a week in (components/HaydenCards.jsx). */}
         <HaydenCards S={S} left={left} testName={(P.testName || 'PCT').trim()} onStart={onStart} />
@@ -309,17 +319,16 @@ export default function Home() {
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
         {/* Your crew: the people testing on your date (components/Crew.jsx). */}
-        {!guest && (P.testDate ? <CrewStrip /> : <button type="button" className="calm-link crew-set" onClick={() => nav('/police?tab=tests')}><Icon name="target" /> Set your test date · find your crew</button>)}
+        {!guest && (P.testDate ? <CrewStrip /> : <button type="button" className="rr-chip crew-set" onClick={() => nav('/police?tab=tests')}><Icon name="target" /> Set your test date · find your crew</button>)}
         {/* Done: just the tick. Sharing is offered at the end of the workout itself (the summary and
             the run's done screen); here one quiet line keeps it reachable later. */}
-        {doneToday && !S.active && <div className="calm-done-links">
-          <button className="calm-link" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf fin-bf-sheet">
+        {/* Done: share it (the same two icons as the end of a session, posted once) or add more. */}
+        {doneToday && !S.active && <div className="calm-pills">
+          <button type="button" className="rr-chip" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf-sheet calm-share-sheet">
             <h3>Share today</h3>
-            <button type="button" className="fin-bf-b" onClick={() => { close(); shareToday() }}><Icon name="share" /> Picture card</button>
-            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last }), 'win', `day:${todayISO()}:${doneToday.name || nowName || 'Training'}`) }}><Icon name="sparkles" /> Share to Community</button>}
-          </div>)}>Share</button>
-          <span aria-hidden="true">·</span>
-          <button className="calm-link" onClick={() => nav('/workout')}>Add a workout</button>
+            <ShareIcons shareKey={`day:${todayISO()}:${doneToday.name || nowName || 'Training'}`} text={winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })} onShare={() => { close(); shareToday() }} />
+          </div>)}><Icon name="share" /> Share</button>
+          <button type="button" className="rr-chip" onClick={() => nav('/workout')}><Icon name="plus" /> Add</button>
         </div>}
         {extraDone.length > 0 && <div className="done-today">
           {extraDone.map(w => <button key={w.id} type="button" onClick={() => workoutDetailSheet(w)}>

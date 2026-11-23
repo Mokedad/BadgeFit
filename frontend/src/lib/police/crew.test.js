@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { crewCard, crewLine, lastTrained, crewDate } from './crew.js'
+import { crewCard, crewLine, lastTrained, crewDate, crewDateLong, crewAgo, initialOf } from './crew.js'
 
 const S = { workouts: [{ d: '2026-11-20', name: 'Full Body A' }, { d: '2026-11-22', name: 'Arms' }], police: { testDate: '2026-12-06', results: [], runLog: [{ at: '2026-11-23', run: { name: 'Easy run' } }] } }
 
@@ -32,5 +32,17 @@ describe('the line on Home', () => {
   })
   it('says the date short', () => {
     expect(crewDate('2026-12-06')).toMatch(/6 Dec/)
+  })
+})
+
+describe('the crew sheet says it short', () => {
+  it('the date in full, the last day as yesterday or days ago, a letter each', () => {
+    expect(crewDateLong('2026-12-06')).toMatch(/6 December/)
+    expect(crewAgo('2026-11-22', '2026-11-23')).toBe('Yesterday')
+    expect(crewAgo('2026-11-21', '2026-11-23')).toBe('2 days ago')
+    expect(crewAgo('2026-11-10', '2026-11-23')).toMatch(/^Last 10 Nov/)
+    expect(crewAgo(null, '2026-11-23')).toBe('Not started yet')
+    expect(initialOf('jess')).toBe('J')
+    expect(initialOf('')).toBe('?')
   })
 })
