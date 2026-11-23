@@ -27,6 +27,7 @@ public class HaydenEarPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "listen", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "headphones", returnType: CAPPluginReturnPromise),
     ]
 
     private let engine = AVAudioEngine()
@@ -39,6 +40,16 @@ public class HaydenEarPlugin: CAPPlugin, CAPBridgedPlugin {
     private var noSpeechTimer: Timer?
     private var capTimer: Timer?
     private var silenceMs: Double = 1800
+
+    /// Whether sound is going to headphones (AirPods, wired, any Bluetooth): Hayden listens through
+    /// the workout on his own only then, since their microphone hears a set said from the bench
+    /// and the phone's, across the room on a rack, mostly does not.
+    @objc func headphones(_ call: CAPPluginCall) {
+        let outs = AVAudioSession.sharedInstance().currentRoute.outputs
+        let kinds: Set<AVAudioSession.Port> = [.headphones, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .usbAudio]
+        let on = outs.contains { kinds.contains($0.portType) }
+        call.resolve(["on": on, "kind": outs.first?.portType.rawValue ?? ""])
+    }
 
     @objc func available(_ call: CAPPluginCall) {
         let lang = call.getString("lang") ?? "en-AU"

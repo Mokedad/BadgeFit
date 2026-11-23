@@ -1585,3 +1585,4 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pick-look{margin:8px 0 4px}
 .pick-look .small{display:flex;align-items:center;gap:6px}
 .pick-filters{margin:0 0 10px;display:inline-flex;align-items:center;gap:6px}
+.share-ic.on:disabled{opacity:1}

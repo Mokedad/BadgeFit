@@ -293,7 +293,7 @@ export default function Home() {
               } else if (c.id === 'passed') s.police = { ...s.police, track: 'academy' }
             })
             useUI.getState().toast(c.id === 'passed' ? 'Congratulations! Your plan is now Academy prep: more running, more lifting.' : c.id === 'retest' ? 'We go again. Set your new date on the PCT page.' : 'Your plan carries on. Train well.')
-            if (c.id === 'passed') shareWin(`I passed my ${name}! Next stop: the Academy.`)
+            if (c.id === 'passed') shareWin(`I passed my ${name}! Next stop: the Academy.`, 'win', 'passed')
             if (c.id === 'retest') nav('/police?tab=tests')
           }}><Icon name={c.icon} /><span>{c.label}</span><small>{c.sub}</small></button>)}</div>
         </div>}
@@ -313,7 +313,7 @@ export default function Home() {
           <button className="calm-link" onClick={() => useUI.getState().openSheet(close => <div className="fin-bf fin-bf-sheet">
             <h3>Share today</h3>
             <button type="button" className="fin-bf-b" onClick={() => { close(); shareToday() }}><Icon name="share" /> Picture card</button>
-            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last })) }}><Icon name="sparkles" /> Share to Community</button>}
+            {user && <button type="button" className="fin-bf-b" onClick={() => { close(); shareWin(winText({ kind: 'workout', name: doneToday.name || nowName || 'Training', week: bfPlan?.after ? null : bfPlan?.week, of: bfPlan?.last }), 'win', `day:${todayISO()}:${doneToday.name || nowName || 'Training'}`) }}><Icon name="sparkles" /> Share to Community</button>}
           </div>)}>Share</button>
           <span aria-hidden="true">·</span>
           <button className="calm-link" onClick={() => nav('/workout')}>Add a workout</button>

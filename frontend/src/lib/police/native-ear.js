@@ -38,3 +38,10 @@ export function pickRecognition() {
   if (typeof window === 'undefined') return null
   return window.SpeechRecognition || window.webkitSpeechRecognition || null
 }
+
+/** Whether sound is going to headphones (AirPods, wired, Bluetooth): true/false in the app, null elsewhere. */
+export async function headphonesIn() {
+  const p = plugin()
+  if (!p) return null
+  try { const r = await p.headphones(); return !!r?.on } catch { return null }
+}

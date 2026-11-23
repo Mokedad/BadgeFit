@@ -333,9 +333,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         {routePath(thinRoute(gpsTrack.current.pts)) && <svg className="rp-route" viewBox="0 0 300 160" role="img" aria-label="Your route"><path d={routePath(thinRoute(gpsTrack.current.pts))} /></svg>}
         {gpsTrack.current.splits.length > 0 && <ol className="rp-splits">{gpsTrack.current.splits.map(sp => <li key={sp.km}><span>km {sp.km}</span><b>{fmtPace(sp.sec)}</b></li>)}</ol>}
       </div>}
-      {gpsTrack.current.m < 50 && <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>}
+      {gpsTrack.current.m < 50 && <label className="rp-km">km<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>}
       <div className="rp-done-acts">
-        <ShareIcons text={winText({ kind: 'workout', name: run.name })} onShare={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)} />
+        <ShareIcons shareKey={`day:${todayISO()}:${run.name}`} text={winText({ kind: 'workout', name: run.name })} onShare={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)} />
       </div>
       <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home'; askProgress() }}>Done</button>
     </div>

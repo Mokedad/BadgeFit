@@ -617,7 +617,7 @@ function LogForm({ std, P, onDone }) {
     useUI.getState().toast(resultLine(std, ev))
     onDone()
     // A pass or a new best: offer to share it to Community (members), so the cheers come back.
-    if (ev.pass || best) shareWin(winText({ kind: 'result', name: std.name.replace(/ \(.*\)$/, ''), value: fmtResult(std.id, v), pass: ev.pass, best }))
+    if (ev.pass || best) shareWin(winText({ kind: 'result', name: std.name.replace(/ \(.*\)$/, ''), value: fmtResult(std.id, v), pass: ev.pass, best }), 'win', `res:${std.id}:${v}`)
   }
   return <div className="pf-log">
     <p className="pf-sub">{std.how}</p>
@@ -1075,7 +1075,7 @@ export default function PoliceFit() {
       setP(p => ({ results: [...(p.results || []), ...add] }))
       setOverlay(null); setTab('tests'); useUI.getState().toast(`${add.length} results saved`)
       const passing = readiness([...(P.results || []), ...add], P.beepTarget).passed
-      if (add.length) shareWin(`Test day done: ${passing} of 6 standards passing. ${passing === 6 ? 'Ready for the real thing!' : 'Back to work on the rest.'}`)
+      if (add.length) shareWin(`Test day done: ${passing} of 6 standards passing. ${passing === 6 ? 'Ready for the real thing!' : 'Back to work on the rest.'}`, 'win', `test:${todayISO()}`)
     }} />}
     {calm ? <div className="calm-head">
       {/* A page under More goes back to More; Plan, the test and More are the bar's own places. */}

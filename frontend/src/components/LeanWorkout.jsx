@@ -96,10 +96,10 @@ export default function LeanWorkout({ cur, onTick, onField, onMutateSet, onStart
 
   const last = row ? lastRowFor(lastEntryFor(S, e.id, e.rid)?.sets, e.sets, i, side) : null
   const lastLine = !last ? null
-    : mode === 'time' ? `last time ${fmtNum(last.sec || 0)} s`
-    : mode === 'cardio' ? `last time ${fmtNum(last.min || 0)} min`
-    : bw || !last.w ? `last time ${fmtNum(last.r || 0)} reps`
-    : `last time ${fmtNum(last.w)} ${unit} × ${fmtNum(last.r || 0)}`
+    : mode === 'time' ? `↺ ${fmtNum(last.sec || 0)} s`
+    : mode === 'cardio' ? `↺ ${fmtNum(last.min || 0)} min`
+    : bw || !last.w ? `↺ ${fmtNum(last.r || 0)} reps`
+    : `↺ ${fmtNum(last.w)} ${unit} × ${fmtNum(last.r || 0)}`
 
   const step = (f, dir) => {
     const v = stepValue(valOf(row, side, f), f, dir, unit)

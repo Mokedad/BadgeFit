@@ -1863,7 +1863,7 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
     <div className="row between" style={{ marginBottom: 10 }}><h3>{title || t('Add exercise')}</h3>
       <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => setByMuscle(true)}>{t('By muscle')}</Button>
     </div>
-    {likeEx && <p className="small dim" style={{ margin: '0 0 12px' }}>{t('Replacing {0}', exerciseNameFor(likeEx))}</p>}
+    {likeEx && <p className="small dim" style={{ margin: '0 0 12px' }}>{bf ? <><Icon name="swap" /> {exerciseNameFor(likeEx)}</> : t('Replacing {0}', exerciseNameFor(likeEx))}</p>}
     {like && profiles.length > 0 && <div className="sect-b" style={{ marginBottom: 12 }}>
       <SelectRow icon="house" title={t('Gym')} value={profiles.some(p => p.id === profile?.id) ? profile.id : ''}
         options={[{ value: '', label: t('All equipment') }, ...profiles.map(p => ({ value: p.id, label: p.name }))]}
@@ -1873,7 +1873,7 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
     {/* .picker-search is what index.css keys the keyboard-aware sheet layout on: the sheet
         lifts above the keys and the search stays put while the list scrolls under it. */}
     <div className="picker-search"><div className="search-row"><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-      <input ref={searchRef} className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
+      <input ref={searchRef} className="input" placeholder={bf ? t('Search') : t('Search {0} exercises…', all.length)} value={q} onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
       {narrowed && <span className="search-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
       {q && <button className="clear" onClick={() => { setQ(''); setShown(50) }} aria-label={t('Clear')}><Icon name="xmark" /></button>}</div>
       {bf ? (member && <><button type="button" className="iconbtn pick-cam" aria-label="Take a photo of the machine" onClick={() => camRef.current?.click()}><Icon name="camera" /></button>
@@ -1919,12 +1919,12 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
       {!like && <h4 className="sec">{t('Everything else')}</h4>}
     </>}
     {showSuggestions && <section aria-label={t('Suggested substitutes')}>
-      <h4 className="sec">{t('Suggested substitutes')}</h4>
-      <p className="small dim" style={{ margin: '0 0 8px' }}>{closeMatches.length ? t('Same movement and muscle') : suggested.length
+      <h4 className="sec">{bf ? 'Like it' : t('Suggested substitutes')}</h4>
+      {!bf && <p className="small dim" style={{ margin: '0 0 8px' }}>{closeMatches.length ? t('Same movement and muscle') : suggested.length
         ? suggested.some(e => e.cat !== likeEx.cat) ? t('Same muscle, different exercise type. Check suitability.')
           : suggested.some(e => e.tg !== likeEx.tg) ? t('Related muscles and exercise type. The movement may differ.')
           : t('Same muscle and exercise type. The movement may differ.')
-        : t('No suitable suggestions with these filters. Browse below or change gym.')}</p>
+        : t('No suitable suggestions with these filters. Browse below or change gym.')}</p>}
       <div className={'list' + (bf || st.exerciseView === 'cards' ? ' ex-grid' : '')}>{suggested.map(pickRow)}</div>
     </section>}
     {like && <h4 className="sec">{q.trim() ? t('Search results') : bp === SAME ? t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))
@@ -4232,7 +4232,7 @@ function BfFinish({ w, surprise, additions = [], close }) {
       <span>{surprise.sub}</span>
       {surprise.kind === 'gear' && <button type="button" className="bff-pill w sm" onClick={() => closeThenNav(close, '/my-hayden')}>See your Hayden</button>}
     </div>}
-    <ShareIcons text={winText({ kind: 'workout', name: w.name || 'Training' })} onShare={isOn(st, 'motivation') ? () => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w) : null} />
+    <ShareIcons shareKey={`day:${todayISO()}:${w.name || 'Training'}`} text={winText({ kind: 'workout', name: w.name || 'Training' })} onShare={isOn(st, 'motivation') ? () => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w) : null} />
     <div className="bff-acts">
       <button type="button" className="bff-pill" onClick={() => closeThenNav(close, '/home')}>Home</button>
     </div>
@@ -4265,7 +4265,7 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close, surprise = n
           card History's Share as image makes. */}
       {isOn(st, 'motivation') && <Button variant="tinted" icon="share" data-fin-share onClick={() => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w)}>{t('Share')}</Button>}
       {/* BadgeFit: the sharing lives here, at the end of the workout, not under Home's tick. */}
-      {st.police?.level && <ShareIcons text={winText({ kind: 'workout', name: w.name || 'Training' })} />}
+      {st.police?.level && <ShareIcons shareKey={`day:${todayISO()}:${w.name || 'Training'}`} text={winText({ kind: 'workout', name: w.name || 'Training' })} />}
     </div>
     <div style={{ height: 14 }} />
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>

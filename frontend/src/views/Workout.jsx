@@ -6,6 +6,8 @@ import RepRangeCoach from '../components/RepRangeCoach.jsx'
 import { HaydenMark } from '../components/HaydenBot.jsx'
 import { tapJarvis, useJarvis } from '../store/useJarvis.js'
 import { startHandsFree, stopHandsFree, handsFreeAvailable, HeardLine } from '../components/JarvisHandsFree.jsx'
+import { headphonesIn } from '../lib/police/native-ear.js'
+import { LISTEN_LINE } from '../lib/police/hands-free-rule.js'
 import { upNext } from '../lib/police/workout-voice.js'
 import { todayBadgeFitRun } from '../lib/police/today-run.js'
 import { runForRoutine, isRunRoutine } from '../lib/police/run-routines.js'
@@ -1159,7 +1161,7 @@ function JarvisMic({ coach }) {
   const hf = useJarvis(s => s.handsFree)
   if (!handsFreeAvailable()) return coach ? <button type="button" className="iconbtn jarvis-ask" onClick={tapJarvis} aria-label="Ask Hayden" title="Ask Hayden"><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button> : null
   return <button type="button" className={'iconbtn jarvis-ask' + (hf ? ' hf' : '')} aria-pressed={hf}
-    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast('Hayden stopped listening') } else { startHandsFree(); useUI.getState().toast('Hayden is listening. Say your set, like "20 kilos, 10 reps". Tap him to stop') } }}
+    onClick={() => { if (hf) { stopHandsFree(); useUI.getState().toast(LISTEN_LINE.off) } else { startHandsFree(); headphonesIn().then(p => useUI.getState().toast(p === false ? LISTEN_LINE.tapNoPhones : LISTEN_LINE.tapOn)) } }}
     aria-label={hf ? 'Hayden is listening. Tap to stop' : 'Let Hayden listen'} title={hf ? 'Hayden is listening' : 'Let Hayden listen'}><HaydenMark size={34} eyes={hf ? 'wide' : 'open'} /></button>
 }
 
@@ -2769,7 +2771,7 @@ function ActiveWorkout() {
     <div className="sect-b wk-end">
       {!bfGuest && <button type="button" className="lrow tap wk-end-row acc" onClick={addExercise}>
         <Icon name="plusCircle" className="wk-end-i" />
-        <span className="lrow-m"><span className="lrow-t">{t('Add exercise')}</span></span>
+        <span className="lrow-m"><span className="lrow-t">{S.police?.level ? t('Add') : t('Add exercise')}</span></span>
       </button>}
       {/* BadgeFit keeps the workout lean: the session note lives in the ⋯ menu only. */}
       {!S.police?.level && <button type="button" className={'lrow tap wk-end-row' + (A.note ? ' has-note' : '')} onClick={sessionNoteSheet}>

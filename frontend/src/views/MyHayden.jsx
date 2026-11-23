@@ -28,7 +28,7 @@ export default function MyHayden() {
   const colour = myColour(S.police, guest ? null : user?.id || 'demo')
   const earned = shelf.filter(i => i.earned)
   const pick = c => useStore.getState().update(s => { s.police = { ...(s.police || {}), botColour: c } })
-  const showOff = () => shareWin(`My Hayden has earned the ${list(earned.map(i => i.name.toLowerCase()))}. Training for the badge.`)
+  const showOff = () => shareWin(`My Hayden has earned the ${list(earned.map(i => i.name.toLowerCase()))}. Training for the badge.`, 'win', `hayden:${earned.length}`)
   return <div className="narrow mh">
     <div className="mh-top">
       <button type="button" className="iconbtn" aria-label="Back" data-back="/police?tab=more" onClick={() => nav(-1)}><Icon name="chevronLeft" /></button>

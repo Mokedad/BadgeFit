@@ -10,7 +10,8 @@
 // Turned on with one tap on the workout's 🎤 (a browser lets a page open the microphone only
 // from a tap); remembered, so the next workout starts listening on its own where the phone
 // allows it. Mounted once in App.
-import { pickRecognition } from '../lib/police/native-ear.js'
+import { pickRecognition, headphonesIn } from '../lib/police/native-ear.js'
+import { shouldAutoListen, LISTEN_LINE } from '../lib/police/hands-free-rule.js'
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -138,9 +139,15 @@ export default function JarvisHandsFree() {
     const A = st.S.active, B = prev.S.active
     // A new workout with hands-free on last time: listen again (the start was a tap).
     // On by default: he listens in every workout unless it was tapped off (police.handsFree false).
-    if (A && (!B || A.start !== B.start) && !A.backfill && st.S.police?.level && st.S.police?.handsFree !== false && Recognition) {
-      useJarvis.setState({ handsFree: true })
-      if (!running) loop()
+    // With AirPods in he starts on his own (their mic hears you); without, he waits for a tap
+    // (lib/police/hands-free-rule.js).
+    if (A && (!B || A.start !== B.start) && !A.backfill && st.S.police?.level && Recognition) {
+      headphonesIn().then(phones => {
+        if (!shouldAutoListen({ setting: st.S.police?.handsFree, headphones: phones, recognition: !!Recognition })) return
+        if (!useStore.getState().S.active) return
+        useJarvis.setState({ handsFree: true })
+        if (!running) loop()
+      })
     }
     if (!A && B && useJarvis.getState().handsFree) stopHandsFree(false)
   }), [])
@@ -156,5 +163,5 @@ export function HeardLine() {
   useEffect(() => { if (!at) return; const t = setTimeout(() => tick(n => n + 1), 4100); return () => clearTimeout(t) }, [at])
   if (!on) return null
   const fresh = heard && Date.now() - at < 4000
-  return <div className={'hb-heard' + (fresh ? ' got' : '')} role="status" aria-live="polite">{fresh ? <>Heard: <b>{heard}</b></> : 'Listening… say your set, like "20 kilos, 10 reps" or "set done"'}</div>
+  return <div className={'hb-heard' + (fresh ? ' got' : '')} role="status" aria-live="polite">{fresh ? <>{LISTEN_LINE.heard}<b>{heard}</b></> : LISTEN_LINE.on}</div>
 }

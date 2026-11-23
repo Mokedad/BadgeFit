@@ -520,6 +520,6 @@ export default function Community() {
           {posts?.length > 0 && more && <Button onClick={() => load(posts.at(-1).at)}>Older posts</Button>}
         </>}
     {/* Small, at the foot of the screen above the tab bar, away from the posts. */}
-    <p className="cm-foot">Seen by everyone on {BRAND.name} · Not affiliated with any police service · Report from a post's ⋯</p>
+    <p className="cm-foot">Public · Not affiliated with any police service · Report via ⋯</p>
   </div>
 }
