@@ -16,10 +16,11 @@ import { HaydenMark } from './HaydenBot.jsx'
 import { PaceButton, PaceLine, usePaceSound } from './PaceButton.jsx'
 import { useUI } from '../store/useUI.js'
 import { toSignIn } from '../lib/police/guest.js'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
 import { shareSession } from '../lib/police/share-card.js'
-import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt } from '../lib/police/runs.js'
+import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt, fitRun, runById } from '../lib/police/runs.js'
+import { RunLength } from './RunLength.jsx'
 import { NumberField } from './ui.jsx'
 import { emptyTrack, addFix, paceOf, fmtPace, kmOf, livePace, thinRoute, routePath } from '../lib/police/gps.js'
 import { say, say as sayAloud, preloadSpeech, clipFor } from '../lib/police/voice.js'
@@ -53,7 +54,25 @@ function cue(audio, text, kind, music = false) {
   if (text) say(text, { music }).catch(() => {})
 }
 
-export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, gps = false, onGps, minimized = false, onMinimize, onRestore }) {
+export default function RunPlayer({ daysLeft = null, run: given, age, onClose, onLog, onUpdate, onUnlog, runLog = [], musicMode = false, onMusic, gps = false, onGps, minimized = false, onMinimize, onRestore }) {
+  // The time, yours to set before Start (components/RunLength.jsx): minutes, 'open' (the clock
+  // counts up until Finish), or 'plan' (the plan's own). Nothing picked: the run as it came, with
+  // any time chosen for the day on Plan already in it.
+  const [lenPick, setLenPick] = useState(null)
+  const base = runById(given.id) || given
+  const run = useMemo(() => (lenPick == null ? given : lenPick === 'plan' ? base : fitRun(base, lenPick)), [given, lenPick]) // eslint-disable-line react-hooks/exhaustive-deps
+  // On the run screen itself (a portal like the end choice): the run sits above the app's sheets.
+  const [lenOpen, setLenOpen] = useState(false)
+  const pickLength = () => setLenOpen(true)
+  const lenBox = lenOpen && createPortal(<div className="rp-choice" role="dialog" aria-label="How long" onClick={() => setLenOpen(false)}>
+    <div className="rp-len-box" onClick={e => e.stopPropagation()}>
+      <RunLength close={() => setLenOpen(false)} minutes={runMinutes(run)} open={!!run.open} planned={runMinutes(base)} onPick={v => setLenPick(v == null ? 'plan' : v)} />
+    </div>
+  </div>, document.body)
+  // Past the planned time: the run carries on, the clock counting up from the end (+1:20), until
+  // Finish. Nothing ends on its own.
+  const [over, setOver] = useState(false)
+  const overAt = useRef(0)
   // Read through a ref: the timers' callbacks see a switch made mid-run.
   const musicRef = useRef(musicMode)
   musicRef.current = musicMode
@@ -130,8 +149,14 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   const pace = usePaceSound({ seg, active: started && !paused && !done, audio })
 
   const say = s => `${KIND[s.kind]}. ${s.label}${s.sec ? ', ' + (s.sec >= 60 ? Math.round(s.sec / 60) + ' minutes' : s.sec + ' seconds') : ''}.`
+  const toOver = () => {
+    if (over) return
+    overAt.current = Date.now(); setOver(true); setNow(Date.now())
+    cue(audio, '', 'cool', musicRef.current)
+    coach("That's your time. Keep going if you like, and tap Finish when you're done.", 'check')
+  }
   const go = i => {
-    if (i >= segs.length) { cue(audio, '', 'cool', musicRef.current); finish(true); return }
+    if (i >= segs.length) { toOver(); return }
     setIdx(i); segStart.current = Date.now(); setNow(Date.now())
     // A hard part starting gets Hayden's lift on top of the step itself.
     const lift = segs[i].kind === 'work' && i > 0 ? ' ' + intenseLine(run.cat, seed.current + i) : ''
@@ -147,7 +172,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     ;(async () => { for (const text of new Set(pocketCues(run, 0, 0, say).map(c => c.text))) await preloadSpeech(text).catch(() => {}) })()
   }
   const togglePause = () => {
-    if (paused) { segStart.current += Date.now() - pausedAt.current; runStart.current += Date.now() - pausedAt.current; setPaused(false) }
+    if (paused) { const gap = Date.now() - pausedAt.current; segStart.current += gap; runStart.current += gap; if (over) overAt.current += gap; setPaused(false) }
     else { pausedAt.current = Date.now(); setPaused(true) }
   }
 
@@ -155,13 +180,13 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     if (!started || paused || done) return
     const t = setInterval(() => {
       const n = Date.now(); setNow(n)
-      if (seg?.sec != null && (n - segStart.current) / 1000 >= seg.sec) {
+      if (!over && seg?.sec != null && (n - segStart.current) / 1000 >= seg.sec) {
         // Back from another app (the phone stops the page meanwhile): jump to where the run is
         // now, past every timed step that went by, with one call instead of one for each.
         const sk = seekRun(run, (n - runStart.current) / 1000)
         const timedBetween = segs.slice(idx, sk.idx).every(x => x.sec != null)
         const total = segs.reduce((a, x) => a + segSeconds(x), 0)
-        if (timedBetween && segs.every(x => x.sec != null) && (n - runStart.current) / 1000 >= total) { cue(audio, '', 'cool', musicRef.current); finish(true); return }
+        if (timedBetween && segs.every(x => x.sec != null) && (n - runStart.current) / 1000 >= total) { toOver(); overAt.current = runStart.current + total * 1000; return }
         if (timedBetween && sk.idx > idx && sk.offset > 2) {
           setIdx(sk.idx); segStart.current = n - sk.offset * 1000
           for (const mm of checkInMinutes(planned)) if (mm < (n - runStart.current) / 60000) checked.current.add(mm)
@@ -185,7 +210,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       if (bubble && n - bubble.at > 6000) setBubble(null)
     }, 250)
     return () => clearInterval(t)
-  }, [started, paused, done, idx, bubble]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [started, paused, done, idx, bubble, over]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } screenOn('run', false); try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
 
   // Hayden in your pocket (the iPhone app): when the app leaves the screen mid-run, the phone is
@@ -275,7 +300,8 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     setChoice(false)
     const ranMin = (((paused ? pausedAt.current : Date.now()) - runStart.current) / 60000)
     if (ranMin < 1) { onClose(); return } // under a minute: nothing worth saving
-    finish(false)
+    // Past the planned time, or an open run: all of it was done.
+    finish(over || !!run.open)
   }
   const cancelRun = () => { setChoice(false); try { wake.current?.release() } catch { /* gone */ } screenOn('run', false); onClose() }
   // On the page itself (a portal), above the run screen and Hayden floating over it.
@@ -303,7 +329,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     return <div className="rp-mini" role="region" aria-label={run.name}>
       <button className="rp-mini-m" onClick={onRestore} aria-label="Open the run">
         <RunnerIcon size={28} />
-        <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
+        <span><b>{run.name}</b><small>{paused ? `Paused · ${t}` : over ? `Past your time · +${fmt((now - overAt.current) / 1000)}` : `${seg ? KIND[seg.kind] : ''} · ${left != null ? fmt(left) : t}`}</small></span>
       </button>
       <button className="rp-mini-b" onClick={togglePause} aria-label={paused ? 'Resume run' : 'Pause run'}><Icon name={paused ? 'play' : 'pause'} /></button>
       <button className="rp-mini-b" onClick={end} aria-label="Finish or cancel the run">✕</button>
@@ -352,7 +378,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'} aria-label={gps ? 'GPS on' : 'GPS off'}><Icon name="mapPin" /></button>}
       <PaceButton pace={pace} started={started} onTip={text => (started ? setBubble({ text, at: Date.now() }) : useUI.getState().toast(text))}
         onSignUp={() => { onClose(); toSignIn(); location.hash = '#/home' }} />
-      <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>
+      {started ? <span>{fmt(((paused ? pausedAt.current : now) - runStart.current) / 1000)}</span>
+        : <button type="button" className="rp-len" onClick={pickLength} aria-label={`Run time: ${run.open ? 'open' : runMinutes(run) + ' minutes'}. Tap to change`}>
+          {run.open ? <><Icon name="stopwatch" /> Open</> : `${runMinutes(run)} min`}<Icon name="chevronDown" /></button>}
       <HaydenToggle className="rp-hb" />
     </div>
     {/* The runner crosses the track as the run goes, start to finish; drag him to move the time. */}
@@ -372,30 +400,31 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <p className={'rp-sub rp-why' + (whyGone ? ' gone' : '')}>{run.why}</p>
       <button className="rp-main" onClick={start}>▶ Start</button>
     </div> : <div className="rp-body">
-      <div className="rp-kind">{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</div>
-      <div className="rp-label">{seg.label}</div>
-      <div className="rp-time" aria-live="off">{left != null ? fmt(left) : fmt(elapsed)}</div>
+      <div className="rp-kind">{over ? 'Past your time' : <>{KIND[seg.kind]}{seg.of ? ` · ${seg.round} of ${seg.of}` : ''}</>}</div>
+      <div className="rp-label">{over ? 'Keep going, or finish' : seg.label}</div>
+      <div className={'rp-time' + (over ? ' over' : '')} aria-live="off">{over ? '+' + fmt(((paused ? pausedAt.current : now) - overAt.current) / 1000) : left != null ? fmt(left) : fmt(elapsed)}</div>
+      {(over || seg.open) && <button className="rp-main" onClick={() => finish(true)}>Finish</button>}
       {gps && <div className="rp-gps">{gpsState === 'denied' ? 'Location is off for BadgeFit. Allow it in Settings to track distance.'
         : gpsState !== 'on' ? 'Finding GPS…'
         : <><b>{kmOf(gpsM).toFixed(2)}</b> km · <b>{fmtPace(livePace(gpsTrack.current, now) ?? paceOf(gpsM, (now - runStart.current) / 1000))}</b> /km</>}</div>}
-      {seg.dist && <button className="rp-main" onClick={() => go(idx + 1)}>Done {seg.dist} m</button>}
+      {seg.dist && !over && <button className="rp-main" onClick={() => go(idx + 1)}>Done {seg.dist} m</button>}
       <div className="rp-zone">{ZONES[seg.effort]?.name}{hr ? ` · ${hr.lo}-${hr.hi} bpm` : ''}<br /><small>{ZONES[seg.effort]?.feel}</small></div>
       <PaceLine pace={pace} />
       {bubble && <div className="rp-bubble" role="status"><HaydenMark />{bubble.text}</div>}
-      {next && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
+      {next && !over && <div className="rp-next">Next: <b>{KIND[next.kind]}</b> {next.label}{next.sec ? ` · ${fmt(next.sec)}` : ''}</div>}
       <div className="rp-ctl">
         <span><button className="rp-pause" onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}><Icon name={paused ? 'play' : 'pause'} /></button><small>{paused ? 'Resume' : 'Pause'}</small></span>
-        <span><button onClick={() => go(idx + 1)} aria-label="Skip this step"><Icon name="skipForward" /></button><small>Skip</small></span>
+        {!over && !seg.open && <span><button onClick={() => go(idx + 1)} aria-label="Skip this step"><Icon name="skipForward" /></button><small>Skip</small></span>}
       </div>
       <button className="rp-lock" onClick={lock}><Icon name="lock" /> Lock screen <small>Hayden keeps talking</small></button>
       <button className="rp-end" onClick={end}>End run</button>
     </div>}
-    {choiceBox}
+    {choiceBox}{lenBox}
     {locked && <div className="rp-locked" role="dialog" aria-label="Screen locked"
       onPointerDown={e => { e.preventDefault(); startHold() }} onPointerUp={stopHold} onPointerCancel={stopHold} onPointerLeave={stopHold}
       onContextMenu={e => e.preventDefault()}>
-      <div className="rp-locked-k">{seg ? KIND[seg.kind] : ''}</div>
-      <div className="rp-locked-t">{left != null ? fmt(left) : fmt(elapsed)}</div>
+      <div className="rp-locked-k">{over ? 'Past your time' : seg ? KIND[seg.kind] : ''}</div>
+      <div className="rp-locked-t">{over ? '+' + fmt(((paused ? pausedAt.current : now) - overAt.current) / 1000) : left != null ? fmt(left) : fmt(elapsed)}</div>
       <div className="rp-locked-l">{seg?.label}</div>
       {gps && gpsState === 'on' && <div className="rp-locked-l">{kmOf(gpsM).toFixed(2)} km · {fmtPace(paceOf(gpsM, (now - runStart.current) / 1000))} /km</div>}
       {pace.allowed && pace.on && pace.spm && <div className="rp-locked-l">{pace.spm} steps a minute</div>}

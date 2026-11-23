@@ -223,7 +223,7 @@ const VO2 = {
   1: [
     { name: '4×4 intervals', how: '4 rounds: 4 min hard (you can say 3 words), 3 min easy jog.', min: 28 },
     { name: '100 m repeats', how: '10 rounds: 100 m at 80-90% effort, walk 100 m back.', min: 20 },
-    { name: 'Hill repeats', how: '4 rounds: 3 min hard uphill, jog back down to recover.', min: 26 },
+    { name: 'Hill repeats', how: '4 rounds: 1 min hard uphill, walk or jog back down. About 11 minutes.', min: 11 },
     { name: 'Distance ladder', how: 'Easy then hard for the same distance, up and back down: 100, 200, 300, 400, 300, 200, 100 m.', min: 25 },
   ],
   // Beep focus adds a second interval day; these are its formats, one per week of the phase.

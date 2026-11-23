@@ -50,7 +50,8 @@ export const RUNS = [
   // --- VO2 max
   { id: 'vo2-4x4', cat: 'vo2', name: '4×4 intervals', km: 'about 5 km', why: 'The classic VO2 max session: four minutes near your max, four times.', segments: [warm(), ...rounds(4, [work(m(4), '4 min hard'), rest(m(3), '3 min easy jog')]), cool()] },
   { id: 'vo2-30-30', cat: 'vo2', name: '30/30 sprints', km: 'about 4 km', why: 'Short and sharp. Many minutes near VO2 max in small bites.', segments: [warm(), ...rounds(10, [work(30, 'Sprint 30 s'), rest(30, 'Walk or rest 30 s')]), cool(10)] },
-  { id: 'vo2-hills', cat: 'vo2', name: 'Hill repeats', km: 'about 5 km', why: 'Hills build power and VO2 with less pounding on the legs.', segments: [warm(), ...rounds(4, [work(m(3), '3 min hard uphill'), rest(m(3), 'Jog back down')]), cool()] },
+  // Short on purpose: 10 to 15 minutes of hills is plenty (owner, November 2026).
+  { id: 'vo2-hills', cat: 'vo2', name: 'Hill repeats', km: 'about 2 km', why: 'Hills build power and VO2 with less pounding on the legs. Short and sharp: about 11 minutes.', segments: [warm(3), ...rounds(4, [work(60, '1 min hard uphill'), rest(90, 'Walk or jog back down')]), cool(2)] },
   { id: 'vo2-ladder', cat: 'vo2', name: 'Time ladder 5-4-3-2-1-5', km: 'about 6 km', why: 'Long to short and back to long: the last 5 minutes teach you to hold on.', segments: [warm(), work(m(5), '5 min hard', 'z4'), rest(60), work(m(4), '4 min hard'), rest(60), work(m(3), '3 min hard'), rest(60), work(m(2), '2 min hard'), rest(60), work(m(1), '1 min hard'), rest(60), work(m(5), '5 min hard', 'z4'), cool()] },
   // --- intervals
   { id: 'int-100s', cat: 'intervals', name: '100 m repeats ×10', km: 'about 3 km', why: 'Speed with full control. Tap Done at the end of each 100 m.', segments: [warm(), ...rounds(10, [runDist(100, 'Run 100 m at 80-90%'), walkDist(100)]), cool()] },
@@ -94,8 +95,59 @@ export const RUNS = [
 export const runById = id => RUNS.find(r => r.id === id) || null
 export const runsIn = cat => RUNS.filter(r => r.cat === cat)
 
-/** A segment's seconds: its own, or a distance at 4 min/km work, 8 walking. */
-export const segSeconds = s => s.sec ?? (s.dist / 1000) * (s.kind === 'work' ? 240 : 480)
+/** A segment's seconds: its own, or a distance at 4 min/km work, 8 walking; an open one (no set time) 0. */
+export const segSeconds = s => s.sec ?? (s.dist ? (s.dist / 1000) * (s.kind === 'work' ? 240 : 480) : 0)
+
+/**
+ * A run fitted to the time you chose: `choice` minutes, or 'open' (no set time: the clock counts
+ * up until you finish). A run in rounds keeps its warm-up and cool-down and gets as many rounds as
+ * fit; a steady run stretches or shortens its main block; anything else takes the difference on
+ * its cool-down. The name follows a time it says ("Easy run, 30 min" chosen at 45 is "Easy run,
+ * 45 min"). null or undefined leaves the run as it is.
+ */
+export function fitRun(run, choice) {
+  if (!run || choice == null) return run
+  const segs = run.segments || []
+  const longestWork = () => segs.reduce((best, s, i) => (s.kind === 'work' && segSeconds(s) > (best < 0 ? -1 : segSeconds(segs[best])) ? i : best), -1)
+  if (choice === 'open') {
+    const main = segs[longestWork()]
+    return { ...run, open: true, fitted: 'open', segments: [{ kind: 'work', open: true, label: 'Your pace, as long as you like', effort: main?.effort || 'z2' }] }
+  }
+  const want = Math.max(1, Math.round(Number(choice) || 0)) * 60
+  const named = sec => ({ name: /, \d+ min$/.test(run.name || '') ? run.name.replace(/, \d+ min$/, `, ${Math.round(sec / 60)} min`) : run.name })
+  const total = list => list.reduce((a, s) => a + segSeconds(s), 0)
+  const inRounds = segs.map((s, i) => (s.of ? i : -1)).filter(i => i >= 0)
+  const contiguous = inRounds.length && inRounds.at(-1) - inRounds[0] + 1 === inRounds.length && inRounds.every(i => segs[i].of === segs[inRounds[0]].of)
+  if (contiguous) {
+    const head = segs.slice(0, inRounds[0]), tail = segs.slice(inRounds.at(-1) + 1)
+    const group = segs.filter(s => s.of && s.round === 1)
+    const lastRest = group.at(-1)?.kind === 'rest' ? segSeconds(group.at(-1)) : 0
+    const per = total(group)
+    const n = Math.max(1, Math.min(30, Math.round((want - total(head) - total(tail) + lastRest) / per)))
+    const body = []
+    for (let i = 0; i < n; i++) {
+      group.forEach(({ round: _r, of: _o, ...p }, j) => {
+        // No rest after the last round, the way rounds() builds them.
+        if (i === n - 1 && j === group.length - 1 && p.kind === 'rest') return
+        body.push({ ...p, round: i + 1, of: n })
+      })
+    }
+    const out = [...head, ...body, ...tail]
+    return { ...run, ...named(total(out)), fitted: choice, segments: out }
+  }
+  const main = longestWork()
+  const steady = main >= 0 && segs[main].sec != null && segs.filter(s => s.kind === 'work').length <= 3
+  if (steady) {
+    const sec = Math.max(60, want - (total(segs) - segSeconds(segs[main])))
+    const out = segs.map((s, i) => (i === main ? { ...s, sec } : s))
+    return { ...run, ...named(total(out)), fitted: choice, segments: out }
+  }
+  const coolAt = segs.length - 1
+  if (segs[coolAt]?.kind !== 'cool') return { ...run, fitted: choice }
+  const sec = Math.max(60, segSeconds(segs[coolAt]) + (want - total(segs)))
+  const out = segs.map((s, i) => (i === coolAt ? { ...s, sec } : s))
+  return { ...run, ...named(total(out)), fitted: choice, segments: out }
+}
 
 /** About how long a run takes, in minutes, counting a distance segment at 4 min/km work, 8 walking. */
 export function runMinutes(run) {

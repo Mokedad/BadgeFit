@@ -16,6 +16,8 @@ import { exerciseNameFor, exerciseNameClass } from '../lib/i18n-core.js'
 import { todayNow } from '../lib/police/today-now.js'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { runForRoutine } from '../lib/police/run-routines.js'
+import { runById, runMinutes } from '../lib/police/runs.js'
+import { runLengthSheet } from './RunLength.jsx'
 import { menuSheet, exercisePicker, dayOverrideSheet, confirmSheet, startFlow } from '../sheets.jsx'
 import { effectiveRoutineIds } from '../lib/history.js'
 import { countIn, actForRoutine } from './CountIn.jsx'
@@ -192,6 +194,15 @@ export default function PlanDays({ first = null }) {
     { icon: 'trash', danger: true, label: 'Remove from this workout', onClick: () => removeEx(r, i) },
     { icon: 'xmark', label: 'Keep it', onClick: () => {} },
   ] })
+  // A run's time for one day (lib/police/run-routines.js reads P.runLen): minutes, 'open', or the
+  // plan's own again. Kept a month, so the list never grows.
+  const pickRunLength = (iso, run) => runLengthSheet({
+    minutes: runMinutes(run), open: !!run.open, planned: runMinutes(runById(run.id) || run),
+    onPick: v => update(s => {
+      const keep = Object.fromEntries(Object.entries(s.police?.runLen || {}).filter(([k]) => k >= shiftISO(today, -31) && k !== iso))
+      s.police = { ...(s.police || {}), runLen: v == null ? keep : { ...keep, [iso]: { id: run.id, v } } }
+    }),
+  })
   // The + on a run or walk day: the exercise goes into that day's own small routine ("Extras"),
   // trained with the run (lib/history.js effectiveRoutineIds). Only that date changes.
   const addExtra = iso => { const picker = exercisePicker(x => {
@@ -217,7 +228,12 @@ export default function PlanDays({ first = null }) {
     const past = iso < today
     return <div key={iso} data-noswipe className={'pd-focus pfk-' + d.kind + (past ? ' past' : '')} onPointerDown={view === 'days' ? down : undefined} onPointerUp={view === 'days' ? up : undefined}>
       <div className="pd-h">
-        <span className="pd-m"><b>{view === 'week' && <span className="pd-dow">{dayWord(iso, today)} · </span>}{d.name}</b>{d.minutes ? <small>{d.minutes} min</small> : null}</span>
+        <span className="pd-m"><b>{view === 'week' && <span className="pd-dow">{dayWord(iso, today)} · </span>}{d.name}</b>
+          {/* A run day's time is yours to set: tap it for the wheel, or Open to count up. */}
+          {!past && !d.trained && d.runs.length && !d.gym.length
+            ? <button type="button" className="pd-min" onClick={() => pickRunLength(iso, d.runs[0])} aria-label={`Run time: ${d.runs[0].open ? 'open' : d.minutes + ' minutes'}. Tap to change`}>
+              {d.runs[0].open ? <><Icon name="stopwatch" /> Open</> : `${d.minutes} min`}<Icon name="chevronDown" /></button>
+            : d.minutes ? <small>{d.minutes} min</small> : null}</span>
         {d.trained ? (iso === today
           ? <button type="button" className="pd-tick" onClick={() => reopen(iso)} aria-label="Done. Tap to train this again"><Icon name="check" /></button>
           : <span className="pd-tick" aria-label="Done"><Icon name="check" /></span>)

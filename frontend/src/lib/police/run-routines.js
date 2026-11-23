@@ -3,7 +3,7 @@
 // minutes), so the week and the day plan can point at it like any other, and the run it stands for
 // is kept in S.police.runRoutines ({ routineId: runId }), which syncs with the rest of BadgeFit.
 // On the day, Home and Start open it as the guided run with Hayden (runForRoutine).
-import { RUNS, runById, runMinutes } from './runs.js'
+import { RUNS, runById, runMinutes, fitRun } from './runs.js'
 import { routineFor } from './programme.js'
 import { todayBadgeFitRun } from './today-run.js'
 import { uid } from '../format.js'
@@ -32,6 +32,13 @@ export function isRunRoutine(P, routineId) {
 
 /** The guided run a routine stands for on `iso`, or null. */
 export function runForRoutine(P, routineId, iso) {
+  const run = planRunForRoutine(P, routineId, iso)
+  // The time you chose for that day's run (Plan's minutes, P.runLen: { iso: { id, v } }).
+  const pick = iso ? P?.runLen?.[iso] : null
+  return run && pick && pick.id === run.id ? fitRun(run, pick.v) : run
+}
+
+function planRunForRoutine(P, routineId, iso) {
   const picked = P?.runRoutines?.[routineId]
   if (picked) return runById(picked)
   if (!PLAN_RUN_KEYS.some(k => P?.keys?.[k] === routineId)) return null

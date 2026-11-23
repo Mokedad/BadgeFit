@@ -13,11 +13,11 @@ describe('pocketCues: the steps the phone says by itself', () => {
   it('times every coming step from where the run is, and ends with the finish', () => {
     expect(pocketCues(run, 0, 100, say)).toEqual([
       { in: 200, text: 'Run' }, { in: 260, text: 'Walk easy' }, { in: 350, text: 'Cool down' },
-      { in: 470, text: 'That is the session done. Great work.' },
+      { in: 470, text: 'That is your time. Keep going if you like, and tap Finish when you are done.' },
     ])
   })
   it('from the last step, only the finish', () => {
-    expect(pocketCues(run, 3, 20, say)).toEqual([{ in: 100, text: 'That is the session done. Great work.' }])
+    expect(pocketCues(run, 3, 20, say)).toEqual([{ in: 100, text: 'That is your time. Keep going if you like, and tap Finish when you are done.' }])
   })
   it('stops at a step measured by distance, and says nothing from inside one', () => {
     const r = { segments: [{ kind: 'warm', label: 'Walk', sec: 60 }, { kind: 'work', label: 'Run 2 km', dist: 2000 }, { kind: 'cool', label: 'Walk', sec: 60 }] }

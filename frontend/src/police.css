@@ -1646,3 +1646,17 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 /* Every page title in the same serif as Home's "Welcome" and the hub's pages. */
 :root .hdr h1,:root .mh-top h1{font-family:ui-serif,"New York",Georgia,serif;font-weight:500;letter-spacing:-.01em}
 .mh-top h1{font-size:30px}
+/* A run's time, yours to set (components/RunLength.jsx): the wheel sheet, the minutes on Plan's
+   day card and on the run screen before Start, and the clock past the planned time. */
+.rl{text-align:center}
+.rl h3{margin:2px 0 10px;font-size:22px}
+.rl-wheel{max-width:200px;margin:0 auto}
+.rl-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0 16px}
+.rl-open.on{box-shadow:0 0 0 2px var(--acc)}
+.rl-done{width:100%;max-width:320px}
+.pd-min{display:inline-flex;align-items:center;gap:4px;border:0;background:var(--surface-2,#f0f1f4);color:var(--label);border-radius:999px;padding:4px 10px;margin-top:4px;font:inherit;font-size:14px;font-weight:700;width:max-content}
+.pd-min .icn{width:14px;height:14px;color:var(--label-2)}
+.rp-len{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-weight:800;font-size:16px}
+.rp-len .icn{width:15px;height:15px}
+.rp-time.over{color:#ffc629}
+.rp-len-box{width:min(360px,calc(100% - 32px));background:var(--surface);color:var(--label);border-radius:24px;padding:18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}

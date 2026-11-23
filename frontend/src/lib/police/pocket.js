@@ -24,7 +24,7 @@ export function pocketCues(run, idx, offset, sayStep, max = 60) {
     if (segs[i].sec == null) return out
     at += segSeconds(segs[i])
   }
-  if (out.length < max) out.push({ in: Math.max(1, Math.round(at)), text: 'That is the session done. Great work.' })
+  if (out.length < max) out.push({ in: Math.max(1, Math.round(at)), text: 'That is your time. Keep going if you like, and tap Finish when you are done.' })
   return out
 }
 
