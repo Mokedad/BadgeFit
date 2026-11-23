@@ -347,9 +347,9 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
       <button className="rp-x" onClick={leave} aria-label={started ? 'Minimise, the run keeps going' : 'Close'} title={started ? 'Minimise, the run keeps going' : 'Close'}>{started ? '⌄' : '✕'}</button>
       <span className="rp-gap" />
       {onMusic && <button type="button" className={'rp-music' + (musicMode ? ' on' : '')} onClick={() => onMusic(!musicMode)} aria-pressed={musicMode}
-        title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'}><Icon name="speaker" /> {musicMode ? 'On' : 'Off'}</button>}
+        title={musicMode ? 'Music mode on: Hayden talks over your music' : 'Music mode off'} aria-label={musicMode ? 'Music mode on' : 'Music mode off'}><Icon name="speaker" /></button>}
       {onGps && <button type="button" className={'rp-music' + (gps ? ' on' : '')} onClick={() => onGps(!gps)} aria-pressed={gps}
-        title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'}><Icon name="mapPin" /> {gps ? 'On' : 'Off'}</button>}
+        title={gps ? 'GPS on: distance, pace and your route' : 'GPS off (treadmill)'} aria-label={gps ? 'GPS on' : 'GPS off'}><Icon name="mapPin" /></button>}
       <PaceButton pace={pace} started={started} onTip={text => (started ? setBubble({ text, at: Date.now() }) : useUI.getState().toast(text))}
         onSignUp={() => { onClose(); toSignIn(); location.hash = '#/home' }} />
       <span>{started ? fmt((now - runStart.current) / 1000) : `~${runMinutes(run)} min`}</span>

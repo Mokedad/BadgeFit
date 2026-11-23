@@ -1293,7 +1293,6 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .mh-hero{display:flex;justify-content:center;margin:4px 0 6px}
 .mh-cols{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 auto 18px;max-width:330px}
 .mh-col{width:44px;height:44px;border-radius:50%;border:0;background:var(--surface);display:grid;place-items:center;padding:0}
-.mh-col.on{box-shadow:0 0 0 3px var(--label)}
 .mh-guest{background:var(--surface);border-radius:20px;padding:16px;text-align:center;margin:0 0 18px}
 .mh-guest b{font-size:17px}
 .mh-guest p{margin:6px 0 12px;color:var(--label-2);font-size:14px}
@@ -1586,3 +1585,46 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .pick-look .small{display:flex;align-items:center;gap:6px}
 .pick-filters{margin:0 0 10px;display:inline-flex;align-items:center;gap:6px}
 .share-ic.on:disabled{opacity:1}
+/* Your crew (components/Crew.jsx): the strip on Home, the faces with their rings, the sheet, the ping. */
+.crew-strip{display:flex;align-items:center;gap:10px;width:100%;margin:10px 0 2px;padding:10px 12px;border:0;border-radius:18px;background:var(--surface);color:inherit;text-align:left;box-shadow:0 2px 10px rgba(11,26,54,.06)}
+.crew-faces{display:flex;align-items:center;flex:none}
+.crew-face{position:relative;display:inline-grid;place-items:center;border-radius:50%;margin-left:-8px;background:conic-gradient(#cfd3db var(--p,0%),#e9ebf0 0);padding:3px;box-sizing:border-box}
+.crew-face.on{background:conic-gradient(#2fd27a var(--p,0%),#d8f3e4 0)}
+.crew-faces .crew-face:first-child,.crew-row .crew-face{margin-left:0}
+.crew-face-i{display:block;width:100%;height:100%;border-radius:50%;background:var(--surface);overflow:hidden;border:2px solid var(--surface)}
+.crew-face-i svg{width:100%;height:100%;display:block}
+.crew-more{margin-left:-6px;width:30px;height:30px;border-radius:50%;background:var(--surface-2,#eef0f4);display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--label-2)}
+.crew-t{flex:1;min-width:0;font-size:13px;color:var(--label-2);display:flex;flex-direction:column}
+.crew-t b{color:var(--label);font-size:15px}
+.crew-chev{color:var(--label-3);flex:none}
+.crew-sheet h3{display:flex;align-items:center;gap:8px;margin:0 0 2px;font-size:22px}
+.crew-row{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:16px;padding:10px 12px;margin:8px 0;-webkit-user-select:none;user-select:none}
+.crew-row.me{outline:2px solid var(--acc)}
+.crew-n{flex:1;min-width:0;display:flex;flex-direction:column}.crew-n b{font-size:15px}.crew-n span{font-size:13px;color:var(--label-2)}
+.crew-pct{color:#1c9a66;font-size:18px}
+.crew-fire{width:40px;height:40px;border-radius:50%;border:0;background:var(--surface-2,#eef0f4);display:grid;place-items:center;transition:transform .2s}
+.crew-fire.on{background:#ffe9b0;transform:scale(1.12)}
+.crew-hint{text-align:center;margin-top:12px}
+.crew-leave{display:block;margin:6px auto 0}
+.crew-pop-w{padding:8px 10px 8px 8px}
+.crew-pop{display:flex;align-items:center;gap:10px;min-width:0}
+.crew-pop-bot{width:40px;height:40px;flex:none}.crew-pop-bot svg{width:100%;height:100%}
+.crew-pop-t{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px;line-height:1.25}
+.crew-pop-t b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crew-pop-t span{color:var(--label-2);font-size:12px}
+.crew-pop-b{width:38px;height:38px;border-radius:50%;border:0;background:var(--surface-2,#eef0f4);display:grid;place-items:center;color:var(--label);flex:none}
+.crew-pop-b.on{background:#ffe9b0}
+.crew-pop-b.go{background:var(--acc);color:var(--on-acc,#0b1a36)}
+/* PCT: the test date row at the top (PoliceFit.jsx TestDateRow). */
+.pf-date{padding:0;overflow:hidden}
+.pf-date-h{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:14px 16px;font:inherit;font-size:15px;color:inherit;text-align:left}
+.pf-date-h>span:nth-child(2){flex:1;min-width:0;color:var(--label-2)}
+.pf-date-h b{color:var(--label);font-size:17px}
+.pf-date .pf-fold-b{padding:0 16px 14px}
+.crew-set{display:block;margin:8px auto 0;text-decoration:none;color:var(--label-2)}
+.mh-col.on{box-shadow:0 0 0 3px var(--acc)}
+.rp-music .icn{width:18px;height:18px}
+/* A busy page with no clear spot: Hayden peeks in from the right edge (HaydenBuddy.jsx). */
+.hb-buddy.peek{transform:translateX(58%) rotate(-8deg);opacity:.92}
+.hb-buddy.peek:active{transform:none}
+.pf-date-2{display:flex;flex-direction:column}
+.pf-date-2 small{font-size:13px;color:var(--label-2)}

@@ -3503,6 +3503,48 @@ paths:
         '400': { description: No location }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/crew:
+    post:
+      tags: [community]
+      operationId: postCrew
+      summary: Your crew card, and your crew back (BadgeFit)
+      description: |
+        The people testing on your date, a day either side. Sends your card (test date, first
+        name, colour, ready %, the last day trained and what) and answers with the crew. With
+        `done` true you just finished a session: each crewmate hears it once a day, not in their
+        evening.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                card: { type: object, properties: { test: { type: string }, name: { type: string }, colour: { type: string }, ready: { type: integer }, last: { type: string }, title: { type: string }, tz: { type: integer } } }
+                done: { type: boolean }
+      responses:
+        '200': { description: '`{ test, off, crew: [{ id, name, colour, ready, last, title, today }] }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      tags: [community]
+      operationId: getCrew
+      summary: Your crew (BadgeFit)
+      responses:
+        '200': { description: '`{ test, off, crew }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/crew/leave:
+    post:
+      tags: [community]
+      operationId: postCrewLeave
+      summary: Leave your crew, or come back (BadgeFit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { on: { type: boolean, description: true (the default) leaves, false comes back } } }
+      responses:
+        '200': { description: '`{ off }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/nearby/leave:
     post:
       tags: [community]

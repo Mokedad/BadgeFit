@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 
 export const MAX = 30;              // per person: the oldest beyond this are dropped
 export const KEEP_MS = 14 * 86400000; // a cheer nobody picked up in two weeks is let go
-export const KINDS = ['love', 'like', 'cheer', 'reply', 'best', 'plan', 'follow', 'post', 'fire', 'strong', 'win', 'wow'];
+export const KINDS = ['love', 'like', 'cheer', 'reply', 'best', 'plan', 'follow', 'post', 'fire', 'strong', 'win', 'wow', 'crew'];
 export const HISTORY = 40;        // what the bell keeps, per person
 
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -85,6 +85,7 @@ export function cheerPush(item) {
     plan: `${item.from} is following your plan${item.what ? ': ' + item.what : ''}`,
     follow: `${item.from} followed you`,
     post: `${item.from} posted${item.what ? ': ' + item.what : ''}`,
+    crew: `${item.from} just trained${item.what ? ': ' + item.what : ''}. Testing with you. Your turn?`,
   }[item.kind];
   return { title: 'BadgeFit', body: say, tag: 'cheer-' + item.kind, url: '#/community' };
 }

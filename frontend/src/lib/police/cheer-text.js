@@ -1,7 +1,7 @@
 // What Hayden's cheer bubble says (components/CheerBubble.jsx), from what the server kept for you
 // (api/cheers.js): first names and a few words only.
 
-const SYM = { love: '❤️', like: '👍', cheer: '💪', reply: '💬', training: '🏃', best: '⭐', plan: '📋', follow: '🔔', post: '📣' }
+const SYM = { love: '❤️', like: '👍', cheer: '💪', reply: '💬', training: '🏃', best: '⭐', plan: '📋', follow: '🔔', post: '📣', crew: '🔥' }
 export const cheerSym = kind => SYM[kind] || '💪'
 
 /** "Sam cheered your win: Hit 7.4 on the beep test" */
@@ -20,6 +20,7 @@ export function cheerLine(c) {
     case 'follow': return `${who} followed you`
     case 'post': return `${who} posted${c.what ? ': ' + c.what : ''}`
     case 'reply': return `${who} replied to ${c.what || 'your post'}`
+    case 'crew': return `${who} trained${c.what ? ': ' + c.what.toLowerCase() : ''}. Testing with you`
     default: return `${who} cheered ${c?.what || 'you on'}`
   }
 }

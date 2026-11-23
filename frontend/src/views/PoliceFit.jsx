@@ -48,6 +48,9 @@ import TestDay from '../components/TestDay.jsx'
 import { testDayResults } from '../lib/police/test-day.js'
 import { RoundPick, PickRow } from '../components/StartPicker.jsx'
 import { shareWin } from '../components/ShareWin.jsx'
+import { useCrew, rejoinCrew } from '../components/Crew.jsx'
+import { crewDate } from '../lib/police/crew.js'
+import { api } from '../lib/api.js'
 import { gapText, trendLine } from '../lib/police/pct-progress.js'
 import { winText } from '../lib/police/cheer-text.js'
 import { CAT_ICON } from '../lib/police/start-picks.js'
@@ -161,7 +164,9 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
             if (S.active) { nav('/workout'); return }
             if (gymIds.length) startFlow(gymIds); else nav('/home')
           }}>{S.active ? 'Back to your workout' : 'Start workout'}</button>)
-        if (now.done) return <div className="pf-ran"><b>Today complete</b><span>{now.logged.map(w => w.name || 'Workout').join(' · ')}</span></div>
+        // Done: the tick, the way Home says it. The card above already names today's session, so
+        // only what was done on top of it is named here.
+        if (now.done) { const extra = [...new Set(now.logged.map(w => w.name || 'Workout'))].filter(n => n !== now.name); return <div className="pf-ran"><b>✓ Done for today</b>{extra.length > 0 && <span>+ {extra.join(' · ')}</span>}</div> }
         if (runPart || gymPart) return <div className="pf-today-acts">{gymPart}{runPart}</div>
         if (day?.kind === 'test') return <button className="pf-go" onClick={openTest}>Start test day</button>
         return null
@@ -226,6 +231,7 @@ function JarvisSwitches({ S, P }) {
       <Switch checked={!!P.nearbyOn} onChange={() => setP({ nearbyOn: !P.nearbyOn })} aria-label="Meet bots nearby" /></label>}
       {user && <label className="pf-jsw"><span><b>Show my today on my page</b><small>Followers see today's session by name, done or to do. Nothing else of your plan.</small></span>
         <Switch checked={P.shareToday !== false} onChange={() => setP({ shareToday: P.shareToday === false })} aria-label="Show my today on my page" /></label>}
+      {user && <CrewSwitch />}
     {/* His robot beeps when you tap him (lib/police/bot-voice.js): off, quiet or loud. */}
     <div className="pf-jsw-row"><span><b>Hayden's beeps</b><small>The little robot sounds he makes when you tap him</small></span>
       <Segmented options={CHIRP_LEVELS} value={CHIRP_LEVELS.find(l => l.value === beepVolume(P))?.value ?? 0.35}
@@ -562,6 +568,7 @@ function Tests({ S, P, openBeep, openTest }) {
         ? <><b>Not tested yet</b><span>Do Test day to find your starting point</span></>
         : <><b>{ready.passed} of {ready.rows.length}</b><span>standards passing{ready.rows.some(r => !r.ev) ? `, ${ready.rows.filter(r => !r.ev).length} not tested yet` : ''}</span></>}
     </div>
+    <TestDateRow P={P} />
     <div className="pf-tools">
       <button className="card pf-tool" onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b></button>
       <button className="card pf-tool" onClick={openBeep}><span className="pf-more-i" aria-hidden="true"><Icon name="timer" /></span><b>Beep test trainer</b></button>
@@ -586,9 +593,6 @@ function Tests({ S, P, openBeep, openTest }) {
       {latest && <p className="pf-sub">Latest: {fmtResult(std.id, latest.v)} on {latest.at}{(() => { const b = bestResult(P.results, std.id); return b && b !== latest ? ` · Best: ${fmtResult(std.id, b.v)}` : '' })()}</p>}
       {open === std.id && <LogForm std={std} P={P} onDone={() => setOpen(null)} />}
     </div>)}
-    <Fold id="testdate" title="Test date">
-      <TestCountdown S={S} P={P} />
-    </Fold>
     <Fold id="beepmarks" title="Beep test: pass mark and your goal">
       <p className="pf-sub">Pass/fail is judged on the pass mark. Train for the goal above it, so test day feels comfortable. Standards differ by state and change: check your service's current requirement.</p>
       <div className="pf-2">
@@ -1098,6 +1102,32 @@ export default function PoliceFit() {
     {tab === 'care' && <Care />}
     {tab === 'more' && <More setTab={setTab} calm={calm} />}
     {/* Said once, on More (and before a plan is set up), not under every page. */}
-    {(!calm || tab === 'more') && <p className="pf-sub pf-pad"><a href={`${MOBILE ? 'https://' + BRAND.server + '/' : ''}privacy.html`} target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy</a> · Not affiliated with any police service. Check your own service's current requirements and see a doctor before starting a new training programme.</p>}
+    {(!calm || tab === 'more') && <p className="pf-sub pf-pad"><a href={`${MOBILE ? 'https://' + BRAND.server + '/' : ''}privacy.html`} target="_blank" rel="noopener" style={{ color: 'inherit', textDecoration: 'underline' }}>Privacy</a> · Not affiliated with any police service · Check your service's current standards · See a doctor before a new programme</p>}
+  </div>
+}
+
+/** In or out of your crew (the people testing on your date): off after "Leave the crew". */
+function CrewSwitch() {
+  const off = useCrew(s => s.off)
+  const api2 = on => (on ? rejoinCrew() : api('/api/crew/leave', { method: 'POST', body: JSON.stringify({ on: true }) }).then(() => useCrew.setState({ off: true, crew: [] })).catch(() => {}))
+  return <label className="pf-jsw"><span><b>My crew</b><small>The people testing on your date see your ring and your today. Nothing else.</small></span>
+    <Switch checked={!off} onChange={() => api2(off)} aria-label="My crew" /></label>
+}
+
+/** 🎯 6 Dec · 13 days · 4 testing with you. Tap for the date (TestCountdown). No date: "Set your test date". */
+function TestDateRow({ P }) {
+  const S = useStore(s => s.S)
+  const crew = useCrew(s => s.crew)
+  const [open, setOpen] = useState(!P.testDate)
+  const left = P.testDate ? daysUntil(P.testDate, todayISO()) : null
+  return <div className="card pf-date">
+    <button type="button" className="pf-date-h" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+      <Icon name="target" />
+      {P.testDate
+        ? <span><b>{crewDate(P.testDate)}</b>{left != null && left >= 0 ? ` · ${left} ${left === 1 ? 'day' : 'days'}` : ''}{crew.length ? ` · ${crew.length} testing with you` : ''}</span>
+        : <span className="pf-date-2"><b>Set your test date</b><small>Your plan and your crew start from it</small></span>}
+      <span className="pf-fold-c" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
+    </button>
+    {open && <div className="pf-fold-b"><TestCountdown S={S} P={P} /></div>}
   </div>
 }

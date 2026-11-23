@@ -34,8 +34,9 @@ let posNow = null
 
 const SIZE = 62
 // What he must not sit on: anything you can tap or type in, and the bars.
-// Pictures you hold (Plan's exercise pictures), the week strip's days and fold headers count too.
-const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], [role=checkbox], .tappable, .calm-nav, #timer, .rp-mini, figure, .wday, summary, label, h1, h2, h3, .pd-h, .pf-tile, .calm-count, .calm-line, .pf-std, .cm-text'
+// Pictures you hold (Plan's exercise pictures), the week strip's days and fold headers count too,
+// and words you read (a paragraph, a list line): he sat on the Food page's text before.
+const TAPPABLE = 'button, a[href], input, select, textarea, [role=button], [role=slider], [role=checkbox], .tappable, .calm-nav, #timer, .rp-mini, figure, .wday, summary, label, h1, h2, h3, h4, p, li, .pd-h, .pf-tile, .calm-count, .calm-line, .pf-std, .cm-text, .crew-strip'
 const hits = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 /** How much of the tappable page the box `r` (his) covers, in square pixels; 0 when nothing. */
 function covered(me, r) {
@@ -49,17 +50,25 @@ function covered(me, r) {
   return area
 }
 /** The first spot, from `order`, where he covers nothing; else the one where he covers least. */
-function freeSpot(me, order) {
+function freeSpot(me, order) { return spotAndArea(me, order).sp }
+// With how much he would still cover there (0: a clear spot).
+function spotAndArea(me, order) {
   const was = me.className
+  // Measured where he would stand in full: not peeking, and with no slide under way (a transition
+  // would report where he was, not where the spot is).
+  const tr = me.style.transition
+  me.style.transition = 'none'
   let best = null, least = Infinity
   for (const sp of order) {
-    me.className = was.replace(/\bspot-\w+/, '') + ' spot-' + sp
+    me.className = was.replace(/\bspot-\w+/, '').replace(/\bpeek\b/, '') + ' spot-' + sp
     const a = covered(me, me.getBoundingClientRect())
     if (a < least) { least = a; best = sp }
     if (a === 0) break
   }
   me.className = was
-  return best || order[0]
+  void me.offsetWidth
+  me.style.transition = tr
+  return { sp: best || order[0], area: least === Infinity ? 0 : least }
 }
 const clampPos = (x, y) => ({ x: Math.max(4, Math.min(window.innerWidth - SIZE - 4, x)), y: Math.max(40, Math.min(window.innerHeight - SIZE * 1.3 - 8, y)) })
 
@@ -71,6 +80,9 @@ export default function HaydenBuddy() {
   const last = useRef(-1), timer = useRef(0), lastTap = useRef(0), hopT = useRef(0)
   const holdT = useRef(0), press = useRef(null)
   const [spot, setSpot] = useState(spotNow)
+  // No clear spot on a busy page: he peeks in from the right edge, half of him showing, so he
+  // covers nothing you read or tap. Tapped, he comes out.
+  const [peek, setPeek] = useState(false)
   const [pos, setPos] = useState(posNow)
   const [hop, setHop] = useState(false)
   const [holding, setHolding] = useState(false)
@@ -91,7 +103,14 @@ export default function HaydenBuddy() {
   useLayoutEffect(() => {
     const look = () => {
       if (!me.current || posNow) return
-      const sp = freeSpot(me.current, [spotNow, ...SPOTS.filter(x => x !== spotNow)])
+      const { sp, area } = spotAndArea(me.current, [spotNow, ...SPOTS.filter(x => x !== spotNow)])
+      if (area > 0) {
+        const right = spotAndArea(me.current, ['br', 'mr', 'tr']).sp
+        if (right !== spotNow) { spotNow = right; setSpot(right) }
+        setPeek(true)
+        return
+      }
+      setPeek(false)
       if (sp !== spotNow) { spotNow = sp; setSpot(sp) }
     }
     look()
@@ -218,7 +237,7 @@ export default function HaydenBuddy() {
 
   const placed = pos ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' } : undefined
   return <button type="button" ref={me} style={placed}
-    className={'hb-buddy' + (pos ? ' placed' + (pos.x < window.innerWidth / 2 ? ' say-right' : '') : ' spot-' + spot) + (hop ? ' hop' : '') + (holding ? ' holding' : '') + (dragging ? ' dragging' : '') + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')}
+    className={'hb-buddy' + (pos ? ' placed' + (pos.x < window.innerWidth / 2 ? ' say-right' : '') : ' spot-' + spot) + (peek && !pos && !holding && !dragging && !look.sym && !look.ask ? ' peek' : '') + (hop ? ' hop' : '') + (holding ? ' holding' : '') + (dragging ? ' dragging' : '') + (loc.pathname === '/workout' ? ' in-workout' : '') + (running ? ' on-run' : '')}
     onPointerDown={down} onPointerMove={moveTo} onPointerUp={up} onPointerCancel={up} onContextMenu={e => e.preventDefault()}
     aria-label="Hayden. Tap for a move, double tap to move him, hold to pick him up">
     {look.ask ? <span className="hb-say hb-ask">{look.ask}</span> : look.sym && <span className="hb-say" aria-hidden="true">{look.sym}</span>}

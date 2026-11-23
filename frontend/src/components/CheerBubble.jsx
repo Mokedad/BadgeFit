@@ -14,6 +14,10 @@ import { botSvg } from './HaydenBot.jsx'
 import { useRun } from '../store/useRun.js'
 import { ReactIcon, REACTIONS, useTapHold } from './Reactions.jsx'
 import { useFlick } from './SwipeAway.jsx'
+import { CrewPop } from './Crew.jsx'
+import { startFlow } from '../sheets.jsx'
+import { effectiveRoutineIds } from '../lib/history.js'
+import { todayISO } from '../lib/format.js'
 
 const EVERY_MS = 60000
 // While you train, reactions arrive sooner and float up the side instead of a bubble on top.
@@ -99,7 +103,7 @@ export default function CheerBubble() {
     const [next, ...rest] = queue
     useCheers.setState({ queue: rest })
     // Training: a reaction floats up the side, with a soft beep; nothing covers the screen.
-    if (training && isReact(next.kind)) { floatReaction(next); try { beep('love', beepVolume(useStore.getState().S.police)) } catch { /* no sound */ } return }
+    if (training && (isReact(next.kind) || next.kind === 'crew')) { floatReaction(next.kind === 'crew' ? { ...next, kind: 'fire' } : next); try { beep('love', beepVolume(useStore.getState().S.police)) } catch { /* no sound */ } return }
     setShown(next)
     haydenSays(cheerSym(next.kind), 'love', 2400)
     try { beep('love', beepVolume(useStore.getState().S.police)) } catch { /* no sound */ }
@@ -117,6 +121,9 @@ export default function CheerBubble() {
   // reaction straight back (it pops, like one sent); a hold opens their page. Anything else
   // (a reply, a follow) says what it is and a tap opens Community.
   const rxOn = isReact(shown.kind) && shown.who
+  // A crewmate trained: 🔥 sends fire back, ▶ starts today's session (components/Crew.jsx).
+  const startToday = () => { const st = useStore.getState().S; if (st.active) { window.location.hash = '#/workout'; return } const ids = effectiveRoutineIds(st, todayISO()); if (ids.length) startFlow(ids, { auto: true }); else window.location.hash = '#/home' }
+  if (shown.kind === 'crew') return <div className="cheer-pop crew-pop-w" aria-live="polite" {...flick}><CrewPop c={shown} onDone={() => setShown(null)} onStart={startToday} /><Floats /></div>
   return <div className={'cheer-pop' + (rxOn ? ' rx-pop' : '')} aria-live="polite" {...flick}>
     {rxOn ? <ReactPop c={shown} onDone={() => setShown(null)} />
       : <button type="button" className="cheer-pop-m" onClick={() => { setShown(null); window.location.hash = '#/community' }}>

@@ -22,3 +22,11 @@ describe('cheer text', () => {
     expect(winText({ kind: 'workout', name: 'Chest, Shoulders & Abs', week: 3, of: 12 })).toBe('Done for today: Chest, Shoulders & Abs. Week 3 of 12. One step closer to the badge.')
   })
 })
+
+describe('a crewmate trained', () => {
+  it('reads as who and what, and that they test with you', async () => {
+    const { cheerLine, cheerSym } = await import('./cheer-text.js')
+    expect(cheerLine({ kind: 'crew', from: 'Jess', what: 'Easy run' })).toBe('Jess trained: easy run. Testing with you')
+    expect(cheerSym('crew')).toBe('🔥')
+  })
+})

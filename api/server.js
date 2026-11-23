@@ -41,6 +41,7 @@ import { atomicWrite as durableWrite } from './durable.js';
 import * as community from './community.js';
 import * as cheers from './cheers.js';
 import * as nearby from './nearby.js';
+import * as crewMod from './crew.js';
 import * as social from './social-login.js';
 import { computeStats, cleanAnswer } from './stats.js';
 import { cleanMealReminders, dueMeals, mealPush } from './meal-reminders.js';
@@ -1390,6 +1391,7 @@ function removeAccount(u) {
   try { const feed = loadCommunity(); community.forgetUser(feed, u.id); saveCommunity(feed); } catch { /* no feed yet */ }
   // Out of the bots nearby, and every follow and hide (nearby.js).
   try { nearby.forgetUser(NEAR, loadBots(), u.id); saveBots(); } catch { /* none */ }
+  try { crewMod.forgetUser(loadCrew(), u.id); saveCrew(); } catch { /* none */ }
   try { cheers.forgetUser(loadCheers(), u.id); saveCheers(); } catch { /* none */ }
   db.creds = (db.creds || []).filter(c => c.userId !== u.id);
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
@@ -2272,6 +2274,18 @@ function loadBots() {
   return BOTS;
 }
 function saveBots() { durableWrite(botsFile(), JSON.stringify(loadBots())); }
+/* ---------- your crew (crew.js) ----------
+   The people testing on your date, kept in DATA_DIR/crew.json: cards, who was pinged today, who left. */
+const crewFile = () => path.join(DATA, 'crew.json');
+let CREW = null;
+function loadCrew() {
+  if (CREW) return CREW;
+  try { const f = JSON.parse(fs.readFileSync(crewFile(), 'utf8')); CREW = { ...crewMod.empty(), ...(f && typeof f === 'object' ? f : {}) }; }
+  catch { CREW = crewMod.empty(); }
+  return CREW;
+}
+function saveCrew() { durableWrite(crewFile(), JSON.stringify(loadCrew())); }
+
 /* ---------- cheers that arrive (cheers.js) ----------
    A cheer on a post, a reply, a love or a like waits in DATA_DIR/cheers.json until the person's
    app picks it up (Hayden's bubble), and goes out as a push where they have one. */
@@ -3273,6 +3287,36 @@ const routes = {
     const body = await readBody(req);
     followOwner(user);
     communityAnswer(res, nearby.presence(NEAR, loadBots(), user, { card: body.card }));
+  },
+  /* ---------- your crew (crew.js) ---------- */
+  // Your card (test date, ring, last trained), and your crew back. `done` true: you just finished a
+  // session, so the crew hears it (one ping each a day, not in their evening).
+  'POST /api/crew': async (req, res) => {
+    const user = communityGuard(req, res, NEAR_PINGS); if (!user) return;
+    const body = await readBody(req);
+    const store = loadCrew(), bots = loadBots();
+    const card = crewMod.join(store, user, body.card);
+    if (card) nearby.remember(NEAR, bots, user.id, card.name);
+    if (card && body.done === true) {
+      for (const to of crewMod.pingTargets(store, user, { hidden: (a, b) => nearby.hiddenEither(bots, a, b) })) {
+        sendCheer(to, user.id, { from: card.name, colour: card.colour, kind: 'crew', what: card.title, ref: 'crew' });
+      }
+    }
+    saveCrew();
+    communityAnswer(res, crewMod.list(store, user, { handle: handleFor, hidden: (a, b) => nearby.hiddenEither(bots, a, b) }));
+  },
+  'GET /api/crew': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    const bots = loadBots();
+    communityAnswer(res, crewMod.list(loadCrew(), user, { handle: handleFor, hidden: (a, b) => nearby.hiddenEither(bots, a, b) }));
+  },
+  // Out of the crew (and it out of your sight), or back in.
+  'POST /api/crew/leave': async (req, res) => {
+    const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    const body = await readBody(req);
+    const r = crewMod.leave(loadCrew(), user, body.on !== false);
+    saveCrew();
+    communityAnswer(res, r);
   },
   'POST /api/nearby/leave': async (req, res) => {
     const user = communityGuard(req, res); if (!user) return;

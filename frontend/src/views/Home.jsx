@@ -19,6 +19,7 @@ import { needsAfterTest, afterPatch, AFTER_CHOICES } from '../lib/police/after-t
 import { countIn, countInRun, actForRoutine } from '../components/CountIn.jsx'
 import { runMinutes } from '../lib/police/runs.js'
 import { shareWin } from '../components/ShareWin.jsx'
+import { CrewStrip } from '../components/Crew.jsx'
 import { winText } from '../lib/police/cheer-text.js'
 import CardHead from '../components/CardHead.jsx'
 import QueueRow from '../components/QueueRow.jsx'
@@ -307,6 +308,8 @@ export default function Home() {
         {doneToday && !S.active
           ? <div className="calm-done"><span aria-hidden="true">✓</span> Done for today</div>
           : <button className="calm-go" data-tour="today" onClick={onStart}>{S.active ? 'Resume' : routine ? 'Start' : 'Pick a workout'}</button>}
+        {/* Your crew: the people testing on your date (components/Crew.jsx). */}
+        {!guest && (P.testDate ? <CrewStrip /> : <button type="button" className="calm-link crew-set" onClick={() => nav('/police?tab=tests')}><Icon name="target" /> Set your test date · find your crew</button>)}
         {/* Done: just the tick. Sharing is offered at the end of the workout itself (the summary and
             the run's done screen); here one quiet line keeps it reachable later. */}
         {doneToday && !S.active && <div className="calm-done-links">

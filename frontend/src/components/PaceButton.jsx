@@ -75,7 +75,7 @@ export function PaceButton({ pace, onTip, onSignUp, started = false }) {
   return <>
     <button type="button" className={'rp-music rp-pace' + (on ? ' on' : '')} aria-pressed={on} aria-label={label} title="Pace sound · hold for options"
       onPointerDown={down} onPointerUp={up} onPointerLeave={up} onPointerCancel={up} onContextMenu={e => e.preventDefault()} onClick={click}>
-      <Icon name="footprints" /> {on ? (pace.spm || 'On') : 'Off'}
+      <Icon name="footprints" />{on && pace.spm ? <> {pace.spm}</> : null}
     </button>
     {sheet && createPortal(<PaceSheet pace={pace} close={() => setSheet(false)} />, document.body)}
     {gate && createPortal(<PaceGate started={started} close={() => setGate(false)} onSignUp={onSignUp} />, document.body)}
