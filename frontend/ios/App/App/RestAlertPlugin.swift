@@ -32,6 +32,7 @@ public class RestAlertPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDe
         CAPPluginMethod(name: "setAccent", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "speak", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hush", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "awake", returnType: CAPPluginReturnPromise),
     ]
 
     static let requestId = "opengym.rest"
@@ -146,6 +147,17 @@ public class RestAlertPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDe
      * own length and no patterns, so each pulse of 100 ms or more is that vibration at its moment
      * in the pattern, and a shorter one (a set tick) is a tap of the haptic engine.
      */
+    /// Keeps the screen on during a run, a test or a workout (lib/wakelock.js). The page's Screen
+    /// Wake Lock is refused in Low Power Mode, so the phone locked itself and the pace tick and
+    /// Hayden's voice stopped; the app's own idle timer switch is not refused.
+    @objc func awake(_ call: CAPPluginCall) {
+        let on = call.getBool("on") ?? false
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = on
+            call.resolve()
+        }
+    }
+
     @objc func buzz(_ call: CAPPluginCall) {
         let pattern = (call.getArray("pattern") as? [NSNumber])?.map { $0.doubleValue } ?? [400]
         DispatchQueue.main.async {

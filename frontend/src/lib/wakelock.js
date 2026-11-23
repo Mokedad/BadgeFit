@@ -6,6 +6,7 @@
 // exactly once and then silently dies, which is why `wanted` is kept as our own intent
 // and the lock is re-acquired on every visibilitychange for as long as it holds.
 import { useEffect } from 'react'
+import { keepScreenOn } from './rest-alert.js'
 
 export const wakeLockSupported = () => 'wakeLock' in navigator
 
@@ -32,15 +33,27 @@ async function acquire() {
 
 const onVisible = () => { if (document.visibilityState === 'visible') acquire() }
 
+// Who wants the screen on right now (a run, a test, a workout): the app's own switch stays on
+// until the last of them lets go. In the phone app it holds even in Low Power Mode.
+const holders = new Set()
+export function screenOn(who, on) {
+  const had = holders.size > 0
+  if (on) holders.add(who); else holders.delete(who)
+  const has = holders.size > 0
+  if (has !== had) keepScreenOn(has)
+}
+
 export function requestWakeLock() {
   if (wanted) return
   wanted = true
+  screenOn('workout', true)
   document.addEventListener('visibilitychange', onVisible)
   acquire()
 }
 
 export function releaseWakeLock() {
   wanted = false
+  screenOn('workout', false)
   document.removeEventListener('visibilitychange', onVisible)
   const s = sentinel
   sentinel = null

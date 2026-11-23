@@ -3,6 +3,7 @@
 // "I'm out" when you miss the line: the score is the last shuttle completed, and it can go
 // straight into the PCT tab. Timing: lib/police/beep-run.js, from the same level table the
 // standard is scored with. The screen stays awake while it runs. English only.
+import { screenOn } from '../lib/wakelock.js'
 import Icon from './Icon.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { beepSchedule, positionAt, scoreAt, timeTo } from '../lib/police/beep-run.js'
@@ -27,7 +28,7 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
     // Hayden's level calls, fetched while you set up so they play on the beep.
     for (let l = 2; l <= Math.min(21, goalLevel + 4); l++) preloadSpeech(`Level ${l}`)
     preloadSpeech('That is the pass mark. Keep going.'); preloadSpeech('Goal reached. Everything now is a bonus.')
-    return () => { clearInterval(timer.current); clearInterval(countdown.current); try { wake.current?.release() } catch { /* gone */ } stopSpeaking() }
+    return () => { clearInterval(timer.current); clearInterval(countdown.current); try { wake.current?.release() } catch { /* gone */ } screenOn('beep', false); stopSpeaking() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const passT = timeTo(schedule, target), goalT = timeTo(schedule, goal)
@@ -49,7 +50,7 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
     tones.current = { shuttle: tonePlayer({ freq: 880, ms: 260 }), level: tonePlayer({ freq: 988, ms: 160, tones: 3, gapMs: 90 }), count: tonePlayer({ freq: 660, ms: 140 }) }
     Object.values(tones.current).forEach(p => p.unlock())
     primeSpeech()
-    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
+    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('beep', true);
     t0.current = performance.now() + COUNT * 1000
     next.current = 0
     setPhase('count')
@@ -76,7 +77,7 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
     const s = scoreAt(schedule, el)
     setScore(s)
     setPhase('out')
-    try { wake.current?.release() } catch { /* gone */ }
+    try { wake.current?.release() } catch { /* gone */ } screenOn('beep', false);
     const p = s && evaluate('beep', s, target), g = s && evaluate('beep', s, goal)
     say(!s ? 'No shuttles done. Have a breather and go again.' : g?.pass ? `Level ${s}. Goal smashed. That is a comfortable pass.` : p?.pass ? `Level ${s}. That is a pass. Now we build the margin.` : `Level ${s}. Not there yet, but now we know the gap. We close it.`)
   }

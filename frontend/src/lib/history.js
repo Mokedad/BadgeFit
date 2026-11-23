@@ -515,7 +515,11 @@ export function effectiveRoutineIds(S, iso, today = todayISO()) {
   // The planner's weekday pointers stay hidden on the queue's day even when it has no session for
   // it (every remaining one pinned to another day): those sessions have their days.
   const own = q || queueLiveOn(S, iso, today) ? weekday.filter(id => !S.queue.ids.includes(id)) : weekday
-  return q ? [q, ...own] : own
+  const base = q ? [q, ...own] : own
+  // Exercises added to one day on top of its plan (BadgeFit's + on a run day, PlanDays.jsx): their
+  // own small routine, trained with the day's session.
+  const extra = [].concat(S.police?.extra?.[iso] || []).filter(id => !base.includes(id) && S.routines.some(r => r.id === id))
+  return extra.length ? [...base, ...extra] : base
 }
 export function effectiveRoutines(S, iso) {
   return effectiveRoutineIds(S, iso).map(id => S.routines.find(r => r.id === id)).filter(Boolean)

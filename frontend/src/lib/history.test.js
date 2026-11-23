@@ -1322,6 +1322,13 @@ describe('effectiveRoutineIds / effectiveRoutines', () => {
     expect(effectiveRoutineIds(S({ 3: ['r1', 'r2'] }, { [ISO]: 'r2' }), ISO)).toEqual(['r2'])
     expect(effectiveRoutineIds(S({ 3: ['r1', 'r2'] }, { [ISO]: 'rest' }), ISO)).toEqual([])
   })
+  it("a day's extras (police.extra) join that day only, never a rest day", () => {
+    const withExtra = (week, dayPlan = {}) => ({ ...S(week, dayPlan), police: { extra: { [ISO]: ['r2', 'gone'] } } })
+    expect(effectiveRoutineIds(withExtra({ 3: ['r1'] }), ISO)).toEqual(['r1', 'r2'])
+    expect(effectiveRoutineIds(withExtra({ 3: ['r1'] }), '2026-08-26')).toEqual(['r1'])
+    expect(effectiveRoutineIds(withExtra({ 3: ['r1', 'r2'] }), ISO)).toEqual(['r1', 'r2'])
+    expect(effectiveRoutineIds(withExtra({ 3: ['r1'] }, { [ISO]: 'rest' }), ISO)).toEqual([])
+  })
   it('the singular wrappers return [0] ?? null', () => {
     expect(effectiveRoutineId(S({ 3: ['r1', 'r2'] }), ISO)).toBe('r1')
     expect(effectiveRoutine(S({ 3: ['r1', 'r2'] }), ISO).name).toBe('A')

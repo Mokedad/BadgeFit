@@ -65,4 +65,33 @@ describe('pacer', () => {
     expect(ctx.resume).toHaveBeenCalled()
     p.stop()
   })
+
+  it('keeps ticking when Low Power Mode slows the page timers to once a second', () => {
+    vi.useFakeTimers()
+    const ctx = fakeCtx()
+    const at = []
+    const p = createPacer({ getCtx: () => ctx, tick: (_c, t) => { at.push(+t.toFixed(3)); return null } })
+    p.set({ spm: 120 })
+    // The top-up only gets to run once a second instead of every 25 ms.
+    for (let i = 0; i < 6; i++) { ctx.currentTime += 1; vi.advanceTimersByTime(1000) }
+    const heard = at.filter(t => t <= 6)
+    const gaps = heard.slice(1).map((t, i) => +(t - heard[i]).toFixed(3))
+    expect(heard.length).toBeGreaterThanOrEqual(11)
+    expect(new Set(gaps)).toEqual(new Set([0.5]))
+    p.stop()
+  })
+
+  it('takes back the ticks booked for the old beat when the pace changes', () => {
+    vi.useFakeTimers()
+    const ctx = fakeCtx()
+    const nodes = []
+    const p = createPacer({ getCtx: () => ctx, tick: (_c, t) => { const n = { t, stop: vi.fn() }; nodes.push(n); return n } })
+    p.set({ spm: 120 })
+    ctx.currentTime += 0.1; vi.advanceTimersByTime(25)
+    const ahead = nodes.filter(n => n.t > ctx.currentTime + 0.02)
+    expect(ahead.length).toBeGreaterThan(1)
+    p.set({ spm: 180 })
+    expect(ahead.every(n => n.stop.mock.calls.length === 1)).toBe(true)
+    p.stop()
+  })
 })

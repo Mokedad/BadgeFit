@@ -3,6 +3,7 @@
 // tap counter for push-ups, the beep trainer for the beep test), then a rest counts down before
 // the next. At the end: what passed, the biggest gap, and one tap to save it all. Use it for a
 // baseline now and a mock PCT a week out. Logic: lib/police/test-day.js. English only.
+import { screenOn } from '../lib/wakelock.js'
 import Icon from './Icon.jsx'
 import { iconFor } from '../lib/police/emoji-icon.js'
 import { useEffect, useRef, useState } from 'react'
@@ -52,7 +53,7 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
   const [beep, setBeep] = useState(false)
   const [, tick] = useState(0)
   const wake = useRef(null)
-  useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } stopSpeaking() }, [])
+  useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } screenOn('test', false); stopSpeaking() }, [])
   useEffect(() => { if (!resting) return; const i = setInterval(() => tick(x => x + 1), 500); return () => clearInterval(i) }, [resting])
   useEffect(() => { if (resting && Date.now() >= resting.until) { setResting(null); say(`Rest is up. ${standardById(TEST_ORDER[step]).name}. Let us go.`) } })
 
@@ -64,7 +65,7 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
 
   const begin = () => {
     primeSpeech()
-    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
+    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('test', true);
     setStep(0)
     say(`Test day. First, ${standardById(TEST_ORDER[0]).name.toLowerCase()}. ${standardById(TEST_ORDER[0]).how}`)
   }

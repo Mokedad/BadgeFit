@@ -9,7 +9,10 @@ import { isBadgeFitGuest } from './lib/police/guest.js'
 import { CAT_ICON } from './lib/police/start-picks.js'
 import { RoundPick, PickRow, TrainList } from './components/StartPicker.jsx'
 import { countInRun } from './components/CountIn.jsx'
-import { shareWin } from './components/ShareWin.jsx'
+import { ShareIcons } from './components/ShareWin.jsx'
+import { shrinkPhoto } from './lib/police/photo.js'
+import { api } from './lib/api.js'
+import { machineMatches } from './lib/police/find-exercise.js'
 import { winText } from './lib/police/cheer-text.js'
 import { daysUntil, planWeekOf } from './lib/police/programme.js'
 import { earnedGear } from './lib/police/bot-look.js'
@@ -1770,6 +1773,25 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
   const [gym, setGym] = useState(null)
   const [shown, setShown] = useState(50)
   const [byMuscle, setByMuscle] = useState(false)
+  // BadgeFit: big picture tiles only, the type and equipment rows folded under Filters, and a
+  // camera that names the machine you are standing at (api/coach/plan-reader.js), the photo kept
+  // nowhere.
+  const bf = !!st.police?.level
+  const member = !!useStore(s => s.user)
+  const [filters, setFilters] = useState(false)
+  const [look, setLook] = useState(null)   // null, { busy }, { ids }, { error }
+  const camRef = useRef(null)
+  const onCamera = async ev => {
+    const file = ev.target.files?.[0]; ev.target.value = ''
+    if (!file) return
+    setLook({ busy: true })
+    try {
+      const image = await shrinkPhoto(file, 1024)
+      const r = await api('/api/coach/identify', { method: 'POST', body: JSON.stringify({ image, mime: 'image/jpeg' }) })
+      const ids = machineMatches(r.names, { pool: allExercises(st).filter(e => e.id !== like) })
+      setLook(ids.length ? { ids, names: r.names } : { error: 'Hayden could not match that machine. Search for it instead.' })
+    } catch (e) { setLook({ error: e?.message || 'Hayden could not look at that photo. Search for it instead.' }) }
+  }
   const searchRef = useRef(null)
   const bpStrip = useRef(null), eqStrip = useRef(null), catStrip = useRef(null)
   const onSearchFocus = useSheetKeyboard(searchRef)
@@ -1854,7 +1876,14 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
       <input ref={searchRef} className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
       {narrowed && <span className="search-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
       {q && <button className="clear" onClick={() => { setQ(''); setShown(50) }} aria-label={t('Clear')}><Icon name="xmark" /></button>}</div>
-      <ExerciseViewToggle /></div></div>
+      {bf ? (member && <><button type="button" className="iconbtn pick-cam" aria-label="Take a photo of the machine" onClick={() => camRef.current?.click()}><Icon name="camera" /></button>
+        <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={onCamera} /></>) : <ExerciseViewToggle />}</div></div>
+    {look && <section className="pick-look" aria-live="polite">
+      {look.busy && <p className="small dim"><Icon name="camera" /> Hayden is looking at the machine…</p>}
+      {look.error && <p className="small dim">{look.error} <button type="button" className="pf-link" onClick={() => setLook(null)}>OK</button></p>}
+      {look.ids && <><h4 className="sec">Hayden thinks it's</h4>
+        <div className="list ex-grid">{look.ids.map(id => EXIDX[id] || all.find(e => e.id === id)).filter(Boolean).map(pickRow)}</div></>}
+    </section>}
     {profile && !(like && profiles.length) && <div className="small dim row" style={{ margin: '8px 0 2px', gap: 6, alignItems: 'center' }}>
       <Icon name="kettlebell" style={{ fontSize: 'var(--fs-footnote)' }} />
       {showAll ? t('Showing all equipment') : t('Showing what you have in "{0}"', profile.name)}
@@ -1873,18 +1902,20 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
       <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</button>
       {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</button>)}
     </div>
-    {catOpts.length > 1 && <div className="chips" ref={catStrip} style={{ marginBottom: eqOpts.length > 1 ? 6 : 10 }}>
+    {bf && (catOpts.length > 1 || eqOpts.length > 1) && <button type="button" className={'chip nocap pick-filters' + (filters || catOn || eqOn ? ' on' : '')} aria-expanded={filters} onClick={() => setFilters(v => !v)}>
+      <Icon name="slider" /> Filters{catOn || eqOn ? ` · ${[catOn && t(catOn), eqOn && eqName(eqOn)].filter(Boolean).join(', ')}` : ''}</button>}
+    {(!bf || filters) && catOpts.length > 1 && <div className="chips" ref={catStrip} style={{ marginBottom: eqOpts.length > 1 ? 6 : 10 }}>
       <button className={'chip nocap' + (!catOn ? ' on' : '')} onClick={() => { setCat(''); setShown(50) }}>{t('Any type')}</button>
       {catOpts.map(x => <button key={x} className={'chip' + (catOn === x ? ' on' : '')} onClick={() => { setCat(x); setShown(50) }}>{t(x)}</button>)}
     </div>}
-    {eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
+    {(!bf || filters) && eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
       <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</button>
       {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{eqName(x)}</button>)}
     </div>}
     {/* The slot's planned substitutes, first, while nothing is typed: the plan already knows. */}
     {backupList.length > 0 && !q.trim() && <>
       <h4 className="sec">{t('Your backups')}</h4>
-      <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>{backupList.map(pickRow)}</div>
+      <div className={'list' + (bf || st.exerciseView === 'cards' ? ' ex-grid' : '')}>{backupList.map(pickRow)}</div>
       {!like && <h4 className="sec">{t('Everything else')}</h4>}
     </>}
     {showSuggestions && <section aria-label={t('Suggested substitutes')}>
@@ -1894,11 +1925,11 @@ function ExercisePicker({ onPick, title, close, like, actionIcon, backups }) {
           : suggested.some(e => e.tg !== likeEx.tg) ? t('Related muscles and exercise type. The movement may differ.')
           : t('Same muscle and exercise type. The movement may differ.')
         : t('No suitable suggestions with these filters. Browse below or change gym.')}</p>
-      <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>{suggested.map(pickRow)}</div>
+      <div className={'list' + (bf || st.exerciseView === 'cards' ? ' ex-grid' : '')}>{suggested.map(pickRow)}</div>
     </section>}
     {like && <h4 className="sec">{q.trim() ? t('Search results') : bp === SAME ? t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))
       : suggested.length || backupList.length ? t('All other exercises') : t('All exercises')}</h4>}
-    <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>
+    <div className={'list' + (bf || st.exerciseView === 'cards' ? ' ex-grid' : '')}>
       {!special && <div className="item ex-new" {...tappable(() => customExSheet(null, ex => onPick(ex), q.trim()))}>
         <div className="thumb thumb-x"><Icon name="plusCircle" /></div>
         <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, and a photo or video if you like')}</div></div><Icon name="plus" className="chev" />
@@ -4182,7 +4213,6 @@ function KeepInRoutine({ additions }) {
 // stay with openGym's summary below.
 function BfFinish({ w, surprise, additions = [], close }) {
   const st = useStore(s => s.S)
-  const user = useStore(s => s.user)
   const plan = st.police?.start ? planWeekOf(st.police, todayISO()) : null
   const week = sessionsThisWeek(st)
   const vol = sessionVolume(w, st)
@@ -4202,8 +4232,8 @@ function BfFinish({ w, surprise, additions = [], close }) {
       <span>{surprise.sub}</span>
       {surprise.kind === 'gear' && <button type="button" className="bff-pill w sm" onClick={() => closeThenNav(close, '/my-hayden')}>See your Hayden</button>}
     </div>}
+    <ShareIcons text={winText({ kind: 'workout', name: w.name || 'Training' })} onShare={isOn(st, 'motivation') ? () => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w) : null} />
     <div className="bff-acts">
-      {user && <button type="button" className="bff-pill w" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="share" /> Share</button>}
       <button type="button" className="bff-pill" onClick={() => closeThenNav(close, '/home')}>Home</button>
     </div>
     <KeepInRoutine additions={additions} />
@@ -4235,9 +4265,7 @@ function FinishSummary({ w, prs, e1prs = [], additions = [], close, surprise = n
           card History's Share as image makes. */}
       {isOn(st, 'motivation') && <Button variant="tinted" icon="share" data-fin-share onClick={() => shareWorkoutSheet(S().workouts.find(x => x.id === w.id) || w)}>{t('Share')}</Button>}
       {/* BadgeFit: the sharing lives here, at the end of the workout, not under Home's tick. */}
-      {st.police?.level && <div className="fin-bf">
-        {useStore.getState().user && <button type="button" className="fin-bf-b" onClick={() => shareWin(winText({ kind: 'workout', name: w.name || 'Training' }))}><Icon name="sparkles" /> Share to Community</button>}
-      </div>}
+      {st.police?.level && <ShareIcons text={winText({ kind: 'workout', name: w.name || 'Training' })} />}
     </div>
     <div style={{ height: 14 }} />
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>

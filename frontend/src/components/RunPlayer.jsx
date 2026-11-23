@@ -2,8 +2,9 @@
 // counts down and moves on by itself; a distance segment (a 100 m rep) waits for a tap on Done.
 // Each change beeps, vibrates and says the next step aloud, so the phone can stay in a pocket
 // or an armband. The screen is kept awake while it runs. English only, like the BadgeFit hub.
+import { screenOn } from '../lib/wakelock.js'
 import { useStore } from '../store/useStore.js'
-import { shareWin } from './ShareWin.jsx'
+import { ShareIcons } from './ShareWin.jsx'
 import { winText } from '../lib/police/cheer-text.js'
 import { askProgress } from './HaydenBuddy.jsx'
 import HaydenBot from './HaydenBot.jsx'
@@ -73,7 +74,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   // trip away (the phone drops the keep-awake when the page is hidden).
   useEffect(() => { if (done) setLocked(false) }, [done]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const back = () => { if (document.visibilityState === 'visible' && started && !done) { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } } }
+    const back = () => { if (document.visibilityState === 'visible' && started && !done) { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('run', true); } }
     document.addEventListener('visibilitychange', back)
     return () => { document.removeEventListener('visibilitychange', back); clearInterval(holdT.current) }
   }, [started, done]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -139,7 +140,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
   }
   const start = () => {
     try { audio.current = new (window.AudioContext || window.webkitAudioContext)() } catch { audio.current = null }
-    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
+    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('run', true);
     runStart.current = Date.now(); setStarted(true); go(0)
     // Hayden's voice for the steps ahead, fetched now, one after another: said without a wait
     // when each is due, and handed to the phone for when it is locked (lib/police/pocket.js).
@@ -185,7 +186,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     }, 250)
     return () => clearInterval(t)
   }, [started, paused, done, idx, bubble]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
+  useEffect(() => () => { try { wake.current?.release() } catch { /* gone */ } screenOn('run', false); try { audio.current?.close() } catch { /* gone */ } try { window.speechSynthesis?.cancel() } catch { /* none */ } }, [])
 
   // Hayden in your pocket (the iPhone app): when the app leaves the screen mid-run, the phone is
   // handed the coming steps and says them itself; back on screen, the app speaks again.
@@ -237,7 +238,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     if (!started || done || !onMinimize) { onClose(); return }
     onMinimize()
   }
-  const keepAwake = () => { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } }
+  const keepAwake = () => { try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('run', true); }
   const lock = () => { setLocked(true); keepAwake(); try { navigator.vibrate?.(30) } catch { /* none */ } }
   const stopHold = () => { clearInterval(holdT.current); holdT.current = null; setHold(0) }
   const startHold = () => {
@@ -261,7 +262,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     const got = tr.m >= 50 ? { km: kmOf(tr.m), pace: Math.round(paceOf(tr.m, ranSec) || 0) || undefined, splits: tr.splits.slice(0, 60), route: thinRoute(tr.pts) } : {}
     if (got.km) setKm(got.km)
     savedId.current = onLog({ run: run.id, min: res.min, planned: res.planned, completed, pct: res.pct, ...got })
-    try { wake.current?.release() } catch { /* gone */ }
+    try { wake.current?.release() } catch { /* gone */ } screenOn('run', false);
     sayAloud(res.line, { music: musicRef.current }).catch(() => {})
     try { navigator.vibrate?.([100, 60, 100, 60, 200]) } catch { /* none */ }
     onRestore?.()
@@ -276,7 +277,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     if (ranMin < 1) { onClose(); return } // under a minute: nothing worth saving
     finish(false)
   }
-  const cancelRun = () => { setChoice(false); try { wake.current?.release() } catch { /* gone */ } onClose() }
+  const cancelRun = () => { setChoice(false); try { wake.current?.release() } catch { /* gone */ } screenOn('run', false); onClose() }
   // On the page itself (a portal), above the run screen and Hayden floating over it.
   const choiceBox = choice && createPortal(<div className="rp-choice" role="dialog" aria-label="End the run" onClick={() => setChoice(false)}>
     <div className="rp-choice-box" onClick={e => e.stopPropagation()}>
@@ -294,7 +295,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
     // A step whose time had run out starts again, or ▶ would end the run at once.
     if (seg?.sec != null && (pausedAt.current - segStart.current) / 1000 >= seg.sec - 1) segStart.current = pausedAt.current
     setDone(false)
-    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ }
+    try { navigator.wakeLock?.request('screen').then(w => { wake.current = w }).catch(() => {}) } catch { /* not offered */ } screenOn('run', true);
   }
 
   if (minimized && !done) {
@@ -315,7 +316,7 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         save or reopen the run (that lost the whole session when started again). */}
     <div className="rp-top"><button className="rp-x" onClick={() => { onClose(); location.hash = '#/home' }} aria-label="Back to Home" title="Back to Home">←</button></div>
     <div className="rp-body">
-      <div className="rp-party" aria-hidden="true"><HaydenBot size={110} pose="cheer" eyes="happy" /></div>
+      <div className="rp-party" aria-hidden="true"><HaydenBot size={84} pose="cheer" eyes="happy" /></div>
       <h2>{result.headline}</h2>
       <p className="rp-sub">{result.completed ? `${run.name}, all of it.` : `You did ${result.min} of ${result.planned} minutes. It counts.`} <b>Saved <Icon name="check" /></b></p>
       <div className="rp-stats">
@@ -332,9 +333,10 @@ export default function RunPlayer({ daysLeft = null, run, age, onClose, onLog, o
         {routePath(thinRoute(gpsTrack.current.pts)) && <svg className="rp-route" viewBox="0 0 300 160" role="img" aria-label="Your route"><path d={routePath(thinRoute(gpsTrack.current.pts))} /></svg>}
         {gpsTrack.current.splits.length > 0 && <ol className="rp-splits">{gpsTrack.current.splits.map(sp => <li key={sp.km}><span>km {sp.km}</span><b>{fmtPace(sp.sec)}</b></li>)}</ol>}
       </div>}
-      <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>
-      <button className="rp-share" onClick={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)}>Share this run</button>
-      {useStore.getState().user && <button className="rp-share" onClick={() => shareWin(winText({ kind: 'workout', name: run.name }))}>Share to Community</button>}
+      {gpsTrack.current.m < 50 && <label className="rp-km">Distance (km, optional)<NumberField value={km} nullable onChange={v => { setKm(v); note({ km: v || null }) }} /></label>}
+      <div className="rp-done-acts">
+        <ShareIcons text={winText({ kind: 'workout', name: run.name })} onShare={() => shareSession({ title: run.name, minutes: result.min, km: km || (gpsTrack.current.m >= 50 ? gpsTrack.current.m / 1000 : null), daysToTest: daysLeft }, null)} />
+      </div>
       <button className="rp-main" onClick={() => { onClose(); location.hash = '#/home'; askProgress() }}>Done</button>
     </div>
   </div>

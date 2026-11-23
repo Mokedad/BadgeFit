@@ -87,11 +87,12 @@ export function moveTo(list, from, to) {
   return out
 }
 
-// An exercise's picture on a day. A hold (half a second, then let go) opens its menu; a longer
-// hold (1.5 seconds, a buzz) lifts it, and dragging it in front of another picture moves it there
-// in the routine. A move before the first half second is a scroll, and nothing happens.
+// An exercise's picture on a day. A double tap opens its menu; a hold of one second (a buzz) lifts
+// it, and dragging it in front of another picture moves it there in the routine. A move before
+// the second is up is a scroll, and nothing happens.
+const DOUBLE_TAP_MS = 320
 function Pic({ ex, onHold, onMove, idx, faint = false }) {
-  const t = useRef(null), lift = useRef(null), g = useRef(null), me = useRef(null)
+  const t = useRef(null), lift = useRef(null), g = useRef(null), me = useRef(null), lastTap = useRef(0)
   const [drag, setDrag] = useState(null)
   const clear = () => { clearTimeout(t.current); clearTimeout(lift.current); t.current = lift.current = null }
   // A finger held down on a lifted picture must not scroll the page under it.
@@ -103,15 +104,14 @@ function Pic({ ex, onHold, onMove, idx, faint = false }) {
     return () => el.removeEventListener('touchmove', stop)
   }, [])
   const down = e => {
-    g.current = { x: e.clientX, y: e.clientY, menu: false, lifted: false }
-    t.current = setTimeout(() => { if (g.current) { g.current.menu = true; try { navigator.vibrate?.(10) } catch { /* none */ } } }, 500)
+    g.current = { x: e.clientX, y: e.clientY, at: Date.now(), lifted: false }
     if (onMove) lift.current = setTimeout(() => {
       if (!g.current) return
       g.current.lifted = true; g.current.menu = false
       try { navigator.vibrate?.([20, 40, 20]) } catch { /* none */ }
       me.current?.setPointerCapture?.(e.pointerId)
       setDrag({ dx: 0, dy: 0 })
-    }, 1500)
+    }, 1000)
   }
   const move = e => {
     const s = g.current
@@ -135,12 +135,17 @@ function Pic({ ex, onHold, onMove, idx, faint = false }) {
       if (to != null && to !== idx && to !== idx + 1) onMove(idx, to)
       return
     }
-    if (s.menu) { swallowNextClick(); onHold() }
+    // A tap: the second one close behind the first opens the menu.
+    const now = Date.now()
+    if (now - s.at < 400) {
+      if (now - lastTap.current < DOUBLE_TAP_MS) { lastTap.current = 0; swallowNextClick(); onHold() }
+      else lastTap.current = now
+    }
   }
   return <figure ref={me} data-pic={idx} className={(faint ? 'faint' : '') + (drag ? ' lifted' : '')}
     style={drag ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.08)`, zIndex: 30, position: 'relative' } : undefined}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { clear(); g.current = null; setDrag(null) }}
-    onContextMenu={e => { e.preventDefault(); onHold() }}>
+    onContextMenu={e => e.preventDefault()}>
     <Thumb ex={ex} /><figcaption>{exerciseNameFor(ex)}</figcaption>
   </figure>
 }
@@ -187,6 +192,20 @@ export default function PlanDays({ first = null }) {
     { icon: 'trash', danger: true, label: 'Remove from this workout', onClick: () => removeEx(r, i) },
     { icon: 'xmark', label: 'Keep it', onClick: () => {} },
   ] })
+  // The + on a run or walk day: the exercise goes into that day's own small routine ("Extras"),
+  // trained with the run (lib/history.js effectiveRoutineIds). Only that date changes.
+  const addExtra = iso => { const picker = exercisePicker(x => {
+    update(s => {
+      s.police = s.police || {}
+      const have = [].concat(s.police.extra?.[iso] || []).map(id => (s.routines || []).find(r => r.id === id)).find(Boolean)
+      const cfg = { id: x.id, sets: 3, mode: 'reps', repsMin: 10, reps: 12, prog: 'double', weight: 0 }
+      if (have) { have.ex = [...have.ex, cfg]; return }
+      const id = 'x' + iso.replace(/-/g, '') + Math.random().toString(36).slice(2, 6)
+      s.routines = [...(s.routines || []), { id, name: 'Extras', ex: [cfg] }]
+      s.police = { ...s.police, extra: { ...(s.police.extra || {}), [iso]: [id] } }
+    })
+    picker.close()
+  }, { title: 'Add to this day' }) }
   const add = r => { const picker = exercisePicker(x => {
     update(s => { const y = (s.routines || []).find(z => z.id === r.id); if (y) y.ex = [...y.ex, { id: x.id, sets: 3, mode: 'reps', repsMin: 10, reps: 12, prog: 'double', weight: 0 }] })
     picker.close()
@@ -206,6 +225,7 @@ export default function PlanDays({ first = null }) {
       </div>
       {/* Today, still to do: start it right here (a run is counted in by Hayden, components/CountIn.jsx). */}
       {iso === today && !d.trained && d.kind !== 'rest' && <button type="button" className="pf-go pd-go" onClick={() => (S.active ? (window.location.hash = '#/workout') : (d.gym.length ? countIn({ title: d.name, act: actForRoutine(d.gym[0]), onGo: () => startFlow(effectiveRoutineIds(S, today), { auto: true }) }) : startFlow(effectiveRoutineIds(S, today), { auto: true })))}>{S.active ? 'Resume' : 'Start'}</button>}
+      {d.gym.length > 0 && d.runs.length > 0 && EXIDX[RUN_PIC] && <div className="pd-run sm"><Thumb ex={EXIDX[RUN_PIC]} /></div>}
       {d.gym.map(r => <div key={r.id} className="pf-pics">
         {r.ex.map((e, i) => { const ex = EXIDX[e.id]; return ex ? <Pic key={e.id + i} idx={i} ex={ex} onHold={() => !past && hold(r, i, ex)} onMove={past ? null : (from, to) => reorder(r, from, to)} /> : null })}
         {!past && <button className="pd-add" onClick={() => add(r)} aria-label={'Add an exercise to ' + r.name}><Icon name="plus" /></button>}
@@ -213,6 +233,7 @@ export default function PlanDays({ first = null }) {
       {!d.gym.length && (d.kind === 'rest' || !EXIDX[RUN_PIC]
         ? <div className="pd-icon"><Icon name={d.kind === 'rest' ? 'moon' : 'figureRun'} /></div>
         : <div className="pd-run"><Thumb ex={EXIDX[RUN_PIC]} /></div>)}
+      {!d.gym.length && d.kind !== 'rest' && !past && <div className="pd-add-row"><button className="pd-add pd-add-sm" onClick={() => addExtra(iso)} aria-label="Add an exercise to this day"><Icon name="plus" /></button></div>}
       {view === 'days' && first}
     </div>
   }

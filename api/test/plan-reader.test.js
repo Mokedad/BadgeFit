@@ -27,3 +27,14 @@ test('refuses what is not a photo, not a plan, too much, or with no Gemini', asy
 test('cleans the lines', () => {
   assert.equal(cleanLines('  Run   20 min \n\n\u0007x'), 'Run 20 min\nx');
 });
+
+test('a machine photo comes back as up to three exercise names, or a no', async () => {
+  const { makeMachineReader, machineNames } = await import('../coach/plan-reader.js');
+  let sent = null;
+  const r = makeMachineReader({ keyFor: () => ({ key: 'k', base: 'https://g' }), fetchImpl: async (url, o) => { sent = JSON.parse(o.body); return answer('1. Seated cable row\n- "Lat pulldown"\nStraight arm pulldown\nFace pull')(); } });
+  assert.deepEqual(await r.read('u1', { image: img, mime: 'image/jpeg' }), { ok: true, names: ['Seated cable row', 'Lat pulldown', 'Straight arm pulldown'] });
+  assert.match(sent.contents[0].parts[1].text, /gym equipment/);
+  const no = makeMachineReader({ keyFor: () => ({ key: 'k', base: 'https://g' }), fetchImpl: answer('NOT EQUIPMENT') });
+  assert.equal((await no.read('u1', { image: img, mime: 'image/png' })).status, 422);
+  assert.deepEqual(machineNames('Leg press\n\nNOT EQUIPMENT'), ['Leg press']);
+});

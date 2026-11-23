@@ -174,6 +174,15 @@ export function buzzAsAlarm(pattern) {
     .catch(() => false)
 }
 
+// The screen kept on by the app itself (lib/wakelock.js), which Low Power Mode does not refuse the
+// way it refuses the page's Screen Wake Lock. Quietly nothing on the web or an older app.
+export function keepScreenOn(on) {
+  if (!MOBILE) return Promise.resolve(false)
+  return restPlugin()
+    .then(plugin => (plugin ? plugin.RestAlert.awake({ on: !!on }).then(() => true) : false))
+    .catch(() => false)
+}
+
 // The end tone through the native side, which ducks music for it (a page cannot). Resolves true
 // once it was handed over, false anywhere it cannot (the web, a failed call) for the caller
 // to play the page's own chime instead. Never resolves with the plugin itself — see restPlugin.

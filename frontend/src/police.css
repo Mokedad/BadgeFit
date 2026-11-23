@@ -1561,3 +1561,27 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .cm-bell-av > *:first-child{margin-left:0}
 .cm-bell .cm-bell-q{display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
 .cm-bell .cm-bell-m > span:last-child > b{display:inline}
+/* The end of a session: Community and Share as two round icons side by side (ShareWin.jsx). */
+.share-icons{display:flex;justify-content:center;gap:28px;margin:6px 0 12px}
+.share-ic{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;color:inherit;padding:0;touch-action:manipulation}
+.share-ic-c{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35)}
+.bff .share-ic-c,.fin-actions .share-ic-c{background:var(--surface-2,#f1f1f3);border-color:transparent;color:var(--label)}
+.share-ic.on .share-ic-c{background:#2fd27a;border-color:#2fd27a;color:#0b1a36}
+.share-ic small{font-size:13px;font-weight:700;opacity:.85}
+.share-ic:disabled{opacity:.6}
+/* The finished run fits one screen: splits run across, not down, and the route stays short. */
+.rp-done .rp-body{gap:10px}
+.rp-done .rp-route{max-height:120px}
+.rp-done .rp-splits{flex-direction:row;overflow-x:auto;width:100%;max-width:340px;scrollbar-width:none}
+.rp-done .rp-splits li{flex:none;gap:8px}
+.rp-done-acts{width:100%}
+/* The + on a run day (PlanDays.jsx): small, under the run's picture. */
+.pd-add-row{display:flex;justify-content:center;margin-top:10px}
+.pd-add.pd-add-sm{width:56px;height:56px;aspect-ratio:auto;font-size:22px;border-radius:50%}
+.pd-run.sm{margin:4px 0 8px}
+.pd-run.sm .thumb{width:96px;height:96px}
+/* The picker's camera and its answer (sheets.jsx ExercisePicker, BadgeFit). */
+.pick-cam{width:48px;height:48px;border-radius:14px;background:var(--surface-2,#f1f1f3);display:grid;place-items:center;font-size:22px;flex:none}
+.pick-look{margin:8px 0 4px}
+.pick-look .small{display:flex;align-items:center;gap:6px}
+.pick-filters{margin:0 0 10px;display:inline-flex;align-items:center;gap:6px}

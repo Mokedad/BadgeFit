@@ -15,19 +15,8 @@ import { endProgramme } from '../lib/programmes.js'
 import { Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { api } from '../lib/api.js'
+import { shrinkPhoto } from '../lib/police/photo.js'
 
-/** A photo made small enough to send (longest side 1600 px, JPEG), as base64. */
-async function shrinkPhoto(file) {
-  const url = URL.createObjectURL(file)
-  try {
-    const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('That photo could not be opened.')); i.src = url })
-    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight))
-    const c = document.createElement('canvas')
-    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k)
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-    return c.toDataURL('image/jpeg', 0.82).split(',')[1]
-  } finally { URL.revokeObjectURL(url) }
-}
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const WHY = {

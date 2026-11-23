@@ -8,6 +8,8 @@ import { api } from '../lib/api.js'
 import { stageOf } from '../lib/police/community.js'
 import { Button, TextArea } from './ui.jsx'
 import HaydenBot from './HaydenBot.jsx'
+import Icon from './Icon.jsx'
+import { useTapHold } from './Reactions.jsx'
 
 function ShareWinSheet({ close, text, topic }) {
   const [words, setWords] = useState(text)
@@ -38,4 +40,39 @@ export function shareWin(text, topic = 'win') {
   if (!useStore.getState().user) return false
   useUI.getState().openSheet(close => <ShareWinSheet close={close} text={text} topic={topic} />)
   return true
+}
+
+/**
+ * The end of a session: two round icons side by side. Community posts the win at once with the
+ * words already written (no second sheet to fill in) and a toast to take it back; holding it opens
+ * the words to change first. Share hands the picture card to the phone (Instagram, a chat).
+ */
+export function ShareIcons({ text, topic = 'win', onShare }) {
+  const user = useStore(s => s.user)
+  const [posted, setPosted] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const post = async () => {
+    if (busy) return
+    if (posted) { useUI.getState().toast('Already on Community'); return }
+    setBusy(true)
+    try {
+      const r = await api('/api/community/post', { method: 'POST', body: JSON.stringify({ text, topic, stage: stageOf(useStore.getState().S.police) }) })
+      const id = r?.post?.id || true
+      setPosted(id)
+      useUI.getState().toast('Posted to Community', {
+        action: 'Undo',
+        onAction: async () => {
+          try { if (typeof id === 'string') await api('/api/community/delete', { method: 'POST', body: JSON.stringify({ id }) }); setPosted(null) } catch { /* stays posted */ }
+        },
+      })
+    } catch (e) { useUI.getState().toast(e?.message || 'Could not post it right now') }
+    finally { setBusy(false) }
+  }
+  const press = useTapHold(post, () => { if (!posted) shareWin(text, topic) })
+  return <div className="share-icons">
+    {user && <button type="button" className={'share-ic' + (posted ? ' on' : '')} aria-label={posted ? 'Posted to Community' : 'Post to Community. Hold to change the words'} disabled={busy} {...press}>
+      <span className="share-ic-c"><Icon name={posted ? 'check' : 'chat'} /></span><small>Community</small></button>}
+    {onShare && <button type="button" className="share-ic" aria-label="Share" onClick={onShare}>
+      <span className="share-ic-c"><Icon name="share" /></span><small>Share</small></button>}
+  </div>
 }

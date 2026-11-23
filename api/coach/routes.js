@@ -4,7 +4,7 @@
  * are closures over the db and the session secret, and passing them in keeps this module free
  * of a cycle (and trivially testable against fakes).
  */
-import { makePlanReader } from './plan-reader.js';
+import { makePlanReader, makeMachineReader } from './plan-reader.js';
 import { makeSpeaker } from './tts.js';
 import * as cfgStore from './config.js';
 import * as jobs from './jobs.js';
@@ -32,6 +32,7 @@ const HTTP_FOR = { off: 503, busy: 409, cap: 429, consent: 403, shared: 409, unp
 export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
   const speaker = makeSpeaker();
   const planReader = makePlanReader();
+  const machineReader = makeMachineReader();
   /** Every user route starts the same way: signed in, feature on, feature reachable. The class
    *  goes beside the words, as enqueue's refusal sends it: the app shows its own translated line
    *  for the class, and these English words only where it has none. */
@@ -179,6 +180,15 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
       const r = await planReader.read(user.id, { image: body && body.image, mime: body && body.mime });
       if (!r.ok) return json(res, r.status, { error: r.error });
       json(res, 200, { text: r.text });
+    },
+
+    // The picker's camera: the machine you are at, named, the photo kept nowhere. Members only.
+    'POST /api/coach/identify': async (req, res) => {
+      const user = guard(req, res); if (!user) return;
+      const body = await readBody(req);
+      const r = await machineReader.read(user.id, { image: body && body.image, mime: body && body.mime });
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      json(res, 200, { names: r.names });
     },
 
     'POST /api/coach/ask': async (req, res) => {

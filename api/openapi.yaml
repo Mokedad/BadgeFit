@@ -3945,6 +3945,28 @@ paths:
         '422': { description: Not a training plan }
         '429': { description: Ten a day reached }
         '501': { description: The Coach is not on Gemini }
+  /api/coach/identify:
+    post:
+      tags: [coach]
+      operationId: postCoachIdentify
+      summary: Name the gym machine in a photo (BadgeFit)
+      description: |
+        A photo of the machine the member is standing at, named by the connected Gemini model as
+        up to three exercises done on it, most likely first, for the picker to add or swap in. The
+        photo is kept nowhere. Thirty a day.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [image, mime], properties: { image: { type: string, description: base64 }, mime: { type: string } } }
+      responses:
+        '200': { description: '`{ names }`' }
+        '400': { description: Not a photo }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: Too big }
+        '422': { description: No machine in it }
+        '429': { description: Thirty a day reached }
+        '501': { description: The Coach is not on Gemini }
   /api/coach/ask:
     post:
       tags: [coach]

@@ -144,6 +144,19 @@ public class RestAlertPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Keeps the screen on during a run, a test or a workout (lib/wakelock.js): { on }. */
+    @PluginMethod
+    public void awake(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        android.app.Activity act = getActivity();
+        if (act == null) { call.resolve(); return; }
+        act.runOnUiThread(() -> {
+            if (on) act.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else act.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            call.resolve();
+        });
+    }
+
     /**
      * A spoken cue in the phone's voice (lib/spoken-cues.js): { text, lang, rate, flush }. Music
      * ducks for it and comes back up (SpeechCue). Rejected when the phone has no voice to use.

@@ -248,7 +248,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.3</span>
-    <span>128 endpoints</span>
+    <span>129 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3918,6 +3918,63 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">429</span>
     <span class="p-desc">Ten a day reached</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">501</span>
+    <span class="p-desc">The Coach is not on Gemini</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-postCoachIdentify">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/coach/identify</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Name the gym machine in a photo (BadgeFit)</span>
+  </summary>
+  <div class="ep-body">
+<p>A photo of the machine the member is standing at, named by the connected Gemini model as up to three exercises done on it, most likely first, for the picker to add or swap in. The photo is kept nowhere. Thirty a day.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">image<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">base64</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">mime<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ names }</code></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Not a photo</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">Too big</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">422</span>
+    <span class="p-desc">No machine in it</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Thirty a day reached</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s5">501</span>

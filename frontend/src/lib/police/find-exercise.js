@@ -24,3 +24,21 @@ export function findExercise(name) {
   }
   return hits.map((e, i) => ({ e, s: score(e) + i * 0.01 })).sort((a, b) => a.s - b.s)[0].e.id
 }
+
+/**
+ * The exercises a machine photo was named as (api/coach/plan-reader.js MACHINE_PROMPT), as library
+ * ids for the picker: each name's best match first, then a couple more close ones, no repeats,
+ * at most `max`. `pool` limits it to what the picker can offer (a custom exercise included).
+ */
+export function machineMatches(names, { pool = CATALOGUE, max = 6 } = {}) {
+  const out = []
+  const ids = new Set(pool.map(e => e.id))
+  for (const name of [].concat(names || [])) {
+    const best = findExercise(name)
+    if (best && ids.has(best) && !out.includes(best)) out.push(best)
+  }
+  for (const name of [].concat(names || [])) {
+    for (const e of searchExercises(pool, String(name || '')).slice(0, 3)) if (!out.includes(e.id)) out.push(e.id)
+  }
+  return out.slice(0, max)
+}
