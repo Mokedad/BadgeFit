@@ -17,7 +17,7 @@ import { PaceButton, PaceLine, usePaceSound } from './PaceButton.jsx'
 import { useUI } from '../store/useUI.js'
 import { toSignIn } from '../lib/police/guest.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips } from '../lib/police/pocket.js'
+import { pocketCues, pocketSchedule, pocketClear, pocketHanded, withClips, pocketBeats, pocketBeat, pocketBeatStop } from '../lib/police/pocket.js'
 import { shareSession } from '../lib/police/share-card.js'
 import { ZONES, hrFor, runMinutes, segSeconds, seekRun, runSecondsAt, fitRun, runById } from '../lib/police/runs.js'
 import { RunLength } from './RunLength.jsx'
@@ -216,18 +216,23 @@ export default function RunPlayer({ daysLeft = null, run: given, age, onClose, o
   // Hayden in your pocket (the iPhone app): when the app leaves the screen mid-run, the phone is
   // handed the coming steps and says them itself; back on screen, the app speaks again.
   const pocket = useRef({})
-  pocket.current = { idx, on: started && !paused && !done }
+  pocket.current = { idx, on: started && !paused && !done, pace }
   useEffect(() => {
     const hand = () => {
-      if (document.visibilityState !== 'hidden') { pocketClear(); return }
       const c = pocket.current
+      if (document.visibilityState !== 'hidden') { pocketClear(); pocketBeatStop(); c.pace.hold(false); return }
+      const offset = (Date.now() - segStart.current) / 1000
       // With Hayden's own voice for every step whose clip is ready (fetched at Start, below).
-      if (c.on) withClips(pocketCues(run, c.idx, (Date.now() - segStart.current) / 1000, say), clipFor).then(pocketSchedule)
+      if (c.on) withClips(pocketCues(run, c.idx, offset, say), clipFor).then(pocketSchedule)
+      // The pace tick too: the page's sound stops once the phone locks, the phone's own does not.
+      if (c.on && c.pace.playing && c.pace.sound !== 'buzz') {
+        pocketBeat(pocketBeats(run, c.idx, offset, c.pace.gapFor).map(b => ({ ...b, vol: c.pace.vol }))).then(ok => { if (ok) c.pace.hold(true) })
+      }
     }
     document.addEventListener('visibilitychange', hand)
-    return () => { document.removeEventListener('visibilitychange', hand); pocketClear() }
+    return () => { document.removeEventListener('visibilitychange', hand); pocketClear(); pocketBeatStop() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!pocket.current.on) pocketClear() }, [paused, done])
+  useEffect(() => { if (!pocket.current.on) { pocketClear(); pocketBeatStop(); pace.hold(false) } }, [paused, done]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = segs[idx + 1]
 

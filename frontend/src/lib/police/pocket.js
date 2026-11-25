@@ -45,7 +45,7 @@ async function native() {
 export async function pocketKeep(on) {
   if (on === keeping) return
   keeping = on
-  if (!on) handed = false
+  if (!on) { handed = false; beating = false }
   const p = await native()
   try { await p?.keep({ on }) } catch { /* an older build without the plugin */ }
 }
@@ -63,6 +63,43 @@ export async function pocketClear() {
   handed = false
   const p = await native()
   try { await p?.clear() } catch { /* nothing handed */ }
+}
+
+/**
+ * The pace tick for the phone to play itself while the app is off screen (a web page goes quiet
+ * once the phone locks): the beat now, then each coming step's beat at its time, as
+ * { in: seconds from now, gap: seconds between ticks (0 is quiet) }. `gapFor(seg)` is that step's
+ * gap. Stops at a step measured by distance or with no set time: its beat carries on.
+ */
+export function pocketBeats(run, idx, offset, gapFor, max = 60) {
+  const segs = run?.segments || []
+  if (!segs[idx]) return []
+  const g = s => Math.max(0, Number(gapFor(s)) || 0)
+  const out = [{ in: 0, gap: g(segs[idx]) }]
+  if (segs[idx].sec == null) return out
+  let at = segSeconds(segs[idx]) - Math.max(0, offset)
+  for (let i = idx + 1; i < segs.length && out.length < max; i++) {
+    out.push({ in: Math.max(0.1, Math.round(at * 10) / 10), gap: g(segs[i]) })
+    if (segs[i].sec == null) break
+    at += segSeconds(segs[i])
+  }
+  return out
+}
+
+let beating = false
+/** Hands the phone the pace tick (pocketBeats, each with `vol`); false when it cannot take it. */
+export async function pocketBeat(plan) {
+  const p = await native()
+  if (!p || !keeping || !plan?.some(b => b.gap > 0)) return false
+  try { await p.beat({ plan }); beating = true; return true } catch { beating = false; return false }
+}
+
+/** Takes the tick back: the app is on screen and plays it itself again. */
+export async function pocketBeatStop() {
+  if (!beating) return
+  beating = false
+  const p = await native()
+  try { await p?.beatStop() } catch { /* an older build */ }
 }
 
 /** Whether the phone is saying the run's steps itself right now (the app keeps quiet). */

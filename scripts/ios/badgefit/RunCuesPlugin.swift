@@ -14,6 +14,9 @@ import AVFoundation
  *   play({ audio })     one clip now (base64 WAV: Hayden's natural voice from the server), with
  *                       the music turned down under it; answers { ms } when it starts
  * A scheduled cue may carry `audio` too: the clip is played, the phone's voice only without one.
+ *   beat({ plan })      the pace tick, played by the phone itself while the app is off screen:
+ *                       [{ in: seconds from now, gap: seconds between ticks (0 quiet), vol }]
+ *   beatStop()          the app is on screen again and plays the tick itself
  */
 @objc(RunCuesPlugin)
 public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
@@ -26,6 +29,8 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         CAPPluginMethod(name: "say", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "play", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hush", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "beat", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "beatStop", returnType: CAPPluginReturnPromise),
     ]
 
     private let speech = AVSpeechSynthesizer()
@@ -35,8 +40,91 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     private var timers: [Timer] = []
     private var on = false
 
+    // The pace tick: one tick and the silence after it, looped sample-exact by the audio engine.
+    private let engine = AVAudioEngine()
+    private let ticker = AVAudioPlayerNode()
+    private let tickFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+    private var tickerReady = false
+    private var beatTimers: [Timer] = []
+    private var beatGap: Double = 0
+    private var beatVol: Float = 0.35
+
     public override func load() {
         speech.delegate = self
+        // A change of audio route or session (a line being said, headphones) stops the engine.
+        NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+            guard let self = self, self.beatGap > 0 else { return }
+            self.playBeat(self.beatGap, self.beatVol)
+        }
+    }
+
+    /// One soft high tick (1900 Hz falling to 1150 Hz, 50 ms) and then silence, `gap` seconds long.
+    private func tickBuffer(_ gap: Double, _ vol: Float) -> AVAudioPCMBuffer? {
+        let rate = tickFormat.sampleRate
+        let frames = AVAudioFrameCount(max(0.12, gap) * rate)
+        guard let b = AVAudioPCMBuffer(pcmFormat: tickFormat, frameCapacity: frames), let d = b.floatChannelData?[0] else { return nil }
+        b.frameLength = frames
+        for i in 0..<Int(frames) { d[i] = 0 }
+        var phase = 0.0
+        let len = min(Int(0.05 * rate), Int(frames))
+        for i in 0..<len {
+            let t = Double(i) / rate
+            let f = 1900 * pow(1150.0 / 1900.0, min(t, 0.03) / 0.03)
+            phase += 2 * Double.pi * f / rate
+            let env = t < 0.004 ? t / 0.004 : exp(-(t - 0.004) * 150)
+            d[i] = Float(sin(phase) * env) * vol
+        }
+        return b
+    }
+
+    private func playBeat(_ gap: Double, _ vol: Float) {
+        beatGap = gap; beatVol = vol
+        ticker.stop()
+        guard gap > 0 else { return }
+        if !tickerReady {
+            engine.attach(ticker)
+            engine.connect(ticker, to: engine.mainMixerNode, format: tickFormat)
+            tickerReady = true
+        }
+        if !engine.isRunning {
+            do { try engine.start() } catch { return }
+        }
+        guard let b = tickBuffer(gap, vol) else { return }
+        ticker.scheduleBuffer(b, at: nil, options: .loops, completionHandler: nil)
+        ticker.play()
+    }
+
+    private func stopBeat() {
+        beatTimers.forEach { $0.invalidate() }
+        beatTimers = []
+        beatGap = 0
+        ticker.stop()
+        if engine.isRunning { engine.stop() }
+    }
+
+    @objc func beat(_ call: CAPPluginCall) {
+        let plan = call.getArray("plan", JSObject.self) ?? []
+        DispatchQueue.main.async {
+            self.stopBeat()
+            guard self.on else { call.reject("no session"); return }
+            for step in plan.prefix(80) {
+                let gap = (step["gap"] as? NSNumber)?.doubleValue ?? 0
+                let vol = Float((step["vol"] as? NSNumber)?.doubleValue ?? 0.35)
+                let after = (step["in"] as? NSNumber)?.doubleValue ?? 0
+                if after <= 0 { self.playBeat(gap, vol); continue }
+                let t = Timer(timeInterval: after, repeats: false) { _ in self.playBeat(gap, vol) }
+                RunLoop.main.add(t, forMode: .common)
+                self.beatTimers.append(t)
+            }
+            call.resolve()
+        }
+    }
+
+    @objc func beatStop(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.stopBeat()
+            call.resolve()
+        }
     }
 
     /// One second of silence as a WAV file in memory (8 kHz, 16-bit, mono).
@@ -86,8 +174,10 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
                     let c = AVAudioSession.sharedInstance().category
                     // Listening to the member (the microphone) has its own category: left alone.
                     if (c != .playback && c != .playAndRecord) || self.keeper?.isPlaying != true { self.startKeeper() }
+                    if self.beatGap > 0 && (!self.engine.isRunning || !self.ticker.isPlaying) { self.playBeat(self.beatGap, self.beatVol) }
                 }
             } else {
+                self.stopBeat()
                 self.dropCues()
                 self.speech.stopSpeaking(at: .immediate)
                 self.clip?.stop(); self.clip = nil

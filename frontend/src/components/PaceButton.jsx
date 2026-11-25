@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store/useStore.js'
-import { beatFor, paceSettings, paceLine, ADJ_STEP, ADJ_MAX, clampAdj, clampVol } from '../lib/police/pace-beat.js'
+import { beatFor, paceSettings, paceLine, tickGap, ADJ_STEP, ADJ_MAX, clampAdj, clampVol } from '../lib/police/pace-beat.js'
 import { createPacer, playTick } from '../lib/police/pacer.js'
 import { vibrateSupported, vibrate } from '../lib/sound.js'
 import Icon from './Icon.jsx'
@@ -25,16 +25,19 @@ export function usePaceSound({ seg, active, audio }) {
   const spm = beatFor(seg, set.adj)
   const pacer = useRef(null)
   if (!pacer.current) pacer.current = createPacer({ getCtx: () => audio?.current || null })
+  // `held`: the phone itself plays the tick while the app is off screen (lib/police/pocket.js).
+  const [held, hold] = useState(false)
   const playing = allowed && set.on && active && !!spm
   useEffect(() => {
-    if (!playing) { pacer.current.stop(); return }
+    if (!playing || held) { pacer.current.stop(); return }
     pacer.current.set({ spm, every: set.every, vol: set.vol, sound: set.sound })
-  }, [playing, spm, set.every, set.vol, set.sound])
+  }, [playing, held, spm, set.every, set.vol, set.sound])
   useEffect(() => () => pacer.current?.stop(), [])
   const save = patch => useStore.getState().update(s => {
     s.police = { ...(s.police || {}), pace: { ...paceSettings(s.police), ...patch } }
   })
-  return { ...set, spm, allowed, save, seg, audio }
+  const gapFor = sg => tickGap(beatFor(sg, set.adj), set.every)
+  return { ...set, spm, allowed, save, seg, audio, playing, hold, gapFor }
 }
 
 // A tick to hear what it sounds like, from the options: the run's own audio once it has started,

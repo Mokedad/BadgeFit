@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pocketCues, pocketSay, pocketHanded } from './pocket.js'
+import { pocketCues, pocketSay, pocketHanded, pocketBeats } from './pocket.js'
 
 const say = s => s.label
 const run = { segments: [
@@ -31,5 +31,21 @@ describe('pocketCues: the steps the phone says by itself', () => {
   it('does nothing outside the phone app', async () => {
     expect(await pocketSay('hello')).toBe(false)
     expect(pocketHanded()).toBe(false)
+  })
+})
+
+describe('pocketBeats: the pace tick the phone plays by itself', () => {
+  const gap = s => (s.kind === 'work' ? 0.36 : s.kind === 'cool' ? 0 : 0.5)
+  it('the beat now, then each coming step at its time', () => {
+    expect(pocketBeats(run, 0, 100, gap)).toEqual([
+      { in: 0, gap: 0.5 }, { in: 200, gap: 0.36 }, { in: 260, gap: 0.5 }, { in: 350, gap: 0 },
+    ])
+  })
+  it('an open run keeps one beat', () => {
+    expect(pocketBeats({ segments: [{ kind: 'work', label: 'Run', sec: null }] }, 0, 500, gap)).toEqual([{ in: 0, gap: 0.36 }])
+  })
+  it('a missing step or beat is quiet, not an error', () => {
+    expect(pocketBeats(run, 9, 0, gap)).toEqual([])
+    expect(pocketBeats(run, 3, 0, () => null)).toEqual([{ in: 0, gap: 0 }])
   })
 })
