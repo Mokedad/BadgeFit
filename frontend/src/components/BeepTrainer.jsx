@@ -10,12 +10,14 @@ import { beepSchedule, positionAt, scoreAt, timeTo } from '../lib/police/beep-ru
 import { evaluate, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL } from '../lib/police/standards.js'
 import { tonePlayer } from '../lib/police/tones.js'
 import { say, primeSpeech, preloadSpeech, stopSpeaking } from '../lib/police/voice.js'
+import { pocketRemote } from '../lib/police/pocket.js'
+import { useRemote } from './useRemote.js'
 import '../police.css'
 
 const fmt = sec => { const s = Math.max(0, Math.round(sec)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 const COUNT = 5
 
-export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_BEEP_GOAL, onClose, onSave }) {
+export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_BEEP_GOAL, remote = true, onClose, onSave }) {
   const schedule = useMemo(() => beepSchedule(), [])
   const [phase, setPhase] = useState('setup') // setup | count | run | out
   const [now, setNow] = useState(0)
@@ -33,6 +35,9 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const passT = timeTo(schedule, target), goalT = timeTo(schedule, goal)
+  // Start and I'm out from the Apple Watch or AirPods (Now Playing); Test day turns it on itself.
+  useEffect(() => { if (!remote) return; pocketRemote({ on: true, title: 'Beep test' }); return () => { pocketRemote({ on: false }) } }, [remote])
+  useRemote(c => { if (phase === 'setup' && (c === 'play' || c === 'toggle')) start(); else if (phase === 'run' && (c === 'pause' || c === 'toggle')) stop() })
 
   const tick = () => {
     const el = (performance.now() - t0.current) / 1000

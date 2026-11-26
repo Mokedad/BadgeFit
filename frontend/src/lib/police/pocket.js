@@ -102,6 +102,24 @@ export async function pocketBeatStop() {
   try { await p?.beatStop() } catch { /* an older build */ }
 }
 
+/**
+ * Test day in the phone's Now Playing: the Apple Watch's Now Playing and AirPods then start and
+ * stop the timer (RunCues remote). `title` is the test on screen, `playing` whether its clock runs.
+ */
+export async function pocketRemote({ on, title = 'Test day', playing = false }) {
+  const p = await native()
+  try { await p?.remote({ on, title, playing }) } catch { /* an older build */ }
+}
+let remoteSub = null
+const remoteFns = new Set()
+/** Calls `fn(cmd)` for each press on the watch or AirPods ('play', 'pause', 'toggle', 'next'). */
+export async function onPocketRemote(fn) {
+  remoteFns.add(fn)
+  const p = await native()
+  if (p && !remoteSub) { try { remoteSub = await p.addListener('remote', e => remoteFns.forEach(f => f(e?.cmd))) } catch { remoteSub = null } }
+  return () => remoteFns.delete(fn)
+}
+
 /** Whether the phone is saying the run's steps itself right now (the app keeps quiet). */
 export const pocketHanded = () => handed
 

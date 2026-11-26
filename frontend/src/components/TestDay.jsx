@@ -15,6 +15,11 @@ import { NumberField } from './ui.jsx'
 import { tonePlayer } from '../lib/police/tones.js'
 import { cadenceAt } from '../lib/police/pushup-cadence.js'
 import { airTime, jumpCm, gOf } from '../lib/police/jump-meter.js'
+import { pocketRemote } from '../lib/police/pocket.js'
+import { useRemote } from './useRemote.js'
+
+const wantsStart = c => c === 'play' || c === 'toggle'
+const wantsStop = c => c === 'pause' || c === 'toggle'
 import BeepTrainer from './BeepTrainer.jsx'
 import '../police.css'
 
@@ -44,12 +49,14 @@ function Stopwatch({ onStop, decimals = 0, mark = null }) {
   }, [t0])
   const el = t0 == null ? 0 : (now - t0) / 1000
   const start = () => { primeSpeech(); tones.current = makeTones(); beeped.current = 0; const n = performance.now(); setT0(n + COUNT_IN * 1000); setNow(n) }
+  const stopNow = () => { const v = Number(((performance.now() - t0) / 1000).toFixed(decimals)); setT0(null); onStop(v) }
+  useRemote(c => { if (t0 == null) { if (wantsStart(c)) start() } else if (wantsStop(c) && performance.now() >= t0) stopNow() })
   return <div className="td-sw">
     <div className={'rp-time td-time' + (mark && el > mark ? ' over' : '')}>{el < 0 ? Math.ceil(-el) : el.toFixed(decimals)}{el >= 0 && <small>s</small>}</div>
     {mark != null && <div className="td-mark" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, el / mark) * 100)}%` }} /><i>{mark} s</i></div>}
     {t0 == null
       ? <button className="pf-go" onClick={start} aria-label="Start"><Icon name="play" /></button>
-      : <button className="bt-out" aria-label="Stop" disabled={el < 0} onClick={() => { const v = Number(el.toFixed(decimals)); setT0(null); onStop(v) }}><Icon name="stop" /></button>}
+      : <button className="bt-out" aria-label="Stop" disabled={el < 0} onClick={stopNow}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -69,11 +76,14 @@ function HoldTimer({ goal = 90, onStop }) {
     return () => clearInterval(i)
   }, [t0, goal])
   const el = t0 == null ? 0 : Math.min(goal, Math.max(0, (now - t0) / 1000))
+  const begin = () => { primeSpeech(); said.current = new Set(); const n = performance.now(); setT0(n); setNow(n); say(`Hold. ${goal} seconds.`) }
+  const drop = () => { const v = Math.floor((performance.now() - t0) / 1000); setT0(null); say(`${v} seconds.`); onStop(v) }
+  useRemote(c => { if (t0 == null) { if (wantsStart(c)) begin() } else if (wantsStop(c)) drop() })
   return <div className="td-sw">
     <div className="td-ring" style={{ '--p': `${(el / goal) * 100}%` }}><div className="rp-time td-time">{Math.floor(el)}<small>/ {goal} s</small></div></div>
     {t0 == null
-      ? <button className="pf-go" onClick={() => { primeSpeech(); said.current = new Set(); const n = performance.now(); setT0(n); setNow(n); say(`Hold. ${goal} seconds.`) }} aria-label={`Start ${goal} seconds`}><Icon name="play" /></button>
-      : <button className="bt-out" aria-label="Dropped" onClick={() => { const v = Math.floor((performance.now() - t0) / 1000); setT0(null); say(`${v} seconds.`); onStop(v) }}><Icon name="stop" /></button>}
+      ? <button className="pf-go" onClick={begin} aria-label={`Start ${goal} seconds`}><Icon name="play" /></button>
+      : <button className="bt-out" aria-label="Dropped" onClick={drop}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -98,12 +108,14 @@ function PushupCadence({ goal = 25, value, onChange }) {
   }, [t0, goal])
   const c = t0 == null ? null : cadenceAt(now - t0)
   const start = () => { primeSpeech(); tones.current = makeTones(); last.current = null; onChange(0); say('Down on the low beep, up on the high beep.'); const n = performance.now(); setT0(n + (COUNT_IN + 1) * 1000); setNow(n) }
+  const stopNow = () => { const r = cadenceAt(performance.now() - t0).reps; setT0(null); onChange(r); say(`${r} push-ups.`) }
+  useRemote(c => { if (t0 == null) { if (wantsStart(c)) start() } else if (wantsStop(c)) stopNow() })
   return <div className="td-sw">
     <div className="rp-time td-time">{Number(value) || 0}<small>/ {goal}</small></div>
     {c && <div className={'td-phase ' + c.phase}>{c.phase === 'ready' ? `Get ready · ${Math.max(1, Math.ceil(-(now - t0) / 1000))}` : c.phase === 'down' ? '▼ Down' : '▲ Up'}</div>}
     {t0 == null
       ? <button className="pf-go" onClick={start} aria-label="Start to the beat"><Icon name="play" /></button>
-      : <button className="bt-out" aria-label="Stop" onClick={() => { const r = cadenceAt(performance.now() - t0).reps; setT0(null); onChange(r); say(`${r} push-ups.`) }}><Icon name="stop" /></button>}
+      : <button className="bt-out" aria-label="Stop" onClick={stopNow}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -121,6 +133,7 @@ function JumpMeter({ onResult }) {
     setPhase('done')
     if (cm) { onResult(cm); say(`About ${cm} centimetres.`) } else say('No jump felt. Try again.')
   }
+  useRemote(c => { if ((phase === 'idle' || phase === 'done') && wantsStart(c)) start(); else if (phase === 'jump' && wantsStop(c)) finish() })
   const start = async () => {
     primeSpeech()
     try {
@@ -217,7 +230,12 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
 
   const sum = step >= TEST_ORDER.length ? testDaySummary(vals, target) : null
 
-  if (beep) return <BeepTrainer target={target} goal={goal} onClose={() => setBeep(false)} onSave={s => { setVals(o => ({ ...o, beep: s })); setBeep(false) }} />
+  // The Apple Watch and AirPods start and stop the clock (Now Playing), for testing alone.
+  useEffect(() => { if (std) pocketRemote({ on: true, title: std.name }) }, [std])
+  useEffect(() => () => { pocketRemote({ on: false }) }, [])
+  useRemote(c => { if (c !== 'next' || beep) return; if (resting) setResting(null); else if (std) next() })
+
+  if (beep) return <BeepTrainer remote={false} target={target} goal={goal} onClose={() => setBeep(false)} onSave={s => { setVals(o => ({ ...o, beep: s })); setBeep(false) }} />
 
   return <div className="rp td rp-warm" role="dialog" aria-label="Test day">
     <div className="rp-top">

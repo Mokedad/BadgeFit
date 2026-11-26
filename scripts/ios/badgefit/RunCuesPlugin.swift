@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import AVFoundation
+import MediaPlayer
 
 /**
  * Hayden in your pocket (frontend/src/lib/police/pocket.js): his voice with the screen locked or
@@ -17,6 +18,9 @@ import AVFoundation
  *   beat({ plan })      the pace tick, played by the phone itself while the app is off screen:
  *                       [{ in: seconds from now, gap: seconds between ticks (0 quiet), vol }]
  *   beatStop()          the app is on screen again and plays the tick itself
+ *   remote({ on, title, playing })  Test day in the phone's Now Playing, so the Apple Watch (its
+ *                       Now Playing) and AirPods start and stop the timer: "remote" events
+ *                       { cmd: play | pause | toggle | next }. Not mixed with other audio while on.
  */
 @objc(RunCuesPlugin)
 public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
@@ -31,6 +35,7 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         CAPPluginMethod(name: "hush", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beat", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "beatStop", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "remote", returnType: CAPPluginReturnPromise),
     ]
 
     private let speech = AVSpeechSynthesizer()
@@ -39,6 +44,7 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     private var watch: Timer?
     private var timers: [Timer] = []
     private var on = false
+    private var remoteOn = false
 
     // The pace tick: one tick and the silence after it, looped sample-exact by the audio engine.
     private let engine = AVAudioEngine()
@@ -120,6 +126,51 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         }
     }
 
+    @objc func remote(_ call: CAPPluginCall) {
+        let want = call.getBool("on") ?? false
+        let title = call.getString("title") ?? "Test day"
+        let playing = call.getBool("playing") ?? false
+        DispatchQueue.main.async {
+            let cc = MPRemoteCommandCenter.shared()
+            if want {
+                if !self.remoteOn {
+                    self.remoteOn = true
+                    self.session(duck: false)
+                    if self.keeper == nil {
+                        self.keeper = try? AVAudioPlayer(data: RunCuesPlugin.silence())
+                        self.keeper?.numberOfLoops = -1
+                        self.keeper?.volume = 0
+                    }
+                    self.keeper?.play()
+                    let pairs: [(MPRemoteCommand, String)] = [(cc.playCommand, "play"), (cc.pauseCommand, "pause"), (cc.togglePlayPauseCommand, "toggle"), (cc.nextTrackCommand, "next")]
+                    for (command, name) in pairs {
+                        command.isEnabled = true
+                        command.addTarget { [weak self] _ in
+                            self?.notifyListeners("remote", data: ["cmd": name])
+                            return .success
+                        }
+                    }
+                }
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+                    MPMediaItemPropertyTitle: title,
+                    MPMediaItemPropertyArtist: "BadgeFit",
+                    MPNowPlayingInfoPropertyPlaybackRate: playing ? 1.0 : 0.0,
+                ]
+            } else if self.remoteOn {
+                self.remoteOn = false
+                for command in [cc.playCommand, cc.pauseCommand, cc.togglePlayPauseCommand, cc.nextTrackCommand] {
+                    command.removeTarget(nil)
+                }
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+                if self.on { self.session(duck: false) } else {
+                    self.keeper?.stop(); self.keeper = nil
+                    try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+                }
+            }
+            call.resolve()
+        }
+    }
+
     @objc func beatStop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             self.stopBeat()
@@ -146,7 +197,8 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     /// beside other audio. `duck`: other audio turned down (while a line is being said).
     private func session(duck: Bool) {
         let s = AVAudioSession.sharedInstance()
-        let options: AVAudioSession.CategoryOptions = duck ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
+        // Now Playing (remote) needs the app's own, unmixed session; otherwise it plays beside the music.
+        let options: AVAudioSession.CategoryOptions = remoteOn ? [] : duck ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
         try? s.setCategory(.playback, mode: duck ? .voicePrompt : .default, options: options)
         try? s.setActive(true)
     }
