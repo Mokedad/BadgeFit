@@ -18,7 +18,8 @@ export function lastTrained(S) {
 /** What the crew sees of you. null when you have no test date (then there is no crew to be in). */
 export function crewCard(S, user, now = new Date()) {
   const P = S?.police || {}
-  if (!P.testDate) return null
+  // On the Academy path the date is the Academy's first day: not a PCT crew to join.
+  if (!P.testDate || P.track === 'academy') return null
   const lt = lastTrained(S)
   return {
     test: P.testDate,

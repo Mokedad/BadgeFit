@@ -103,7 +103,8 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
   const nav = useNavigate()
   const ready = readiness(P.results, P.beepTarget)
   const pw = planWeekOf(P, todayISO())
-  const testName = (P.testName || '').trim() || 'PCT'
+  // On the Academy path the date is the Academy's first day (Setup), unless it is still the passed PCT's.
+  const testName = P.track === 'academy' && P.afterTest === 'passed' && (!P.testDate || P.testDate >= todayISO()) ? 'Academy start' : (P.testName || '').trim() || 'PCT'
   const week = pw.week
   const dow = new Date().getDay()
   const plan = P.level && week ? weekPlan(P.level, week, P.age, planOptsOf(P)) : null
@@ -126,7 +127,7 @@ function Today({ S, user, P, setTab, startRun, openTest }) {
             ? `Your ${testName} is this week. Light training and good recovery: half the sets, same intensity, nothing to failure, sleep 8 hours, eat well. Arrive fresh.`
             : P.testDate
               ? `Your plan is ${pw.last} weeks, up to your ${testName}${pw.last > WEEKS ? ' (the 12-week cycle repeats, ending on test day)' : ''}. Week ${pw.last} is your final week: light training. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}.`
-              : `No test date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
+              : `No ${P.track === 'academy' ? 'Academy' : 'test'} date yet, so a 12-week plan in 3 phases. Phase ${plan.phase.n}: ${PHASE_WORDS[plan.phase.n]}. Lifts in the ${plan.phase.range} rep range.`}</p>
       {/* Today as Home and Plan have it (lib/police/today-now.js): the real schedule, swaps and
           all, and done the same way, so a session finished here is done there too. */}
       {(() => {
@@ -432,36 +433,62 @@ function Setup({ S, P }) {
   const update = useStore(s => s.update)
   const setP = usePolice()
   const guest = !useStore(s => s.user) && !DEMO
+  // Where they are: training for the PCT, or passed it and heading to the Academy (its own plan,
+  // lib/police/programme.js academyWeek, ending on the Academy's first day when a date is set).
+  const [path, setPath] = useState(P.track === 'academy' ? 'academy' : 'pct')
+  const academy = path === 'academy'
   const [level, setLevel] = useState(guest ? 'beginner' : P.level || 'beginner')
   const [date, setDate] = useState(P.testDate || '')
   const [kg, setKg] = useState(P.weightKg ?? null)
+  const [style, setStyle] = useState(P.academyStyle === 'nogym' ? 'nogym' : 'gym')
   // New to running: the first four weeks jog and walk in turns (weekPlan, opts.runWalk).
   const [jog, setJog] = useState(P.runWalk ? 'no' : 'yes')
+  const pick = id => {
+    if (id === 'academy' && guest) { membersOnly(); return }
+    setPath(id)
+    if (id !== path) setDate('')
+  }
   const build = () => {
+    if (academy) {
+      update(s => {
+        installPlanIn(s, { level, choice: 'badgefit', date, kg, track: 'academy', noGym: style === 'nogym' })
+        s.police = { ...s.police, afterTest: 'passed', stage: 'passed', runWalk: false }
+      })
+      useUI.getState().toast(date ? 'Academy prep starts now. Your plan ends on your first day.' : 'Academy prep starts now: 12 weeks, more running, more lifting.')
+      return
+    }
     installPlan(update, P, { level, choice: 'badgefit', date, kg })
     setP({ runWalk: level === 'beginner' && jog === 'no' })
     useUI.getState().toast(date ? 'Week 1 starts now. Your plan ends on your test week.' : 'Your 12 weeks start today. Let us get to work.')
   }
   return <div className="card pf-welcome">
+    <div className="pf-choice pf-path">
+      <button className={!academy ? 'on' : ''} onClick={() => pick('pct')}><b><Icon name="target" /> PCT</b><small>Training for the test</small></button>
+      <button className={academy ? 'on' : ''} onClick={() => pick('academy')}><b><Icon name="shield" /> Academy</b><small>{guest ? 'Members · sign up to unlock' : 'Passed, heading in'}</small></button>
+    </div>
     <p className="pf-q">1. Where are you now?</p>
     <div className="pf-choice">
       <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>New to training</b><small>Or it has been a while</small></button>
       <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? 'Members' : 'I train regularly'}</b><small>{guest ? 'Sign up to unlock' : '6 months or more'}</small></button>
     </div>
-    {level === 'beginner' && <>
+    {!academy && level === 'beginner' && <>
       <p className="pf-q">Can you jog 20 minutes without stopping?</p>
       <div className="pf-choice">
         <button className={jog === 'yes' ? 'on' : ''} onClick={() => setJog('yes')}><b>Yes</b><small>Start with runs</small></button>
         <button className={jog === 'no' ? 'on' : ''} onClick={() => setJog('no')}><b>Not yet</b><small>Start with jog and walk</small></button>
       </div>
     </>}
-    <p className="pf-q">2. Test date <small>(if booked)</small></p>
-    <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="PCT date" />
+    {academy && <>
+      <p className="pf-q">Where do you train?</p>
+      <div className="pf-choice">{ACADEMY_STYLES.map(c => <button key={c.id} className={style === c.id ? 'on' : ''} onClick={() => setStyle(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
+    </>}
+    <p className="pf-q">2. {academy ? 'Academy start' : 'Test date'} <small>(if booked)</small></p>
+    <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label={academy ? 'Academy start date' : 'PCT date'} />
     <p className="pf-q">3. Weight in kg</p>
     <NumberField value={kg} nullable onChange={setKg} aria-label="Weight in kg" />
     <button className="pf-go" onClick={build}>Start my plan</button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
-    <button className="pf-link" onClick={() => setP({ level, start: P.start || planStart(date || null, todayISO()), planV: 3, ...(date ? { testDate: date } : {}) })}>Just show me the plan, I will track it myself</button>
+    {!academy && <button className="pf-link" onClick={() => setP({ level, start: P.start || planStart(date || null, todayISO()), planV: 3, ...(date ? { testDate: date } : {}) })}>Just show me the plan, I will track it myself</button>}
   </div>
 }
 
