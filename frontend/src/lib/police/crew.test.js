@@ -16,8 +16,9 @@ describe('your crew card', () => {
   it('is nothing without a test date', () => {
     expect(crewCard({ ...S, police: {} }, { name: 'Jess' })).toBe(null)
   })
-  it('is nothing on the Academy path, whose date is the Academy start', () => {
-    expect(crewCard({ ...S, police: { ...S.police, track: 'academy' } }, { name: 'Jess' })).toBe(null)
+  it('on the Academy path it is an intake crew of its own', () => {
+    expect(crewCard({ ...S, police: { ...S.police, track: 'academy' } }, { name: 'Jess' }).kind).toBe('academy')
+    expect(crewCard(S, { name: 'Jess' }).kind).toBe('pct')
   })
   it('picks the later of a workout and a run', () => {
     expect(lastTrained({ workouts: [{ d: '2026-11-24', name: 'Legs' }], police: { runLog: [{ at: '2026-11-23' }] } })).toEqual({ last: '2026-11-24', title: 'Legs' })

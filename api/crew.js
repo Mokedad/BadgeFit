@@ -24,7 +24,7 @@ export function cleanCrewCard(c, user) {
   const name = clean(c?.name || user?.name || 'Recruit', 40).replace(/[^\p{L}\p{N} '-]/gu, '').trim().split(/\s+/)[0].slice(0, 20) || 'Recruit';
   const colour = /^#[0-9a-f]{6}$/i.test(c?.colour || '') ? c.colour : '#9aa3b2';
   const last = ISO.test(c?.last || '') ? c.last : null;
-  return { test, name, colour, ready: int(c?.ready, 0, 100), last, title: clean(c?.title, 60), tz: int(c?.tz, -840, 840) };
+  return { test, kind: kindOf(c?.kind), name, colour, ready: int(c?.ready, 0, 100), last, title: clean(c?.title, 60), tz: int(c?.tz, -840, 840) };
 }
 
 /** The member's local date and hour from a UTC instant and their offset (minutes east of UTC). */
@@ -34,7 +34,9 @@ export function localOf(ms, tz = 0) {
 }
 
 /** Whether two test dates are within a day of each other. */
-export const sameCrew = (a, b) => !!a && !!b && Math.abs(dayNum(a) - dayNum(b)) <= WINDOW_DAYS;
+// A PCT crew and an Academy intake crew never mix: a card without a kind is a PCT one (older builds).
+export const kindOf = k => (k === 'academy' ? 'academy' : 'pct');
+export const sameCrew = (a, b, ka = 'pct', kb = 'pct') => !!a && !!b && kindOf(ka) === kindOf(kb) && Math.abs(dayNum(a) - dayNum(b)) <= WINDOW_DAYS;
 
 /** Stores the member's card. Returns the card kept, or null when there was no date. */
 export function join(store, user, card, now = Date.now()) {
@@ -58,13 +60,13 @@ export function leave(store, user, on = true) {
  */
 export function list(store, user, { handle = uid => uid, hidden = () => false, now = Date.now() } = {}) {
   const me = store.cards[user.id];
-  if (!me || store.off[user.id]) return { test: me?.test || null, off: !!store.off[user.id], crew: [] };
+  if (!me || store.off[user.id]) return { test: me?.test || null, kind: kindOf(me?.kind), off: !!store.off[user.id], crew: [] };
   const crew = Object.entries(store.cards)
-    .filter(([uid, c]) => uid !== user.id && !store.off[uid] && sameCrew(me.test, c.test) && !hidden(user.id, uid))
-    .map(([uid, c]) => ({ id: handle(uid), name: c.name, colour: c.colour, ready: c.ready, last: c.last, title: c.title, test: c.test, today: !!c.last && c.last === localOf(now, c.tz).day }))
+    .filter(([uid, c]) => uid !== user.id && !store.off[uid] && sameCrew(me.test, c.test, me.kind, c.kind) && !hidden(user.id, uid))
+    .map(([uid, c]) => ({ id: handle(uid), name: c.name, colour: c.colour, ready: c.ready, last: c.last, title: c.title, test: c.test, kind: kindOf(c.kind), today: !!c.last && c.last === localOf(now, c.tz).day }))
     .sort((a, b) => Number(b.today) - Number(a.today) || b.ready - a.ready || a.name.localeCompare(b.name))
     .slice(0, MAX_CREW);
-  return { test: me.test, off: false, crew };
+  return { test: me.test, kind: kindOf(me.kind), off: false, crew };
 }
 
 /** The account ids of the member's crew (the Crew feed on Community): the same people as list(). */
@@ -72,7 +74,7 @@ export function memberIds(store, user, { hidden = () => false } = {}) {
   const me = store.cards[user.id];
   if (!me || store.off[user.id]) return [];
   return Object.entries(store.cards)
-    .filter(([uid, c]) => uid !== user.id && !store.off[uid] && sameCrew(me.test, c.test) && !hidden(user.id, uid))
+    .filter(([uid, c]) => uid !== user.id && !store.off[uid] && sameCrew(me.test, c.test, me.kind, c.kind) && !hidden(user.id, uid))
     .map(([uid]) => uid);
 }
 
@@ -85,7 +87,7 @@ export function pingTargets(store, user, { hidden = () => false, now = Date.now(
   if (!me || store.off[user.id]) return [];
   const out = [];
   for (const [uid, c] of Object.entries(store.cards)) {
-    if (uid === user.id || store.off[uid] || !sameCrew(me.test, c.test) || hidden(user.id, uid)) continue;
+    if (uid === user.id || store.off[uid] || !sameCrew(me.test, c.test, me.kind, c.kind) || hidden(user.id, uid)) continue;
     const { day, hour } = localOf(now, c.tz);
     if (hour >= QUIET_FROM || hour < QUIET_TO) continue;
     if (store.pinged[uid] === day) continue;

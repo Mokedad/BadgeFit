@@ -3520,7 +3520,7 @@ paths:
             schema:
               type: object
               properties:
-                card: { type: object, properties: { test: { type: string }, name: { type: string }, colour: { type: string }, ready: { type: integer }, last: { type: string }, title: { type: string }, tz: { type: integer } } }
+                card: { type: object, properties: { test: { type: string }, kind: { type: string, enum: [pct, academy], description: 'pct (default) or academy: an Academy intake crew, matched only with its own' }, name: { type: string }, colour: { type: string }, ready: { type: integer }, last: { type: string }, title: { type: string }, tz: { type: integer } } }
                 done: { type: boolean }
       responses:
         '200': { description: '`{ test, off, crew: [{ id, name, colour, ready, last, title, today }] }`' }

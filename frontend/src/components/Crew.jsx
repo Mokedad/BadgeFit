@@ -14,7 +14,9 @@ import Icon from './Icon.jsx'
 import { create } from 'zustand'
 
 const EVERY_MS = 120000
-export const useCrew = create(() => ({ test: null, off: false, crew: [], at: 0 }))
+export const useCrew = create(() => ({ test: null, kind: 'pct', off: false, crew: [], at: 0 }))
+// The words for a crew: a PCT crew tests on the date, an Academy intake starts on it.
+const verbOf = kind => (kind === 'academy' ? 'Starting' : 'Testing')
 
 /** Sends your card and keeps the crew fresh: now, on coming back, every two minutes while open. */
 function useCrewSync() {
@@ -37,7 +39,7 @@ function useCrewSync() {
       try {
         const r = await api('/api/crew', { method: 'POST', body: JSON.stringify({ card, ...(done ? { done: true } : {}) }) })
         if (done) markDoneTold(today)
-        if (!stop && r) useCrew.setState({ test: r.test, off: !!r.off, crew: r.crew || [], at: Date.now() })
+        if (!stop && r) useCrew.setState({ test: r.test, kind: r.kind || 'pct', off: !!r.off, crew: r.crew || [], at: Date.now() })
       } catch { /* offline: the last crew stays */ }
     }
     push()
@@ -60,13 +62,13 @@ function Face({ c, size = 34, you = false, ring = 'today' }) {
 
 export function CrewStrip() {
   const on = useCrewSync()
-  const { test, off, crew } = useCrew()
+  const { test, kind, off, crew } = useCrew()
   if (!on || off || !test) return null
   // Alone on the date: nothing to show, nothing to miss.
   if (!crew.length) return null
-  return <button type="button" className="crew-strip" onClick={() => openCrew()} aria-label={`Your crew: testing ${crewDate(test)} with you. ${crewLine(crew)}`}>
+  return <button type="button" className="crew-strip" onClick={() => openCrew()} aria-label={`Your crew: ${verbOf(kind).toLowerCase()} ${crewDate(test)} with you. ${crewLine(crew)}`}>
     <span className="crew-faces">{crew.slice(0, 4).map(c => <Face key={c.id} c={c} />)}{crew.length > 4 && <span className="crew-more">+{crew.length - 4}</span>}</span>
-    <span className="crew-t"><b>Testing {crewDate(test)} with you</b><span>{crewLine(crew)}</span></span>
+    <span className="crew-t"><b>{verbOf(kind)} {crewDate(test)} with you</b><span>{crewLine(crew)}</span></span>
     <Icon name="chevronRight" className="crew-chev" />
   </button>
 }
@@ -93,7 +95,7 @@ function Mate({ c, me }) {
 }
 
 function CrewSheet({ close }) {
-  const { test, crew } = useCrew()
+  const { test, kind, crew } = useCrew()
   const S = useStore(s => s.S), user = useStore(s => s.user)
   const me = crewCard(S, user)
   const mine = me ? { ...me, id: 'me', today: me.last === todayISO() } : null
@@ -102,7 +104,7 @@ function CrewSheet({ close }) {
   }
   return <div className="crew-sheet">
     <h3><span aria-hidden="true">🎯</span> {crewDateLong(test)}</h3>
-    <p className="crew-sub">{crew.length + 1} of you test that day</p>
+    <p className="crew-sub">{crew.length + 1} of you {kind === 'academy' ? 'start' : 'test'} that day</p>
     {mine && <Mate c={mine} me />}
     {crew.map(c => <Mate key={c.id} c={c} />)}
     <p className="crew-hint">Tap <ReactIcon id="fire" size={18} /> to cheer. Hold a name for their Hayden.</p>
@@ -130,9 +132,10 @@ export function CrewPop({ c, onDone, onStart }) {
     t.current = setTimeout(onDone, 700)
   }
   const test = useCrew(s => s.test)
+  const kind = useCrew(s => s.kind)
   return <div className="crew-pop">
     <span className="crew-pop-h" aria-hidden="true">H</span>
-    <span className="crew-pop-t"><b>{c.from} just trained{c.what ? `: ${c.what.toLowerCase()}` : ''}</b><span>{test ? `Testing ${crewDate(test)} with you. ` : 'Testing with you. '}Your turn?</span></span>
+    <span className="crew-pop-t"><b>{c.from} just trained{c.what ? `: ${c.what.toLowerCase()}` : ''}</b><span>{test ? `${verbOf(kind)} ${crewDate(test)} with you. ` : `${verbOf(kind)} with you. `}Your turn?</span></span>
     <button type="button" className={'crew-pop-b' + (sent ? ' on' : '')} aria-label={`Send fire to ${c.from}`} onClick={fire}><ReactIcon id="fire" size={24} /></button>
     <button type="button" className="crew-pop-b go" aria-label="Start today's session" onClick={() => { onDone(); onStart() }}><Icon name="play" /></button>
   </div>

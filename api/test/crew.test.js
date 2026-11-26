@@ -11,7 +11,7 @@ test('a card is cleaned and needs a test date', () => {
   const s = crew.empty();
   assert.equal(crew.join(s, ann, { name: 'x', ready: 50 }), null);
   const c = crew.join(s, ann, { test: '2026-12-06', name: ' Ann <b>Smith', colour: '#ffc629', ready: 162, last: '2026-11-23', title: 'Intervals\u0007', tz: SYD }, NOON);
-  assert.deepEqual(c, { test: '2026-12-06', name: 'Ann', colour: '#ffc629', ready: 100, last: '2026-11-23', title: 'Intervals', tz: SYD });
+  assert.deepEqual(c, { test: '2026-12-06', kind: 'pct', name: 'Ann', colour: '#ffc629', ready: 100, last: '2026-11-23', title: 'Intervals', tz: SYD });
 });
 
 test('the crew is the people within a day of your date, today first, blocked ones out', () => {
@@ -35,7 +35,7 @@ test('leaving hides you from the crew and the crew from you', () => {
   crew.join(s, bob, { test: '2026-12-06', tz: SYD }, NOON);
   crew.leave(s, bob, true);
   assert.deepEqual(crew.list(s, ann, { now: NOON }).crew, []);
-  assert.deepEqual(crew.list(s, bob, { now: NOON }), { test: '2026-12-06', off: true, crew: [] });
+  assert.deepEqual(crew.list(s, bob, { now: NOON }), { test: '2026-12-06', kind: 'pct', off: true, crew: [] });
   crew.leave(s, bob, false);
   assert.equal(crew.list(s, ann, { now: NOON }).crew.length, 1);
 });
@@ -73,4 +73,16 @@ test('memberIds: the crew as account ids, for the Crew feed, without the hidden 
   crew.leave(s, { id: 'd' });
   assert.deepEqual(crew.memberIds(s, { id: 'me' }, { hidden: (x, y) => y === 'b' }).sort(), ['a']);
   assert.deepEqual(crew.memberIds(s, { id: 'nobody' }), []);
+});
+
+test('an Academy intake is its own crew: never matched with PCT candidates on the same day', () => {
+  const s = crew.empty();
+  const card = (test, name, kind) => ({ test, kind, name, colour: '#123456', ready: 50, tz: 600 });
+  crew.join(s, { id: 'me', name: 'Me' }, card('2027-02-15', 'Me', 'academy'));
+  crew.join(s, { id: 'a', name: 'Ann' }, card('2027-02-15', 'Ann', 'academy'));
+  crew.join(s, { id: 'p', name: 'Pat' }, card('2027-02-15', 'Pat', 'pct'));
+  crew.join(s, { id: 'old', name: 'Old' }, { test: '2027-02-15', name: 'Old', colour: '#123456', ready: 1, tz: 0 });
+  assert.deepEqual(crew.memberIds(s, { id: 'me' }).sort(), ['a']);
+  assert.deepEqual(crew.memberIds(s, { id: 'p' }).sort(), ['old']);
+  assert.equal(crew.list(s, { id: 'me' }).kind, 'academy');
 });
