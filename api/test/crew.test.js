@@ -61,3 +61,16 @@ test('Ann is told when Bob trains, and the next day again', () => {
   crew.forgetUser(s, 'u1');
   assert.deepEqual(crew.pingTargets(s, bob, { now: NOON + 5 * 86400000 }), []);
 });
+
+test('memberIds: the crew as account ids, for the Crew feed, without the hidden or the out', () => {
+  const s = crew.empty();
+  const card = (test, name) => ({ test, name, colour: '#123456', ready: 50, tz: 600 });
+  crew.join(s, { id: 'me', name: 'Me' }, card('2026-12-06', 'Me'));
+  crew.join(s, { id: 'a', name: 'Ann' }, card('2026-12-07', 'Ann'));
+  crew.join(s, { id: 'b', name: 'Bob' }, card('2026-12-06', 'Bob'));
+  crew.join(s, { id: 'c', name: 'Cat' }, card('2027-01-20', 'Cat'));
+  crew.join(s, { id: 'd', name: 'Dee' }, card('2026-12-06', 'Dee'));
+  crew.leave(s, { id: 'd' });
+  assert.deepEqual(crew.memberIds(s, { id: 'me' }, { hidden: (x, y) => y === 'b' }).sort(), ['a']);
+  assert.deepEqual(crew.memberIds(s, { id: 'nobody' }), []);
+});

@@ -67,6 +67,15 @@ export function list(store, user, { handle = uid => uid, hidden = () => false, n
   return { test: me.test, off: false, crew };
 }
 
+/** The account ids of the member's crew (the Crew feed on Community): the same people as list(). */
+export function memberIds(store, user, { hidden = () => false } = {}) {
+  const me = store.cards[user.id];
+  if (!me || store.off[user.id]) return [];
+  return Object.entries(store.cards)
+    .filter(([uid, c]) => uid !== user.id && !store.off[uid] && sameCrew(me.test, c.test) && !hidden(user.id, uid))
+    .map(([uid]) => uid);
+}
+
 /**
  * Who to tell that the member just trained: crewmates not yet pinged today (their day), and not
  * in their quiet hours. Marks them pinged. The caller sends the cheer.

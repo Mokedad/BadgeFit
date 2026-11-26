@@ -3750,6 +3750,7 @@ paths:
         - { name: area, in: query, schema: { type: string, enum: [pct, apply, academy, grads] }, description: Only this topic area }
         - { name: q, in: query, schema: { type: string }, description: Words to find in posts, replies and plan names }
         - { name: following, in: query, schema: { type: string }, description: 'Set to 1: only people you follow' }
+        - { name: crew, in: query, schema: { type: string }, description: 'Set to 1: only you and your crew (people testing within a day of your date)' }
         - name: before
           in: query
           required: false

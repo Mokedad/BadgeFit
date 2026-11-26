@@ -1,6 +1,6 @@
 // The BadgeFit community (api/community.js): one place for applicants, recruits and graduates.
 // The people you follow stand at the top as their bots (a green ring while they train); under
-// them one feed, Everyone or Following. A post is words, today's session, or a plan to follow.
+// them one feed, Everyone, Following or Crew (the people testing on your date, components/Crew.jsx). A post is words, today's session, or a plan to follow.
 // Text is shown as text (React escapes it; nothing is rendered as HTML or as a link). No photos.
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +28,7 @@ import { ReactIcon, ReactBar, ReactSummary, REACTIONS, useTapHold } from '../com
 import { buildBell } from '../lib/police/bell.js'
 import SwipeAway from '../components/SwipeAway.jsx'
 import { communityPost } from '../components/CommunityRules.jsx'
+import { useCrew, CrewStrip } from '../components/Crew.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
@@ -461,7 +462,8 @@ export default function Community() {
   const [posts, setPosts] = useState(null)
   const [error, setError] = useState(null)
   const [more, setMore] = useState(true)
-  const [tab, setTab] = useState('all')
+  // The crew sheet's "Crew posts" opens straight on the Crew feed (components/Crew.jsx).
+  const [tab, setTab] = useState(() => { try { const t = sessionStorage.getItem('cm_tab'); sessionStorage.removeItem('cm_tab'); return t === 'crew' ? 'crew' : 'all' } catch { return 'all' } })
   const [area, setArea] = useState(null)
   const [searching, setSearching] = useState(false)
   const [q, setQ] = useState('')
@@ -469,7 +471,7 @@ export default function Community() {
 
   const load = async before => {
     try {
-      const qs = [before && 'before=' + before, tab === 'following' && 'following=1', area && 'area=' + area, q.trim() && 'q=' + encodeURIComponent(q.trim())].filter(Boolean).join('&')
+      const qs = [before && 'before=' + before, tab === 'following' && 'following=1', tab === 'crew' && 'crew=1', area && 'area=' + area, q.trim() && 'q=' + encodeURIComponent(q.trim())].filter(Boolean).join('&')
       const r = await api('/api/community' + (qs ? '?' + qs : ''))
       setPosts(prev => (before ? [...(prev || []), ...r.posts] : r.posts))
       setMore(r.posts.length >= 50)
@@ -478,6 +480,10 @@ export default function Community() {
   }
   // Typing in the search waits a moment before asking.
   useEffect(() => { if (!user) return; const t = setTimeout(() => { setPosts(null); load() }, q ? 350 : 0); return () => clearTimeout(t) }, [user, tab, area, q]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The crew (components/Crew.jsx): its own feed here, the same people as Home's strip.
+  const crewN = useCrew(c => (c.off || !c.test ? 0 : c.crew.length))
+  useEffect(() => { if (user && !useCrew.getState().test) api('/api/crew').then(r => r && useCrew.setState({ test: r.test, off: !!r.off, crew: r.crew || [], at: Date.now() })).catch(() => {}) }, [user])
+  useEffect(() => { if (tab === 'crew' && !crewN) setTab('all') }, [tab, crewN])
   useEffect(() => { if (user) api('/api/bell').then(r => setPeople(r?.people || [])).catch(() => {}) }, [user, live.length])
   const update = (id, next) => setPosts(prev => (next ? prev.map(p => (p.id === id ? next : p)) : prev.filter(p => p.id !== id)))
   const pickArea = () => menuSheet({ title: 'Show', sections: [{ items: [{ icon: 'list', label: 'Everything', on: !area, onClick: () => setArea(null) }, ...AREAS.map(a => ({ icon: 'dot', label: a.label, on: area === a.id, onClick: () => setArea(a.id) }))] }] })
@@ -512,11 +518,13 @@ export default function Community() {
           <div className="cm-tabs" role="tablist">
             <button role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>Everyone</button>
             <button role="tab" aria-selected={tab === 'following'} className={tab === 'following' ? 'on' : ''} onClick={() => setTab('following')}>Following</button>
+            {crewN > 0 && <button role="tab" aria-selected={tab === 'crew'} className={tab === 'crew' ? 'on' : ''} onClick={() => setTab('crew')}>Crew <span className="cm-tab-n">{crewN + 1}</span></button>}
             {area && <button className="cm-tab-area" onClick={() => setArea(null)}>{AREAS.find(a => a.id === area)?.label} <Icon name="xmark" /></button>}
           </div>
+          {tab === 'crew' && <CrewStrip />}
           {error && <p className="pf-warn pf-pad">Could not load the feed: {error}</p>}
           {posts === null && !error && <p className="pf-sub pf-pad">Loading</p>}
-          {posts?.length === 0 && <div className="card"><h3>{q ? 'Nothing found' : tab === 'following' ? 'Nobody you follow has posted yet' : 'Be the first'}</h3><p className="pf-sub">{tab === 'following' && !q ? 'Tap a name in Everyone to follow someone.' : 'Tap + Post to share where you are starting from.'}</p></div>}
+          {posts?.length === 0 && <div className="card"><h3>{q ? 'Nothing found' : tab === 'following' ? 'Nobody you follow has posted yet' : tab === 'crew' ? 'Your crew is quiet' : 'Be the first'}</h3><p className="pf-sub">{tab === 'following' && !q ? 'Tap a name in Everyone to follow someone.' : tab === 'crew' ? 'Same test date, same goal. Tap + to say hi.' : 'Tap + Post to share where you are starting from.'}</p></div>}
           {posts?.map(p => <Post key={p.id} p={p} me={me} admin={!!user?.admin} openPerson={openPerson} onChange={next => update(p.id, next)} />)}
           {posts?.length > 0 && more && <Button onClick={() => load(posts.at(-1).at)}>Older posts</Button>}
         </>}

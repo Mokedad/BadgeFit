@@ -1671,3 +1671,5 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .cr-go { width: 100%; }
 .pf-path{margin-bottom:4px}.pf-path b{font-size:17px}
 .pf-path b{display:inline-flex;align-items:center;gap:6px}.pf-path b svg{width:18px;height:18px}
+.cm-tab-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--bg);font-size:11px;font-weight:700}
+.crew-posts{margin:4px auto 0;display:flex}

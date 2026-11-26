@@ -3386,7 +3386,9 @@ const routes = {
     const q = new URL(req.url, 'http://x').searchParams;
     const before = Number(q.get('before')) || null;
     const area = community.AREAS.includes(q.get('area')) ? q.get('area') : null;
-    const authors = q.get('following') ? new Set(loadBots().follows[user.id] || []) : null;
+    // Following: the people you follow. Crew: the people testing on your date, and you.
+    const crewOnly = q.get('crew') ? (() => { const bots = loadBots(); return new Set([user.id, ...crewMod.memberIds(loadCrew(), user, { hidden: (a, b) => nearby.hiddenEither(bots, a, b) })]); })() : null;
+    const authors = crewOnly || (q.get('following') ? new Set(loadBots().follows[user.id] || []) : null);
     json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor, colour: cardColour }), topics: community.TOPICS, rules: !!user.rulesAt });
   },
   // The community rules, agreed once before a first post or comment.

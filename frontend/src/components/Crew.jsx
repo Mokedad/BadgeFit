@@ -106,6 +106,7 @@ function CrewSheet({ close }) {
     {mine && <Mate c={mine} me />}
     {crew.map(c => <Mate key={c.id} c={c} />)}
     <p className="crew-hint">Tap <ReactIcon id="fire" size={18} /> to cheer. Hold a name for their Hayden.</p>
+    <button type="button" className="rr-chip crew-posts" onClick={() => { try { sessionStorage.setItem('cm_tab', 'crew') } catch { /* private mode */ } close(); window.location.hash = '#/community' }}><Icon name="chat" /> Crew posts</button>
     <button type="button" className="calm-link crew-leave" onClick={leave}>Leave the crew</button>
   </div>
 }
