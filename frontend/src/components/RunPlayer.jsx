@@ -220,19 +220,21 @@ export default function RunPlayer({ daysLeft = null, run: given, age, onClose, o
   useEffect(() => {
     const hand = () => {
       const c = pocket.current
-      if (document.visibilityState !== 'hidden') { pocketClear(); pocketBeatStop(); c.pace.hold(false); return }
+      if (document.visibilityState !== 'hidden') { pocketClear(); return } // the tick stays armed: the phone hands over to the app on its own
       const offset = (Date.now() - segStart.current) / 1000
       // With Hayden's own voice for every step whose clip is ready (fetched at Start, below).
       if (c.on) withClips(pocketCues(run, c.idx, offset, say), clipFor).then(pocketSchedule)
-      // The pace tick too: the page's sound stops once the phone locks, the phone's own does not.
-      if (c.on && c.pace.playing && c.pace.sound !== 'buzz') {
-        pocketBeat(pocketBeats(run, c.idx, offset, c.pace.gapFor).map(b => ({ ...b, vol: c.pace.vol }))).then(ok => { if (ok) c.pace.hold(true) })
-      }
     }
     document.addEventListener('visibilitychange', hand)
     return () => { document.removeEventListener('visibilitychange', hand); pocketClear(); pocketBeatStop() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!pocket.current.on) { pocketClear(); pocketBeatStop(); pace.hold(false) } }, [paused, done]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The pace tick is armed on the phone while the app is on screen, so it carries on by itself when
+  // the app leaves the screen (lock, save mode, another app). Re-armed on every change of step or pace.
+  useEffect(() => {
+    if (!started || paused || done || !pace.playing || pace.sound === 'buzz') { pocketBeatStop(); return }
+    pocketBeat(pocketBeats(run, idx, (Date.now() - segStart.current) / 1000, pace.gapFor).map(b => ({ ...b, vol: pace.vol })))
+  }, [started, paused, done, idx, pace.playing, pace.spm, pace.every, pace.vol, pace.sound]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = segs[idx + 1]
 

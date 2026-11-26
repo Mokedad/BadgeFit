@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import AVFoundation
+import UIKit
 import MediaPlayer
 
 /**
@@ -15,9 +16,9 @@ import MediaPlayer
  *   play({ audio })     one clip now (base64 WAV: Hayden's natural voice from the server), with
  *                       the music turned down under it; answers { ms } when it starts
  * A scheduled cue may carry `audio` too: the clip is played, the phone's voice only without one.
- *   beat({ plan })      the pace tick, played by the phone itself while the app is off screen:
- *                       [{ in: seconds from now, gap: seconds between ticks (0 quiet), vol }]
- *   beatStop()          the app is on screen again and plays the tick itself
+ *   beat({ plan })      arms the pace tick: [{ in: seconds from now, gap: seconds between ticks
+ *                       (0 quiet), vol }]. The phone starts it itself when the app leaves the screen.
+ *   beatStop()          takes the tick back for good (paused, finished, left the run)
  *   remote({ on, title, playing })  Test day in the phone's Now Playing, so the Apple Watch (its
  *                       Now Playing) and AirPods start and stop the timer: "remote" events
  *                       { cmd: play | pause | toggle | next }. Not mixed with other audio while on.
@@ -55,6 +56,12 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
     private var beatGap: Double = 0
     private var beatVol: Float = 0.35
 
+    // The pace tick, armed while the app is on screen and started by the phone itself when the app
+    // leaves the screen (locking the phone, save mode, another app). The page hands the plan over
+    // while it is awake, so nothing depends on the web page still running at that moment.
+    private var armedPlan: [(t: Double, gap: Double, vol: Float)] = []
+    private var armedAt: Date? = nil
+
     public override func load() {
         speech.delegate = self
         // A change of audio route or session (a line being said, headphones) stops the engine.
@@ -62,6 +69,27 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
             guard let self = self, self.beatGap > 0 else { return }
             self.playBeat(self.beatGap, self.beatVol)
         }
+        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.startArmed()
+        }
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.stopBeat()   // on screen again: the page plays the tick; the plan stays armed
+        }
+    }
+
+    /// Starts the armed plan as of now: the step playing now at once, the later steps at their times.
+    private func startArmed() {
+        guard let at = armedAt, !armedPlan.isEmpty else { return }
+        stopBeat()
+        let e = Date().timeIntervalSince(at)
+        var current: (gap: Double, vol: Float)? = nil
+        for step in armedPlan {
+            if step.t <= e { current = (step.gap, step.vol); continue }
+            let t = Timer(timeInterval: step.t - e, repeats: false) { _ in self.playBeat(step.gap, step.vol) }
+            RunLoop.main.add(t, forMode: .common)
+            beatTimers.append(t)
+        }
+        if let c = current { playBeat(c.gap, c.vol) }
     }
 
     /// One soft high tick (1900 Hz falling to 1150 Hz, 50 ms) and then silence, `gap` seconds long.
@@ -108,20 +136,19 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         if engine.isRunning { engine.stop() }
     }
 
+    /// Arms the tick: `plan` items { in, gap, vol } with `in` counted from now. Starts at once when
+    /// the app is already off screen; otherwise it waits for the app to leave the screen.
     @objc func beat(_ call: CAPPluginCall) {
         let plan = call.getArray("plan", JSObject.self) ?? []
         DispatchQueue.main.async {
-            self.stopBeat()
             guard self.on else { call.reject("no session"); return }
-            for step in plan.prefix(80) {
-                let gap = (step["gap"] as? NSNumber)?.doubleValue ?? 0
-                let vol = Float((step["vol"] as? NSNumber)?.doubleValue ?? 0.35)
-                let after = (step["in"] as? NSNumber)?.doubleValue ?? 0
-                if after <= 0 { self.playBeat(gap, vol); continue }
-                let t = Timer(timeInterval: after, repeats: false) { _ in self.playBeat(gap, vol) }
-                RunLoop.main.add(t, forMode: .common)
-                self.beatTimers.append(t)
-            }
+            self.armedPlan = plan.prefix(80).map { step in
+                (t: (step["in"] as? NSNumber)?.doubleValue ?? 0,
+                 gap: (step["gap"] as? NSNumber)?.doubleValue ?? 0,
+                 vol: Float((step["vol"] as? NSNumber)?.doubleValue ?? 0.35))
+            }.sorted { $0.t < $1.t }
+            self.armedAt = Date()
+            if UIApplication.shared.applicationState == .background { self.startArmed() } else { self.stopBeat() }
             call.resolve()
         }
     }
@@ -171,8 +198,11 @@ public class RunCuesPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDele
         }
     }
 
+    /// Takes the tick back for good: the run is paused, finished or left.
     @objc func beatStop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            self.armedPlan = []
+            self.armedAt = nil
             self.stopBeat()
             call.resolve()
         }
