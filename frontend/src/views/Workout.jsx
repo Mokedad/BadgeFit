@@ -2583,7 +2583,8 @@ function ActiveWorkout() {
     {/* In list mode the whole session scrolls under the header, so the header (name, clock,
         set counter, discard/finish, progress) stays pinned — the one thing you want in view
         while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
-    <div className={'whdr' + (listMode ? ' stick' : '')} ref={hdrRef}>
+    {/* BadgeFit pins it in Cards too: a card brought into view scrolled the page, and the name went up under the phone's clock. */}
+    <div className={'whdr' + (listMode || bfOn ? ' stick' : '')} ref={hdrRef}>
     {/* In season, a corner web under the header's own buttons (components/Seasonal.jsx). */}
     <SeasonDeco spot="workout-hdr" workout />
     {/* ⌄ leaves the screen and keeps the session running (the tab bar's Resume brings it back);

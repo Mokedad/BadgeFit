@@ -27,12 +27,13 @@ import { WeekStrip, shareWeekSheet } from '../components/ShareWeek.jsx'
 import { ReactIcon, ReactBar, ReactSummary, REACTIONS, useTapHold } from '../components/Reactions.jsx'
 import { buildBell } from '../lib/police/bell.js'
 import SwipeAway from '../components/SwipeAway.jsx'
+import { communityPost } from '../components/CommunityRules.jsx'
 import '../police.css'
 
 const toast = m => useUI.getState().toast(m)
 const sheet = render => useUI.getState().openSheet(render)
 const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) })
-const call = async (path, body) => { try { return await post(path, body) } catch (e) { toast(e?.message || 'Something went wrong'); return null } }
+const call = async (path, body) => { try { return await (path === '/api/community/post' || path === '/api/community/reply' ? communityPost(path, body) : post(path, body)) } catch (e) { toast(e?.message || 'Something went wrong'); return null } }
 const Bot = ({ b, size = 52, eyes = 'open' }) => <span className="cm-bot" style={{ width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: botSvg({ line: b?.colour, gear: b?.gear || [], head: true, eyes }) }} />
 
 /** Today's session, as shared: a small card, done or still to do. */

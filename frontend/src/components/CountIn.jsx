@@ -28,7 +28,6 @@ function CountInSheet({ close, title, sub, act, onGo }) {
     <h3>{title}</h3>
     {sub && <p className="pf-sub">{sub}</p>}
     <button className="pf-go" onClick={go}>Start now</button>
-    <p className="pf-sub">Wrong one? Swipe down.</p>
   </div>
 }
 

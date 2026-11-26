@@ -1,6 +1,7 @@
 // "Share my week" (BadgeFit, Plan's Share button): this week as a coloured strip (gym, run, rest),
 // a few words, and, if you like, the plan itself so others can try it (it rides along as a shared
 // plan, api/community.js). Your weights and test results never go with it.
+import { communityPost } from './CommunityRules.jsx'
 import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -44,7 +45,7 @@ function ShareWeek({ close }) {
     setBusy(true)
     try {
       const plan = tryIt && routines.length ? planFromRoutines(routines, (S.programme?.name || 'My week').slice(0, 60), P.level) : undefined
-      await api('/api/community/post', { method: 'POST', body: JSON.stringify({ text, week, plan, topic: 'journey', stage: stageOf(P) }) })
+      await communityPost('/api/community/post', { text, week, plan, topic: 'journey', stage: stageOf(P) })
       close()
       useUI.getState().toast('Shared to Community')
     } catch (e) { useUI.getState().toast(e?.message || 'Could not share right now') }

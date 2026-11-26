@@ -2259,6 +2259,12 @@ function communityGuard(req, res, budget) {
   if (wait) { json(res, 429, { error: 'slow down a little, try again later' }, { 'Retry-After': String(Math.ceil(wait / 1000)) }); return null; }
   return user;
 }
+// Posting and commenting wait for the community rules to be agreed (once, Community's first post).
+const needsRules = (user, res) => {
+  if (user.rulesAt) return false;
+  json(res, 428, { error: 'agree to the community rules first', rules: true });
+  return true;
+};
 const communityAnswer = (res, r, ok = 200) => (r.error ? json(res, r.status || 400, { error: r.error }) : json(res, ok, r));
 
 /* ---------- bots nearby (nearby.js) ----------
@@ -3381,7 +3387,13 @@ const routes = {
     const before = Number(q.get('before')) || null;
     const area = community.AREAS.includes(q.get('area')) ? q.get('area') : null;
     const authors = q.get('following') ? new Set(loadBots().follows[user.id] || []) : null;
-    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor, colour: cardColour }), topics: community.TOPICS });
+    json(res, 200, { posts: community.view(loadCommunity(), user, { admin: isAdmin(user), before, handle: handleFor, area, q: q.get('q'), authors, blocked: blockedFor(user), fresh: freshAuthor, colour: cardColour }), topics: community.TOPICS, rules: !!user.rulesAt });
+  },
+  // The community rules, agreed once before a first post or comment.
+  'POST /api/community/rules': async (req, res) => {
+    const user = communityGuard(req, res); if (!user) return;
+    if (!user.rulesAt) { user.rulesAt = new Date().toISOString(); saveDb(); }
+    json(res, 200, { rules: true, at: user.rulesAt });
   },
   // One member's page: their card, the numbers, and what they have posted and shared.
   'GET /api/community/person': async (req, res) => {
@@ -3419,6 +3431,7 @@ const routes = {
   },
   'POST /api/community/post': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_POSTS); if (!user) return;
+    if (needsRules(user, res)) return;
     const body = await readBody(req);
     const feed = loadCommunity();
     const r = community.addPost(feed, user, { text: body.text, topic: body.topic, area: body.area, stage: body.stage, session: body.session, plan: body.plan, week: body.week });
@@ -3432,6 +3445,7 @@ const routes = {
   },
   'POST /api/community/reply': async (req, res) => {
     const user = communityGuard(req, res, COMMUNITY_ACTS); if (!user) return;
+    if (needsRules(user, res)) return;
     const body = await readBody(req);
     const feed = loadCommunity();
     const r = community.addReply(feed, user, { id: String(body.id || ''), text: body.text, to: body.to ? String(body.to) : undefined });

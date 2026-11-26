@@ -1,6 +1,7 @@
 // BadgeFit: "Share to Community". After a win (a passed standard, a new best, a finished day), one tap
 // posts it to the community feed (api/community.js), your followers get it on their bell, and the cheers start coming back (components/CheerBubble.jsx). The words are yours to
 // change before it goes. Members only: guests have no account on the server.
+import { communityPost } from './CommunityRules.jsx'
 import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -42,7 +43,7 @@ function ShareWinSheet({ close, text, topic, shareKey }) {
     setBusy(true)
     try {
       if (sharedId(shareKey)) { close(); already(); return }
-      const r = await api('/api/community/post', { method: 'POST', body: JSON.stringify({ text: words, topic, stage: stageOf(useStore.getState().S.police) }) })
+      const r = await communityPost('/api/community/post', { text: words, topic, stage: stageOf(useStore.getState().S.police) })
       markShared(shareKey, r?.post?.id || true)
       close()
       useUI.getState().toast('Shared to Community. Your followers get it on their bell.')
@@ -84,7 +85,7 @@ export function ShareIcons({ text, topic = 'win', onShare, shareKey = null }) {
     if (posted || sharedId(shareKey)) return
     setBusy(true)
     try {
-      const r = await api('/api/community/post', { method: 'POST', body: JSON.stringify({ text, topic, stage: stageOf(useStore.getState().S.police) }) })
+      const r = await communityPost('/api/community/post', { text, topic, stage: stageOf(useStore.getState().S.police) })
       const id = r?.post?.id || true
       setPosted(id)
       markShared(shareKey, id)

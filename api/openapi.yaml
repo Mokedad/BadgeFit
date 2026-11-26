@@ -3884,6 +3884,17 @@ paths:
       responses:
         '200': { description: 'The new count and whether the viewer cheers it: `{ cheers, cheered }`' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/community/rules:
+    post:
+      tags: [community]
+      operationId: postCommunityRules
+      summary: Agree to the community rules
+      description: |
+        Once, before a first post or comment. Until then posting and commenting answer 428 with
+        `{ rules: true }`. The feed (GET /api/community) says whether they are agreed in `rules`.
+      responses:
+        '200': { description: '`{ rules: true, at }`' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/community/report:
     post:
       tags: [community]

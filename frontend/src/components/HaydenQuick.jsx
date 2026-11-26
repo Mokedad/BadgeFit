@@ -114,7 +114,7 @@ export default function HaydenQuick({ close, today = null, done = null, onComman
     if (s && view && t.clientX - s.x > 70 && Math.abs(t.clientX - s.x) > Math.abs(t.clientY - s.y) * 2) back()
   }
 
-  const status = phase === 'listening' ? (heard || 'Listening…') : phase === 'speaking' ? 'Tap to cut in' : Recognition && !note ? 'Tap to talk' : ''
+  const status = phase === 'listening' ? (heard || 'Listening…') : phase === 'speaking' ? '' : Recognition && !note ? 'Tap to talk' : ''
   return <div className="hq" data-noswipe onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
     <div className="hq-top">
       {view ? <button className="hq-back" onClick={back} aria-label="Back to the questions">‹ Back</button> : <span />}

@@ -1660,3 +1660,12 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .rp-len .icn{width:15px;height:15px}
 .rp-time.over{color:#ffc629}
 .rp-len-box{width:min(360px,calc(100% - 32px));background:var(--surface);color:var(--label);border-radius:24px;padding:18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+
+/* Community rules (components/CommunityRules.jsx): agreed once before a first post. */
+.cr { padding: 4px 4px 8px; }
+.cr h3 { font-family: var(--serif, Georgia, serif); font-size: 26px; margin: 4px 0 14px; }
+.cr-list { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 12px; }
+.cr-list li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.4; }
+.cr-i { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); }
+.cr-i svg { width: 18px; height: 18px; }
+.cr-go { width: 100%; }

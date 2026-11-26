@@ -21,6 +21,18 @@ export const HIDE_AFTER_REPORTS = 3;
 
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f​-‏‪-‮⁦-⁩]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, max);
 const newId = () => crypto.randomBytes(8).toString('hex');
+/**
+ * Words the feed does not take (App Review asks a community to filter objectionable words): swears
+ * and slurs, matched as whole words after undoing the usual disguises (f*ck, sh1t, fuuuck).
+ */
+const RUDE = /\b(f+u+c+k+\w*|motherf\w*|sh+i+t+(s|ty|ter|ters|ting|head|heads)?|bullshit|c+u+n+t+s?|bitch\w*|bastards?|dick(head)?s?|cocks?(sucker)?|puss(y|ies)|whores?|sluts?|fag(got)?s?|retards?(ed)?|nigg\w*|kikes?|spics?|chinks?|wank\w*|twats?|pricks?)\b/i;
+const UNLEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', '@': 'a', $: 's', '!': 'i', '*': 'u' };
+export function rude(text) {
+  const t = String(text || '').toLowerCase().replace(/[013457@$!*]/g, c => UNLEET[c] || c);
+  return RUDE.test(t);
+}
+export const RUDE_ERROR = 'Keep it friendly: one of those words is not allowed here';
+
 const nameOf = user => clean(user?.name || 'Recruit', 40) || 'Recruit';
 
 export const emptyFeed = () => ({ posts: [] });
@@ -134,6 +146,7 @@ export function addPost(feed, user, { text, topic, crew, area, stage, session, p
   const ses = cleanSession(session), pl = cleanPlan(plan), wk = cleanWeek(week);
   // Today's session, a plan or a week can stand without words.
   if (!t && !ses && !pl && !wk) return { error: 'write something first' };
+  if (rude(t)) return { error: RUDE_ERROR, status: 422 };
   const post = { id: newId(), uid: user.id, name: nameOf(user), topic: TOPICS.includes(topic) ? topic : 'journey', text: t, at: now, cheers: [], reports: [], replies: [] };
   if (AREAS.includes(area)) post.area = area;
   if (STAGES.includes(stage)) post.stage = stage;
@@ -157,6 +170,7 @@ export function addReply(feed, user, { id, text, to }, now = Date.now()) {
   if (!post || post.hidden) return { error: 'post not found' };
   const t = clean(text, MAX_REPLY);
   if (!t) return { error: 'write something first' };
+  if (rude(t)) return { error: RUDE_ERROR, status: 422 };
   if ((post.replies || []).length >= MAX_REPLIES) return { error: 'this post has all the replies it can take' };
   const parent = to ? (post.replies || []).find(x => x.id === String(to)) : null;
   const top = parent ? (parent.to && (post.replies || []).some(x => x.id === parent.to) ? parent.to : parent.id) : null;
@@ -174,6 +188,7 @@ export function editReply(feed, user, { id, replyId, text }) {
   if (!r) return { error: 'reply not found' };
   if (r.uid !== user.id) return { error: 'only your own comments can be edited', status: 403 };
   const t = clean(text, MAX_REPLY);
+  if (rude(t)) return { error: RUDE_ERROR, status: 422 };
   if (!t) return { error: 'write something first' };
   r.text = t;
   r.edited = true;

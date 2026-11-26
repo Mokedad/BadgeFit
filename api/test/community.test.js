@@ -184,3 +184,18 @@ test('an answer sits under the comment it answers, one level deep, and its write
   assert.deepEqual(v.map(r => r.to || null), [null, top.id, top.id, null]);
   assert.ok(v.every(r => !('uid' in r)));
 });
+
+test('the feed does not take swears or slurs, even disguised, and leaves ordinary words alone', () => {
+  assert.equal(c.rude('this is f*cking hard'), true);
+  assert.equal(c.rude('Sh1t day'), true);
+  assert.equal(c.rude('FUUUCK'), true);
+  for (const ok of ['Passed my assessment', 'Cockpit drill', 'Scunthorpe run club', 'Week 1 done!', 'Shiitake for dinner', 'Dickson park loop']) {
+    assert.equal(c.rude(ok), false, ok);
+  }
+  const feed = { posts: [] }, user = { id: 'u1', name: 'Jess' };
+  const r = c.addPost(feed, user, { text: 'what a shit test' });
+  assert.equal(r.status, 422);
+  assert.equal(feed.posts.length, 0);
+  const p = c.addPost(feed, user, { text: 'Clean post' }).post;
+  assert.equal(c.addReply(feed, user, { id: p.id, text: 'you bastard' }).status, 422);
+});

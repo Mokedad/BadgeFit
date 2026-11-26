@@ -148,7 +148,7 @@ function Pic({ ex, onHold, onMove, idx, faint = false }) {
     style={drag ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.08)`, zIndex: 30, position: 'relative' } : undefined}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { clear(); g.current = null; setDrag(null) }}
     onContextMenu={e => e.preventDefault()}>
-    <Thumb ex={ex} /><figcaption>{exerciseNameFor(ex)}</figcaption>
+    <Thumb ex={ex} /><figcaption className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</figcaption>
   </figure>
 }
 
