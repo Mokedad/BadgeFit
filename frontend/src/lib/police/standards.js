@@ -156,7 +156,7 @@ export function readiness(results, beepTarget = DEFAULT_BEEP_TARGET) {
 /** A display string for a value of one standard. */
 export function fmtResult(id, v) {
   if (v == null) return ''
-  if (id === 'grip') return `L ${v.left} / R ${v.right} kg`
+  if (id === 'grip') return v.self ? (Math.min(Number(v.left), Number(v.right)) >= 30 ? 'Self-check: strong enough' : 'Self-check: not yet') : `L ${v.left} / R ${v.right} kg`
   if (id === 'beep') return typeof v === 'object' ? fmtBeep(v) : String(v)
   const std = standardById(id)
   return `${v} ${std?.unit === 'reps' ? 'reps' : std?.unit || ''}`.trim()

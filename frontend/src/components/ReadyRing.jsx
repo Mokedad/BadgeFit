@@ -9,7 +9,7 @@ import Icon from './Icon.jsx'
 const R = 64, C = 2 * Math.PI * R
 const NAMES = { grip: 'grip', bridge: 'prone bridge', jump: 'vertical jump', pushups: 'push-ups', illinois: 'agility run', beep: 'beep test' }
 
-export default function ReadyRing({ results, beepTarget, testName, streak = 0, onFind, onOpen }) {
+export default function ReadyRing({ results, beepTarget, testName, streak = 0, testDue = false, onFind, onOpen }) {
   const v = readyView(results, beepTarget)
   const name = (testName || 'PCT').trim()
   const pct = Math.max(0, Math.min(100, v.pct || 0))
@@ -27,7 +27,8 @@ export default function ReadyRing({ results, beepTarget, testName, streak = 0, o
     </button>
     <div className="rr-chips">
       {!v.tested && <button type="button" className="rr-chip" onClick={onFind}><Icon name="target" /> Find out · 10 min</button>}
-      {v.next && v.next.kind !== 'keep' && <button type="button" className="rr-chip" onClick={onOpen}>{v.next.text}</button>}
+      {v.tested && testDue && <button type="button" className="rr-chip rr-due" onClick={onFind}><Icon name="target" /> Test day due</button>}
+      {v.next && v.next.kind !== 'keep' && !(testDue && v.next.kind === 'test') && <button type="button" className="rr-chip" onClick={onOpen}>{v.next.text}</button>}
       {streak > 0 && <span className="rr-chip" title="Weeks in a row with training"><Icon name="flame" className="rr-flame" />{streak} {streak === 1 ? 'week' : 'weeks'}</span>}
     </div>
   </div>

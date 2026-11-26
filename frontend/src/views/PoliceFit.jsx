@@ -46,7 +46,7 @@ import BeepTrainer from '../components/BeepTrainer.jsx'
 import { buildPushPlan, nudgeSettings } from '../lib/police/push-plan.js'
 import { voiceCheck } from '../lib/police/voice.js'
 import TestDay from '../components/TestDay.jsx'
-import { testDayResults } from '../lib/police/test-day.js'
+import { testDayResults, retestDue } from '../lib/police/test-day.js'
 import { RoundPick, PickRow } from '../components/StartPicker.jsx'
 import { shareWin } from '../components/ShareWin.jsx'
 import { useCrew, rejoinCrew } from '../components/Crew.jsx'
@@ -592,6 +592,9 @@ function Tests({ S, P, openBeep, openTest }) {
   const setP = usePolice()
   const ready = readiness(P.results, P.beepTarget)
   const [open, setOpen] = useState(null)
+  // Test day once a week: when it is due again, on the Test day tile.
+  const due = retestDue(P.results, todayISO())
+  const dueText = !due.last ? 'Find your start' : due.due ? 'Due today' : `Next ${new Date(due.next + 'T12:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}`
   return <>
     {/* What you came for first: where you stand and the two tools. The date and the beep marks
         are settings, folded underneath. */}
@@ -603,7 +606,7 @@ function Tests({ S, P, openBeep, openTest }) {
     </div>
     <TestDateRow P={P} />
     <div className="pf-tools">
-      <button className="card pf-tool" onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b></button>
+      <button className={'card pf-tool' + (due.due || !due.last ? ' due' : '')} onClick={openTest}><span className="pf-more-i" aria-hidden="true"><Icon name="target" /></span><b>Test day</b><small>{dueText}</small></button>
       <button className="card pf-tool" onClick={openBeep}><span className="pf-more-i" aria-hidden="true"><Icon name="timer" /></span><b>Beep test trainer</b></button>
     </div>
     {ready.rows.map(({ std, latest, ev }) => <div key={std.id} className="card pf-std">

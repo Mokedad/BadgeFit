@@ -55,6 +55,7 @@ import { MOBILE } from '../lib/mobile.js'
 import TodaySwipe from '../components/TodaySwipe.jsx'
 import { isBadgeFit, isBadgeFitGuest, toSignIn } from '../lib/police/guest.js'
 import ReadyRing from '../components/ReadyRing.jsx'
+import { retestDue } from '../lib/police/test-day.js'
 import { weeksInARow } from '../lib/police/bot-card.js'
 import { installPlanIn, onBadgeFitPlan } from '../lib/police/install-plan.js'
 import { offerHealthOnce } from '../lib/police/health-ask.js'
@@ -286,7 +287,7 @@ export default function Home() {
             const sub = [facts[0], days].filter(Boolean).join(' · ')
             return sub ? <p className="calm-sub">{sub}</p> : null
           })()}
-          <ReadyRing results={P.results} beepTarget={P.beepTarget} testName={P.testName} streak={weeksInARow(S)}
+          <ReadyRing results={P.results} beepTarget={P.beepTarget} testName={P.testName} streak={weeksInARow(S)} testDue={retestDue(P.results, todayISO()).due}
             onFind={() => nav('/police?tab=tests&test=1')} onOpen={() => nav('/police?tab=tests')} />
         </>}
         {/* The test date has gone by: Hayden asks how it went, once, and the plan follows the answer

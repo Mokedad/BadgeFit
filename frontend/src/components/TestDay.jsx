@@ -8,7 +8,7 @@ import { screenOn } from '../lib/wakelock.js'
 import Icon from './Icon.jsx'
 import { iconFor } from '../lib/police/emoji-icon.js'
 import { useEffect, useRef, useState } from 'react'
-import { TEST_ORDER, REST_SEC, scorable, testDaySummary, testDayLine } from '../lib/police/test-day.js'
+import { TEST_ORDER, REST_SEC, GRIP_SELF, restsBefore, scorable, testDaySummary, testDayLine } from '../lib/police/test-day.js'
 import { standardById, evaluate, fmtResult, DEFAULT_BEEP_TARGET, DEFAULT_BEEP_GOAL } from '../lib/police/standards.js'
 import { say, primeSpeech, stopSpeaking } from '../lib/police/voice.js'
 import { NumberField } from './ui.jsx'
@@ -48,8 +48,8 @@ function Stopwatch({ onStop, decimals = 0, mark = null }) {
     <div className={'rp-time td-time' + (mark && el > mark ? ' over' : '')}>{el < 0 ? Math.ceil(-el) : el.toFixed(decimals)}{el >= 0 && <small>s</small>}</div>
     {mark != null && <div className="td-mark" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, el / mark) * 100)}%` }} /><i>{mark} s</i></div>}
     {t0 == null
-      ? <button className="pf-go" onClick={start}>▶ Start</button>
-      : <button className="bt-out" disabled={el < 0} onClick={() => { const v = Number(el.toFixed(decimals)); setT0(null); onStop(v) }}>■ Stop</button>}
+      ? <button className="pf-go" onClick={start} aria-label="Start"><Icon name="play" /></button>
+      : <button className="bt-out" aria-label="Stop" disabled={el < 0} onClick={() => { const v = Number(el.toFixed(decimals)); setT0(null); onStop(v) }}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -72,8 +72,8 @@ function HoldTimer({ goal = 90, onStop }) {
   return <div className="td-sw">
     <div className="td-ring" style={{ '--p': `${(el / goal) * 100}%` }}><div className="rp-time td-time">{Math.floor(el)}<small>/ {goal} s</small></div></div>
     {t0 == null
-      ? <button className="pf-go" onClick={() => { primeSpeech(); said.current = new Set(); const n = performance.now(); setT0(n); setNow(n); say(`Hold. ${goal} seconds.`) }}>▶ Start {goal} s</button>
-      : <button className="bt-out" onClick={() => { const v = Math.floor((performance.now() - t0) / 1000); setT0(null); say(`${v} seconds.`); onStop(v) }}>■ Dropped</button>}
+      ? <button className="pf-go" onClick={() => { primeSpeech(); said.current = new Set(); const n = performance.now(); setT0(n); setNow(n); say(`Hold. ${goal} seconds.`) }} aria-label={`Start ${goal} seconds`}><Icon name="play" /></button>
+      : <button className="bt-out" aria-label="Dropped" onClick={() => { const v = Math.floor((performance.now() - t0) / 1000); setT0(null); say(`${v} seconds.`); onStop(v) }}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -102,8 +102,8 @@ function PushupCadence({ goal = 25, value, onChange }) {
     <div className="rp-time td-time">{Number(value) || 0}<small>/ {goal}</small></div>
     {c && <div className={'td-phase ' + c.phase}>{c.phase === 'ready' ? `Get ready · ${Math.max(1, Math.ceil(-(now - t0) / 1000))}` : c.phase === 'down' ? '▼ Down' : '▲ Up'}</div>}
     {t0 == null
-      ? <button className="pf-go" onClick={start}>▶ Start to the beat</button>
-      : <button className="bt-out" onClick={() => { const r = cadenceAt(performance.now() - t0).reps; setT0(null); onChange(r); say(`${r} push-ups.`) }}>■ Stop</button>}
+      ? <button className="pf-go" onClick={start} aria-label="Start to the beat"><Icon name="play" /></button>
+      : <button className="bt-out" aria-label="Stop" onClick={() => { const r = cadenceAt(performance.now() - t0).reps; setT0(null); onChange(r); say(`${r} push-ups.`) }}><Icon name="stop" /></button>}
   </div>
 }
 
@@ -139,32 +139,43 @@ function JumpMeter({ onResult }) {
   }
   return <div className="td-sw">
     {phase === 'ready' && <div className="td-phase">Phone to your chest · wait for the beep</div>}
-    {phase === 'jump' && <><div className="td-phase down">Jump!</div><button className="bt-out" onClick={finish}>Done</button></>}
-    {phase === 'none' && <p className="rp-hint">This phone cannot feel the jump here. Measure on a wall and type it in.</p>}
-    {(phase === 'idle' || phase === 'done') && <button className="pf-go" onClick={start}><Icon name="phoneScreen" /> {phase === 'done' ? 'Jump again' : 'Measure with the phone'}</button>}
-    {phase === 'done' && <p className="rp-hint">An estimate from your time in the air. A wall test with arm swing reads a little higher: change it if you have one.</p>}
+    {phase === 'jump' && <><div className="td-phase down">Jump!</div><button className="bt-out" onClick={finish} aria-label="Done"><Icon name="check" /></button></>}
+    {phase === 'none' && <p className="rp-hint">This phone cannot feel the jump. Type it in.</p>}
+    {(phase === 'idle' || phase === 'done') && <button className="pf-go" onClick={start} aria-label={phase === 'done' ? 'Jump again' : 'Measure with the phone'}><Icon name={phase === 'done' ? 'reset' : 'phoneScreen'} /></button>}
+    {phase === 'done' && <p className="rp-hint">≈ estimate</p>}
   </div>
 }
 
+// The typed box, tucked away under the guided test: the timer or the phone fills it in.
+const TypeIt = ({ children }) => <details className="td-kg"><summary aria-label="Type it instead"><Icon name="pencil" /></summary>{children}</details>
+
 function ScoreInput({ id, value, onChange, onBeep }) {
-  if (id === 'grip') return <>
-    <div className="pf-2">
-      <label>Left (kg)<NumberField className="field" value={value?.left ?? null} nullable onChange={x => onChange({ left: x, right: value?.right ?? null })} /></label>
-      <label>Right (kg)<NumberField className="field" value={value?.right ?? null} nullable onChange={x => onChange({ left: value?.left ?? null, right: x })} /></label>
-    </div>
-    <p className="rp-hint">Needs a grip dynamometer: a phone cannot feel how hard you squeeze.</p>
-  </>
+  if (id === 'grip') {
+    const pick = k => onChange(GRIP_SELF[k])
+    const on = k => value?.self && value.left === GRIP_SELF[k].left
+    return <>
+      <div className="td-q">
+        <button type="button" className={'td-qb' + (on('yes') ? ' on' : '')} onClick={() => pick('yes')}><Icon name="check" /><b>Yes</b></button>
+        <button type="button" className={'td-qb' + (on('no') ? ' on' : '')} onClick={() => pick('no')}><Icon name="reset" /><b>Not yet</b></button>
+      </div>
+      <details className="td-kg"><summary aria-label="Type kilograms from a dynamometer"><Icon name="pencil" /> kg</summary>
+        <div className="pf-2">
+          <label>Left (kg)<NumberField className="field" value={value?.self ? null : value?.left ?? null} nullable onChange={x => onChange({ left: x, right: value?.self ? null : value?.right ?? null })} /></label>
+          <label>Right (kg)<NumberField className="field" value={value?.self ? null : value?.right ?? null} nullable onChange={x => onChange({ left: value?.self ? null : value?.left ?? null, right: x })} /></label>
+        </div>
+      </details>
+    </>
+  }
   if (id === 'beep') return <>
-    <button className="pf-go" onClick={onBeep}>▶ Run the beep test</button>
-    <p className="rp-hint">Your level goes in by itself when you stop.</p>
+    <button className="pf-go" onClick={onBeep} aria-label="Run the beep test"><Icon name="play" /></button>
   </>
   if (id === 'pushups') return <>
     <PushupCadence value={value} onChange={onChange} />
-    <label>Reps<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label>
+    <TypeIt><label>Reps<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label></TypeIt>
   </>
-  if (id === 'bridge') return <><HoldTimer onStop={onChange} /><label>Seconds held<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label></>
-  if (id === 'illinois') return <><Stopwatch decimals={1} mark={standardById('illinois').min} onStop={onChange} /><label>Seconds<NumberField className="field" value={value ?? null} nullable onChange={onChange} /></label></>
-  return <><JumpMeter onResult={onChange} /><label>Centimetres<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label></>
+  if (id === 'bridge') return <><HoldTimer onStop={onChange} /><TypeIt><label>Seconds held<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label></TypeIt></>
+  if (id === 'illinois') return <><Stopwatch decimals={1} mark={standardById('illinois').min} onStop={onChange} /><TypeIt><label>Seconds<NumberField className="field" value={value ?? null} nullable onChange={onChange} /></label></TypeIt></>
+  return <><JumpMeter onResult={onChange} /><TypeIt><label>Centimetres (wall test)<NumberField className="field" value={value ?? null} nullable decimal={false} onChange={onChange} /></label></TypeIt></>
 }
 
 export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_BEEP_GOAL, testName = 'PCT', onClose, onSave }) {
@@ -199,6 +210,7 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
       return
     }
     setStep(n)
+    if (!restsBefore(TEST_ORDER[n])) { say('Last one. A quick question about your grip.'); return }
     setResting({ until: Date.now() + REST_SEC * 1000 })
     say(`Good. Five minutes rest. Next up, ${standardById(TEST_ORDER[n]).name.toLowerCase()}.`)
   }
@@ -211,34 +223,36 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
     <div className="rp-top">
       <button className="rp-x" onClick={() => { if (step >= 0 && step < TEST_ORDER.length && !confirm('Leave test day? Scores not saved are lost.')) return; onClose() }} aria-label="Close">✕</button>
       <span>Test day{step >= 0 && step < TEST_ORDER.length ? ` · ${step + 1} of ${TEST_ORDER.length}` : ''}</span>
-      <span />
+      {std && !resting ? <button className="rp-x td-skipx" onClick={next} aria-label="Skip this one"><Icon name="skipForward" /></button> : <span />}
     </div>
     {step >= 0 && step < TEST_ORDER.length && <div className="rp-prog"><span style={{ width: `${(step / TEST_ORDER.length) * 100}%` }} /></div>}
 
     {step === -1 && <div className="rp-body">
       <div className="rp-emoji"><Icon name="clipboard" /></div>
       <h2>Test day</h2>
-      <p className="rp-sub">All six standards in the {testName} order, with 5 minutes rest between. Do it now for a baseline, and again about a week before your {testName}.</p>
+      <p className="rp-sub">Five tests with 5 minutes rest between, then one question about your grip. Do it once a week and watch the numbers move.</p>
       <ol className="rp-steps">{TEST_ORDER.map(x => <li key={x}><Icon name={iconFor(standardById(x).icon)} /> {standardById(x).name}</li>)}</ol>
-      <p className="rp-hint">You need: a 20 m space, cones for the Illinois run, a wall for the jump, and a grip dynamometer if you have one. Skip anything you cannot test.</p>
-      <button className="pf-go bt-start" onClick={begin}>▶ Start</button>
+      <p className="rp-hint">20 m · 4 cones</p>
+      <button className="pf-go bt-start" onClick={begin} aria-label="Start"><Icon name="play" /></button>
     </div>}
 
     {std && resting && <div className="rp-body">
       <div className="rp-kind">Rest</div>
       <div className="rp-time">{fmt((resting.until - Date.now()) / 1000)}</div>
       <p className="rp-sub">Next: <Icon name={iconFor(std.icon)} /> <b>{std.name}</b>. Walk around, sip water, shake it out.</p>
-      <button className="pf-link bt-again" onClick={() => setResting(null)}>Skip the rest</button>
+      <button className="pf-go bt-start" onClick={() => setResting(null)} aria-label="Skip the rest"><Icon name="skipForward" /></button>
     </div>}
 
     {std && !resting && <div className="rp-body td-step">
       <div className="rp-emoji"><Icon name={iconFor(std.icon)} /></div>
       <h2>{std.name}</h2>
-      <p className="rp-sub">{std.how}</p>
-      <p className="rp-hint">{id === 'beep' ? `Pass ${target} · goal ${goal}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`}</p>
+      {id !== 'grip' && <details className="td-how"><summary aria-label="How it is done"><Icon name="info" /></summary><p className="rp-sub">{std.how}</p></details>}
+      {id === 'grip'
+        ? <p className="td-ask">Can you carry 35 kg in each hand for 30 seconds, or squeeze an orange dry?</p>
+        : <p className="rp-hint">{id === 'beep' ? `Pass ${target} · goal ${goal}` : `${std.better === 'lower' ? 'At most' : 'At least'} ${std.min} ${std.unit}${std.perHand ? ' each hand' : ''}`}</p>}
       <div className="td-in pf"><ScoreInput id={id} value={v} onChange={setV} onBeep={() => setBeep(true)} /></div>
       {ev && <p className={'td-ev ' + (ev.pass ? 'pass' : 'fail')}>{ev.pass ? 'Pass' : `${ev.pct}% of the mark`}</p>}
-      <button className="pf-go bt-start" onClick={next} disabled={v != null && !scorable(id, v, target)}>{v != null && scorable(id, v, target) ? 'Next ▶' : 'Skip this one ▶'}</button>
+      {v != null && scorable(id, v, target) && <button className="pf-go bt-start" onClick={next} aria-label="Next"><Icon name="chevronRight" /></button>}
     </div>}
 
     {sum && <div className="rp-body">
@@ -249,8 +263,8 @@ export default function TestDay({ target = DEFAULT_BEEP_TARGET, goal = DEFAULT_B
         <b className={r.ev ? (r.ev.pass ? 'pass' : 'fail') : ''}>{r.ev ? <>{fmtResult(r.std.id, r.v)} <Icon name={r.ev.pass ? 'check' : 'xmark'} /></> : 'skipped'}</b>
       </div>)}</div>
       {sum.weakest && <p className="rp-sub">Biggest gap: <b>{sum.weakest.std.name}</b>. Hayden will put the work there.</p>}
-      {sum.tested > 0 && <button className="pf-go bt-start" onClick={() => onSave(vals)}>Save all to PCT</button>}
-      <button className="pf-link bt-again" onClick={onClose}>Close without saving</button>
+      {sum.tested > 0 && <button className="pf-go bt-start" onClick={() => onSave(vals)} aria-label="Save all to PCT"><Icon name="check" /></button>}
+      
     </div>}
   </div>
 }

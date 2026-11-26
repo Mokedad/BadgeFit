@@ -106,7 +106,7 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
       </ol>
       <p className="rp-sub">Pass mark <b>{target}</b> (about {fmt(passT || 0)} in) · your goal <b>{goal}</b>.</p>
       <p className="rp-hint">Volume up. The screen stays on while it runs.</p>
-      <button className="pf-go bt-start" onClick={start}>▶ Start</button>
+      <button className="pf-go bt-start" onClick={start} aria-label="Start"><Icon name="play" /></button>
     </div>}
 
     {phase === 'count' && <div className="rp-body">
@@ -120,15 +120,15 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
       <div className="rp-time">{pos.level}.{pos.shuttle}</div>
       <div className="bt-bar" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, (1 - pos.shuttleLeft / pos.shuttleTotal) * 100))}%` }} /></div>
       <p className="rp-sub">{passT && now < passT ? `Pass mark ${target} in ${fmt(passT - now)}` : goalT && now < goalT ? `Pass mark done. Goal ${goal} in ${fmt(goalT - now)}` : 'Past your goal. Every shuttle is a bonus.'}</p>
-      <button className="bt-out" onClick={stop}>I'm out</button>
+      <button className="bt-out" onClick={stop} aria-label="I'm out"><Icon name="stop" /></button>
     </div>}
 
     {phase === 'out' && <div className="rp-body">
       <div className="rp-emoji"><Icon name={g?.pass ? 'trophy' : p?.pass ? 'checkCircle' : 'arm'} /></div>
       <h2>{score ? `Level ${score}` : 'No shuttles yet'}</h2>
       {score && <p className="rp-sub">{g?.pass ? `Goal ${goal} reached: a comfortable pass.` : p?.pass ? `Pass mark ${target} reached. Goal ${goal} next.` : `${p?.pct || 0}% of the pass mark ${target}. Keep at the intervals.`}</p>}
-      {score && onSave && <p className="rp-hint bt-saved"><Icon name="checkCircle" /> {saved ? 'Saved to PCT' : 'Saving to PCT'}</p>}
-      <button className="pf-link bt-again" onClick={() => { clearTimeout(autoT.current); setSaved(false); setScore(''); setNow(0); said.current = new Set(); setPhase('setup') }}>Run it again</button>
+      {score && onSave && <p className="rp-hint bt-saved"><Icon name="checkCircle" /> {saved ? 'PCT ✓' : 'PCT …'}</p>}
+      <button className="pf-link bt-again" onClick={() => { clearTimeout(autoT.current); setSaved(false); setScore(''); setNow(0); said.current = new Set(); setPhase('setup') }} aria-label="Run it again"><Icon name="reset" /></button>
     </div>}
   </div>
 }

@@ -1709,3 +1709,35 @@ body.lean-wk.resting #app{padding-bottom:calc(24px + var(--sab))}
 .td-sw .pf-go{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .td-sw .pf-go svg{width:20px;height:20px}
 .td-sw .td-mark{width:100%;max-width:320px}
+
+/* Grip as a question (components/TestDay.jsx): two big answers, kg tucked away. */
+.td-ask{font-size:19px;font-weight:700;line-height:1.35;text-align:center;margin:4px 0 14px}
+.td-q{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.td-qb{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 10px;border:2px solid rgba(255,255,255,.25);border-radius:18px;background:rgba(255,255,255,.08);color:#fff;font:inherit}
+.td-qb svg{width:26px;height:26px}
+.td-qb b{font-size:18px}
+.td-qb small{opacity:.8;font-size:12px;text-align:center}
+.td-qb.on{border-color:#ffc629;background:rgba(255,198,41,.18)}
+.td-kg{width:100%;margin-top:12px;font-size:14px}
+.td-kg summary{opacity:.8;cursor:pointer;text-align:center;margin-bottom:8px}
+.pf-tool small{display:block;font-size:12px;color:var(--label-2);margin-top:2px}
+.pf-tool.due small{color:var(--acc-ink,#8a5a00);font-weight:700}
+.rr-due{background:var(--acc-soft,#fff6d6);font-weight:700}
+.td-step .td-in{width:100%;max-width:360px;margin:0 auto}
+.td-step .rp-sub{font-size:15px;line-height:1.45;max-width:340px;margin-left:auto;margin-right:auto}
+.td-ev{font-size:18px;font-weight:800}
+.td-skip{color:rgba(255,255,255,.75)!important;margin-top:6px}
+
+/* Symbol buttons on the test screens: round, one icon, no words (aria-label says it). */
+.rp .pf-go:has(> svg:only-child),.rp .bt-out:has(> svg:only-child),.rp .bt-again:has(> svg:only-child){width:84px;height:84px;min-width:0;border-radius:50%;padding:0;display:grid;place-items:center;margin-left:auto;margin-right:auto}
+.rp .pf-go:has(> svg:only-child) svg,.rp .bt-out:has(> svg:only-child) svg,.rp .bt-again:has(> svg:only-child) svg{width:34px;height:34px}
+.rp .bt-again:has(> svg:only-child){width:56px;height:56px;background:rgba(255,255,255,.14);color:#fff}
+.rp .bt-again:has(> svg:only-child) svg{width:24px;height:24px}
+.td-skipx svg{width:20px;height:20px}
+.td-kg summary{display:flex;align-items:center;justify-content:center;gap:6px;list-style:none}
+.td-kg summary::-webkit-details-marker{display:none}
+.td-kg summary svg{width:18px;height:18px}
+.td-how{margin:-4px 0 6px;text-align:center}
+.td-how summary{list-style:none;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);cursor:pointer}
+.td-how summary::-webkit-details-marker{display:none}
+.td-how summary svg{width:18px;height:18px}
