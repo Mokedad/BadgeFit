@@ -20,7 +20,7 @@ export function cheerLine(c) {
     case 'follow': return `${who} followed you`
     case 'post': return `${who} posted${c.what ? ': ' + c.what : ''}`
     case 'reply': return `${who} replied to ${c.what || 'your post'}`
-    case 'crew': return `${who} trained${c.what ? ': ' + c.what.toLowerCase() : ''}. Testing with you`
+    case 'crew': return `${who} trained${c.what ? ': ' + c.what.toLowerCase() : ''}. In your crew`
     default: return `${who} cheered ${c?.what || 'you on'}`
   }
 }

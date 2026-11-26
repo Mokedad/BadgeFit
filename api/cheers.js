@@ -85,7 +85,7 @@ export function cheerPush(item) {
     plan: `${item.from} is following your plan${item.what ? ': ' + item.what : ''}`,
     follow: `${item.from} followed you`,
     post: `${item.from} posted${item.what ? ': ' + item.what : ''}`,
-    crew: `${item.from} just trained${item.what ? ': ' + item.what : ''}. Testing with you. Your turn?`,
+    crew: `${item.from} just trained${item.what ? ': ' + item.what : ''}. They are in your crew. Your turn?`,
   }[item.kind];
   return { title: 'BadgeFit', body: say, tag: 'cheer-' + item.kind, url: '#/community' };
 }

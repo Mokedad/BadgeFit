@@ -1151,7 +1151,7 @@ function TestDateRow({ P }) {
     <button type="button" className="pf-date-h" aria-expanded={open} onClick={() => setOpen(v => !v)}>
       <Icon name="target" />
       {P.testDate
-        ? <span><b>{crewDate(P.testDate)}</b>{left != null && left >= 0 ? ` · ${left} ${left === 1 ? 'day' : 'days'}` : ''}{crew.length ? ` · ${crew.length} testing with you` : ''}</span>
+        ? <span><b>{crewDate(P.testDate)}</b>{left != null && left >= 0 ? ` · ${left} ${left === 1 ? 'day' : 'days'}` : ''}{crew.length ? ` · ${crew.length} with you` : ''}</span>
         : <span className="pf-date-2"><b>Set your test date</b><small>Your plan and your crew start from it</small></span>}
       <span className="pf-fold-c" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
     </button>

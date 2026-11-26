@@ -485,7 +485,7 @@ export default function Community() {
   useEffect(() => { if (!user) return; const t = setTimeout(() => { setPosts(null); load() }, q ? 350 : 0); return () => clearTimeout(t) }, [user, tab, area, q]) // eslint-disable-line react-hooks/exhaustive-deps
   // The crew (components/Crew.jsx): its own feed here, the same people as Home's strip.
   const crewN = useCrew(c => (c.off || !c.test ? 0 : c.crew.length))
-  useEffect(() => { if (user && !useCrew.getState().test) api('/api/crew').then(r => r && useCrew.setState({ test: r.test, off: !!r.off, crew: r.crew || [], at: Date.now() })).catch(() => {}) }, [user])
+  useEffect(() => { if (user && !useCrew.getState().test) api('/api/crew').then(r => r && useCrew.setState({ test: r.test, kind: r.kind || 'pct', off: !!r.off, crew: r.crew || [], at: Date.now() })).catch(() => {}) }, [user])
   useEffect(() => { if (tab === 'crew' && !crewN) setTab('all') }, [tab, crewN])
   useEffect(() => { if (user) api('/api/bell').then(r => setPeople(r?.people || [])).catch(() => {}) }, [user, live.length])
   const update = (id, next) => setPosts(prev => (next ? prev.map(p => (p.id === id ? next : p)) : prev.filter(p => p.id !== id)))

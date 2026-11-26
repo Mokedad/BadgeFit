@@ -26,7 +26,7 @@ describe('cheer text', () => {
 describe('a crewmate trained', () => {
   it('reads as who and what, and that they test with you', async () => {
     const { cheerLine, cheerSym } = await import('./cheer-text.js')
-    expect(cheerLine({ kind: 'crew', from: 'Jess', what: 'Easy run' })).toBe('Jess trained: easy run. Testing with you')
+    expect(cheerLine({ kind: 'crew', from: 'Jess', what: 'Easy run' })).toBe('Jess trained: easy run. In your crew')
     expect(cheerSym('crew')).toBe('🔥')
   })
 })

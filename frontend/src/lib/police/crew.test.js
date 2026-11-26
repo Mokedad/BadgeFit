@@ -31,7 +31,7 @@ describe('the line on Home', () => {
     expect(crewLine([{ name: 'Jess', today: true }, { name: 'Moke', today: true }, { name: 'Tom' }])).toBe('Jess and Moke trained today')
     expect(crewLine([{ name: 'Jess', today: true }, { name: 'Moke', today: true }, { name: 'Tom', today: true }])).toBe('Jess, Moke and 1 more trained today')
     expect(crewLine([{ name: 'Tom' }, { name: 'Ava' }])).toBe('Nobody has trained yet today')
-    expect(crewLine([{ name: 'Tom' }])).toBe('Tom is testing with you')
+    expect(crewLine([{ name: 'Tom' }])).toBe('Tom is in your crew')
     expect(crewLine([])).toBe('')
   })
   it('says the date short', () => {

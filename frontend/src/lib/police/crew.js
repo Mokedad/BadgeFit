@@ -40,7 +40,7 @@ const join = n => (n.length <= 1 ? n[0] || '' : n.length === 2 ? `${n[0]} and ${
 export function crewLine(crew) {
   if (!crew?.length) return ''
   const today = crew.filter(c => c.today)
-  if (!today.length) return crew.length === 1 ? `${crew[0].name} is testing with you` : 'Nobody has trained yet today'
+  if (!today.length) return crew.length === 1 ? `${crew[0].name} is in your crew` : 'Nobody has trained yet today'
   return `${join(names(today))} trained today`
 }
 
