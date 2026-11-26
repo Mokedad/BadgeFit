@@ -87,7 +87,11 @@ platform :ios do
         export_options: { provisioningProfiles: { BUNDLE_ID => profile }, uploadSymbols: true },
         buildlog_path: 'build', xcargs: "DEVELOPMENT_TEAM=#{ENV.fetch('APPLE_TEAM_ID')}"
       )
-      upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true)
+      # What to Test: the newest commit's title, so testers see what changed in this build
+      # (the TestFlight app shows it under the build). A plain line when git is not there.
+      notes = (`git log -1 --format=%s 2>/dev/null`.strip rescue '')
+      notes = 'New beta build. Train, then tell us what felt off.' if notes.empty?
+      upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true, changelog: notes[0, 4000])
     end
   end
 end
