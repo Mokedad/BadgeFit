@@ -21,6 +21,7 @@ import { DEMO } from '../lib/demo.js'
 import { todayISO, localTZ } from '../lib/format.js'
 import { lastBW, effectiveRoutineIds } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
+import DateField from '../components/DateField.jsx'
 import { Button, NumberField, Segmented, Switch, TextField } from '../components/ui.jsx'
 import { saveProgramme, startProgramme } from '../lib/programmes.js'
 import { isOn } from '../lib/modules.js'
@@ -461,31 +462,36 @@ function Setup({ S, P }) {
     setP({ runWalk: level === 'beginner' && jog === 'no' })
     useUI.getState().toast(date ? 'Week 1 starts now. Your plan ends on your test week.' : 'Your 12 weeks start today. Let us get to work.')
   }
-  return <div className="card pf-welcome">
-    <div className="pf-choice pf-path">
-      <button className={!academy ? 'on' : ''} onClick={() => pick('pct')}><b><Icon name="target" /> PCT</b><small>Training for the test</small></button>
-      <button className={academy ? 'on' : ''} onClick={() => pick('academy')}><b><Icon name="shield" /> Academy</b><small>{guest ? 'Members · sign up to unlock' : 'Passed, heading in'}</small></button>
+  // One tile per answer, the app's own date picker and number field (not the phone's).
+  const tile = (on, icon, title, sub, onClick) => <button key={title} type="button" className={'pf-tile-q' + (on ? ' on' : '')} aria-pressed={on} onClick={onClick}>
+    <span className="pf-tile-i" aria-hidden="true"><Icon name={icon} /></span><b>{title}</b><small>{sub}</small></button>
+  return <div className="pf-welcome pf-setup">
+    <div className="pf-tiles">
+      {tile(!academy, 'target', 'PCT', 'Training for the test', () => pick('pct'))}
+      {tile(academy, 'shield', 'Academy', guest ? 'Members · sign up' : 'Passed, heading in', () => pick('academy'))}
     </div>
-    <p className="pf-q">1. Where are you now?</p>
-    <div className="pf-choice">
-      <button className={level === 'beginner' ? 'on' : ''} onClick={() => setLevel('beginner')}><b>New to training</b><small>Or it has been a while</small></button>
-      <button className={level === 'intermediate' ? 'on' : ''} onClick={() => guest ? membersOnly() : setLevel('intermediate')}><b>{guest ? 'Members' : 'I train regularly'}</b><small>{guest ? 'Sign up to unlock' : '6 months or more'}</small></button>
+    <p className="pf-q">Where are you now?</p>
+    <div className="pf-tiles">
+      {tile(level === 'beginner', 'sunrise', 'New to training', 'Or it has been a while', () => setLevel('beginner'))}
+      {tile(level === 'intermediate', 'dumbbell', guest ? 'Members' : 'I train regularly', guest ? 'Sign up to unlock' : '6 months or more', () => (guest ? membersOnly() : setLevel('intermediate')))}
     </div>
     {!academy && level === 'beginner' && <>
-      <p className="pf-q">Can you jog 20 minutes without stopping?</p>
-      <div className="pf-choice">
-        <button className={jog === 'yes' ? 'on' : ''} onClick={() => setJog('yes')}><b>Yes</b><small>Start with runs</small></button>
-        <button className={jog === 'no' ? 'on' : ''} onClick={() => setJog('no')}><b>Not yet</b><small>Start with jog and walk</small></button>
+      <p className="pf-q">Jog 20 minutes without stopping?</p>
+      <div className="pf-tiles">
+        {tile(jog === 'yes', 'figureRun', 'Yes', 'Start with runs', () => setJog('yes'))}
+        {tile(jog === 'no', 'steps', 'Not yet', 'Jog and walk first', () => setJog('no'))}
       </div>
     </>}
     {academy && <>
       <p className="pf-q">Where do you train?</p>
-      <div className="pf-choice">{ACADEMY_STYLES.map(c => <button key={c.id} className={style === c.id ? 'on' : ''} onClick={() => setStyle(c.id)}><b>{c.title}</b><small>{c.sub}</small></button>)}</div>
+      <div className="pf-tiles">{ACADEMY_STYLES.map(c => tile(style === c.id, c.id === 'gym' ? 'dumbbell' : 'house', c.title, c.sub, () => setStyle(c.id)))}</div>
     </>}
-    <p className="pf-q">2. {academy ? 'Academy start' : 'Test date'} <small>(if booked)</small></p>
-    <TextField type="date" value={date} onChange={e => setDate(e.target.value)} aria-label={academy ? 'Academy start date' : 'PCT date'} />
-    <p className="pf-q">3. Weight in kg</p>
-    <NumberField value={kg} nullable onChange={setKg} aria-label="Weight in kg" />
+    <div className="pf-tiles">
+      <label className="pf-tile-q pf-tile-f"><span className="pf-tile-i" aria-hidden="true"><Icon name="calendar" /></span><b>{academy ? 'Academy start' : 'Test date'}</b>
+        <DateField value={date} min={todayISO()} label={academy ? 'Academy start date' : 'PCT date'} onChange={setDate} compact /><small>If booked</small></label>
+      <label className="pf-tile-q pf-tile-f"><span className="pf-tile-i" aria-hidden="true"><Icon name="scale" /></span><b>Weight</b>
+        <span className="pf-kg"><NumberField className="field" value={kg} nullable onChange={setKg} aria-label="Weight in kg" placeholder="–" /><small>kg</small></span></label>
+    </div>
     <button className="pf-go" onClick={build}>Start my plan</button>
     {S.programme && <p className="pf-sub">This replaces the programme running now.</p>}
     {!academy && <button className="pf-link" onClick={() => setP({ level, start: P.start || planStart(date || null, todayISO()), planV: 3, ...(date ? { testDate: date } : {}) })}>Just show me the plan, I will track it myself</button>}

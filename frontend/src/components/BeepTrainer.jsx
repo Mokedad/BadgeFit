@@ -1,7 +1,7 @@
 // The beep test, on the phone (BadgeFit): set two lines 20 m apart, tap Start, and run to the
 // beeps. One beep ends a shuttle, three end a level, and Hayden calls each new level. Tap
-// "I'm out" when you miss the line: the score is the last shuttle completed, and it can go
-// straight into the PCT tab. Timing: lib/police/beep-run.js, from the same level table the
+// "I'm out" when you miss the line: the score is the last shuttle completed, and it goes into
+// the PCT tab by itself a few seconds later (Run it again stops that), nothing to type. Timing: lib/police/beep-run.js, from the same level table the
 // standard is scored with. The screen stays awake while it runs. English only.
 import { screenOn } from '../lib/wakelock.js'
 import Icon from './Icon.jsx'
@@ -21,14 +21,15 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
   const [now, setNow] = useState(0)
   const [score, setScore] = useState('')
   const t0 = useRef(0), next = useRef(0), timer = useRef(null), countdown = useRef(null), wake = useRef(null), said = useRef(new Set())
-  const tones = useRef(null)
+  const tones = useRef(null), autoT = useRef(null)
+  const [saved, setSaved] = useState(false)
   const goalLevel = Number(String(goal).split('.')[0]) || 7
 
   useEffect(() => {
     // Hayden's level calls, fetched while you set up so they play on the beep.
     for (let l = 2; l <= Math.min(21, goalLevel + 4); l++) preloadSpeech(`Level ${l}`)
     preloadSpeech('That is the pass mark. Keep going.'); preloadSpeech('Goal reached. Everything now is a bonus.')
-    return () => { clearInterval(timer.current); clearInterval(countdown.current); try { wake.current?.release() } catch { /* gone */ } screenOn('beep', false); stopSpeaking() }
+    return () => { clearTimeout(autoT.current); clearInterval(timer.current); clearInterval(countdown.current); try { wake.current?.release() } catch { /* gone */ } screenOn('beep', false); stopSpeaking() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const passT = timeTo(schedule, target), goalT = timeTo(schedule, goal)
@@ -77,6 +78,8 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
     const s = scoreAt(schedule, el)
     setScore(s)
     setPhase('out')
+    // Saved by itself once Hayden has said the level: nothing to type, nothing to tap.
+    if (s && onSave) autoT.current = setTimeout(() => { setSaved(true); onSave(s) }, 3000)
     try { wake.current?.release() } catch { /* gone */ } screenOn('beep', false);
     const p = s && evaluate('beep', s, target), g = s && evaluate('beep', s, goal)
     say(!s ? 'No shuttles done. Have a breather and go again.' : g?.pass ? `Level ${s}. Goal smashed. That is a comfortable pass.` : p?.pass ? `Level ${s}. That is a pass. Now we build the margin.` : `Level ${s}. Not there yet, but now we know the gap. We close it.`)
@@ -124,8 +127,8 @@ export default function BeepTrainer({ target = DEFAULT_BEEP_TARGET, goal = DEFAU
       <div className="rp-emoji"><Icon name={g?.pass ? 'trophy' : p?.pass ? 'checkCircle' : 'arm'} /></div>
       <h2>{score ? `Level ${score}` : 'No shuttles yet'}</h2>
       {score && <p className="rp-sub">{g?.pass ? `Goal ${goal} reached: a comfortable pass.` : p?.pass ? `Pass mark ${target} reached. Goal ${goal} next.` : `${p?.pct || 0}% of the pass mark ${target}. Keep at the intervals.`}</p>}
-      {score && onSave && <button className="pf-go" onClick={() => onSave(score)}>Save to PCT</button>}
-      <button className="pf-link bt-again" onClick={() => { setScore(''); setNow(0); said.current = new Set(); setPhase('setup') }}>Run it again</button>
+      {score && onSave && <p className="rp-hint bt-saved"><Icon name="checkCircle" /> {saved ? 'Saved to PCT' : 'Saving to PCT'}</p>}
+      <button className="pf-link bt-again" onClick={() => { clearTimeout(autoT.current); setSaved(false); setScore(''); setNow(0); said.current = new Set(); setPhase('setup') }}>Run it again</button>
     </div>}
   </div>
 }
