@@ -262,6 +262,7 @@ export default function Home() {
           <HaydenToggle />
           {guest ? <button className="calm-pill" onClick={() => toSignIn(nav)}>Sign in</button>
             : <button className="calm-rb" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="personCircle" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>}
+          {!guest && <button className="calm-rb" onClick={() => import('./Community.jsx').then(m => m.openBell())} aria-label="Your bell" title="Your bell"><Icon name="bell" /></button>}
         </div>
       </div>
       {/* Hayden's one small question, only after 3+ days away (components/HaydenCards.jsx). */}

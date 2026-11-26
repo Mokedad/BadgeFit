@@ -316,6 +316,9 @@ function NumbersSheet() {
 }
 
 /** The bell: every cheer, reply and follow lately, newest first, each with Follow back. */
+/** The bell from anywhere (Home's top row too): the same sheet as Community's bell. */
+export const openBell = () => useUI.getState().openSheet(close => <BellSheet close={close} />)
+
 function BellSheet({ close }) {
   const [list, setList] = useState(null)
   useEffect(() => { api('/api/cheers/history').then(r => setList(r?.cheers || [])).catch(() => setList([])) }, [])
