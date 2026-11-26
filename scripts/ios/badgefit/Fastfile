@@ -90,9 +90,17 @@ platform :ios do
       # What to Test, in plain words for testers: scripts/ios/badgefit/WHATS_NEW, rewritten with
       # each build (the TestFlight app shows it under the build). A plain line without the file.
       notes_file = File.join(ENV['GITHUB_WORKSPACE'] || Dir.pwd, 'scripts/ios/badgefit/WHATS_NEW')
-      notes = File.exist?(notes_file) ? File.read(notes_file).strip : ''
+      notes = File.exist?(notes_file) ? File.read(notes_file, encoding: 'UTF-8').strip : ''
       notes = 'New beta build. Train, then tell us what felt off.' if notes.empty?
-      upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true, changelog: notes[0, 4000])
+      # Apple refuses some symbols in What to Test (✎ failed build 238): plain characters only.
+      notes = notes.gsub(/[^\x20-\x7E\n]/, '').gsub(/ {2,}/, ' ').strip[0, 4000]
+      begin
+        upload_to_testflight(api_key: key, ipa: 'build/BadgeFit.ipa', skip_waiting_for_build_processing: true, changelog: notes)
+      rescue => e
+        # The build is already up by the time the note is set: a refused note must not fail the run.
+        raise unless e.message.to_s.include?('changelog')
+        UI.important("Build uploaded; What to Test not set: #{e.message}")
+      end
     end
   end
 end
